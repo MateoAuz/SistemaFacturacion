@@ -1,0 +1,11 @@
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\bin\Debug\net8.0\SistemaFacturacion.Domain.deps.json
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\bin\Debug\net8.0\SistemaFacturacion.Domain.dll
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\bin\Debug\net8.0\SistemaFacturacion.Domain.pdb
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\obj\Debug\net8.0\SistemaFacturacion.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\obj\Debug\net8.0\SistemaFacturacion.Domain.AssemblyInfoInputs.cache
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\obj\Debug\net8.0\SistemaFacturacion.Domain.AssemblyInfo.cs
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\obj\Debug\net8.0\SistemaFacturacion.Domain.csproj.CoreCompileInputs.cache
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\obj\Debug\net8.0\SistemaFacturacion.Domain.dll
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\obj\Debug\net8.0\refint\SistemaFacturacion.Domain.dll
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\obj\Debug\net8.0\SistemaFacturacion.Domain.pdb
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Domain\obj\Debug\net8.0\ref\SistemaFacturacion.Domain.dll

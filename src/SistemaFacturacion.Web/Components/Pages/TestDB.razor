@@ -1,0 +1,48 @@
+@page "/testdb"
+@using SistemaFacturacion.Infrastructure.Persistence
+@using SistemaFacturacion.Domain.Entities
+@inject ApplicationDbContext _context
+
+<h3>🧠 Prueba de conexión con PostgreSQL</h3>
+
+@if (_clientes == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (!_clientes.Any())
+{
+    <p>No hay clientes registrados en la base de datos.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Identificación</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in _clientes)
+            {
+                <tr>
+                    <td>@c.IdCliente</td>
+                    <td>@c.Identificacion</td>
+                    <td>@c.Nombres</td>
+                    <td>@c.Correo</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Cliente>? _clientes;
+
+    protected override void OnInitialized()
+    {
+        _clientes = _context.Clientes.ToList();
+    }
+}

@@ -1,0 +1,15 @@
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\bin\Debug\net8.0\SistemaFacturacion.Application.deps.json
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\bin\Debug\net8.0\SistemaFacturacion.Application.dll
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\bin\Debug\net8.0\SistemaFacturacion.Application.pdb
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\bin\Debug\net8.0\SistemaFacturacion.Domain.dll
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\bin\Debug\net8.0\SistemaFacturacion.Domain.pdb
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.csproj.AssemblyReference.cache
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.AssemblyInfoInputs.cache
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.AssemblyInfo.cs
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.csproj.CoreCompileInputs.cache
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaF.D515F337.Up2Date
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.dll
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\refint\SistemaFacturacion.Application.dll
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.pdb
+D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\ref\SistemaFacturacion.Application.dll
