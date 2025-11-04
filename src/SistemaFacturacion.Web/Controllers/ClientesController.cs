@@ -1,0 +1,69 @@
+using Microsoft.AspNetCore.Mvc;
+using SistemaFacturacion.Application.Contracts;
+using SistemaFacturacion.Domain.Entities;
+
+namespace SistemaFacturacion.Web.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ClientesController : ControllerBase
+{
+    private readonly IClienteRepository _repo;
+
+    public ClientesController(IClienteRepository repo)
+    {
+        _repo = repo;
+    }
+
+    // GET /api/clientes
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Cliente>>> GetAll(CancellationToken ct)
+    {
+        var list = await _repo.GetAllActivosAsync(ct);
+        return Ok(list);
+    }
+
+    // GET /api/clientes/{id}
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<Cliente>> GetById(int id, CancellationToken ct)
+    {
+        var c = await _repo.GetByIdAsync(id, ct);
+        if (c is null) return NotFound();
+        return Ok(c);
+    }
+
+    // GET /api/clientes/by-identificacion/{id}
+    [HttpGet("by-identificacion/{identificacion}")]
+    public async Task<ActionResult<Cliente>> GetByIdentificacion(string identificacion, CancellationToken ct)
+    {
+        var c = await _repo.GetByIdentificacionAsync(identificacion, ct);
+        if (c is null) return NotFound();
+        return Ok(c);
+    }
+
+    // POST /api/clientes
+    [HttpPost]
+    public async Task<ActionResult<Cliente>> Create([FromBody] Cliente cliente, CancellationToken ct)
+    {
+        var created = await _repo.AddAsync(cliente, ct);
+        return CreatedAtAction(nameof(GetById), new { id = created.IdCliente }, created);
+    }
+
+    // PUT /api/clientes/{id}
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<Cliente>> Update(int id, [FromBody] Cliente cliente, CancellationToken ct)
+    {
+        var updated = await _repo.UpdateAsync(id, cliente, ct);
+        if (updated is null) return NotFound();
+        return Ok(updated);
+    }
+
+    // DELETE /api/clientes/{id} (baja lógica)
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        var ok = await _repo.DeleteLogicalAsync(id, ct);
+        if (!ok) return NotFound();
+        return NoContent();
+    }
+}

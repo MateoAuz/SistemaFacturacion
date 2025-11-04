@@ -12,6 +12,9 @@ public class Factura
     public decimal Total { get; set; }
     public string Estado { get; set; } = "PENDIENTE";
 
+    public ICollection<DetalleFactura> Detalles { get; set; } = new List<DetalleFactura>();
+
+
     public Cliente? Cliente { get; set; }
     public Usuario? Usuario { get; set; }
     public ICollection<DetalleFactura>? DetallesFactura { get; set; }

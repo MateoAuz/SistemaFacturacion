@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Infrastructure\\SistemaFacturacion.Infrastructure.csproj": {}
+    "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Infrastructure\\SistemaFacturacion.Infrastructure.csproj": {}
   },
   "projects": {
-    "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\SistemaFacturacion.Application.csproj": {
+    "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\SistemaFacturacion.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\SistemaFacturacion.Application.csproj",
+        "projectUniqueName": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\SistemaFacturacion.Application.csproj",
         "projectName": "SistemaFacturacion.Application",
-        "projectPath": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\SistemaFacturacion.Application.csproj",
-        "packagesPath": "C:\\Users\\WIN11\\.nuget\\packages\\",
-        "outputPath": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\obj\\",
+        "projectPath": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\SistemaFacturacion.Application.csproj",
+        "packagesPath": "C:\\Users\\ASUS ROG G14\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\WIN11\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\ASUS ROG G14\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -26,8 +26,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj": {
-                "projectPath": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj"
+              "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj": {
+                "projectPath": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj"
               }
             }
           }
@@ -76,17 +76,17 @@
         }
       }
     },
-    "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj": {
+    "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj",
+        "projectUniqueName": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj",
         "projectName": "SistemaFacturacion.Domain",
-        "projectPath": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj",
-        "packagesPath": "C:\\Users\\WIN11\\.nuget\\packages\\",
-        "outputPath": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\obj\\",
+        "projectPath": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj",
+        "packagesPath": "C:\\Users\\ASUS ROG G14\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\WIN11\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\ASUS ROG G14\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -134,17 +134,17 @@
         }
       }
     },
-    "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Infrastructure\\SistemaFacturacion.Infrastructure.csproj": {
+    "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Infrastructure\\SistemaFacturacion.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Infrastructure\\SistemaFacturacion.Infrastructure.csproj",
+        "projectUniqueName": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Infrastructure\\SistemaFacturacion.Infrastructure.csproj",
         "projectName": "SistemaFacturacion.Infrastructure",
-        "projectPath": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Infrastructure\\SistemaFacturacion.Infrastructure.csproj",
-        "packagesPath": "C:\\Users\\WIN11\\.nuget\\packages\\",
-        "outputPath": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Infrastructure\\obj\\",
+        "projectPath": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Infrastructure\\SistemaFacturacion.Infrastructure.csproj",
+        "packagesPath": "C:\\Users\\ASUS ROG G14\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\WIN11\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\ASUS ROG G14\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -156,11 +156,11 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\SistemaFacturacion.Application.csproj": {
-                "projectPath": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\SistemaFacturacion.Application.csproj"
+              "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\SistemaFacturacion.Application.csproj": {
+                "projectPath": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Application\\SistemaFacturacion.Application.csproj"
               },
-              "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj": {
-                "projectPath": "D:\\Mateo\\UTA\\Cuarto\\Metodologias agiles\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj"
+              "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj": {
+                "projectPath": "C:\\Users\\ASUS ROG G14\\Documents\\Visual\\SistemaFacturacion\\src\\SistemaFacturacion.Domain\\SistemaFacturacion.Domain.csproj"
               }
             }
           }

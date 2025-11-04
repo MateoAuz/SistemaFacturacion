@@ -13,3 +13,19 @@ D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacio
 D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\refint\SistemaFacturacion.Application.dll
 D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.pdb
 D:\Mateo\UTA\Cuarto\Metodologias agiles\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\ref\SistemaFacturacion.Application.dll
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\bin\Debug\net8.0\SistemaFacturacion.Application.deps.json
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\bin\Debug\net8.0\SistemaFacturacion.Application.dll
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\bin\Debug\net8.0\SistemaFacturacion.Application.pdb
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\bin\Debug\net8.0\SistemaFacturacion.Domain.dll
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\bin\Debug\net8.0\SistemaFacturacion.Domain.pdb
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.csproj.AssemblyReference.cache
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.AssemblyInfoInputs.cache
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.AssemblyInfo.cs
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.csproj.CoreCompileInputs.cache
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.sourcelink.json
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaF.D515F337.Up2Date
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.dll
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\refint\SistemaFacturacion.Application.dll
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\SistemaFacturacion.Application.pdb
+C:\Users\ASUS ROG G14\Documents\Visual\SistemaFacturacion\src\SistemaFacturacion.Application\obj\Debug\net8.0\ref\SistemaFacturacion.Application.dll

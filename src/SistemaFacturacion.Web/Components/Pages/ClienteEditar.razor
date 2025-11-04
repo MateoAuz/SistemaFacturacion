@@ -1,0 +1,97 @@
+@page "/clientes/{id:int}"
+@using SistemaFacturacion.Domain.Entities
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<h2>Editar cliente</h2>
+
+@if (cargando)
+{
+    <p>Cargando...</p>
+}
+else if (cliente is null)
+{
+    <div class="alert alert-warning">Cliente no encontrado</div>
+}
+else
+{
+    <EditForm Model="cliente" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <div class="row g-2">
+            <div class="col-md-2">
+                <InputText class="form-control" @bind-Value="cliente.TipoIdentificacion" />
+            </div>
+            <div class="col-md-3">
+                <InputText class="form-control" @bind-Value="cliente.Identificacion" />
+            </div>
+            <div class="col-md-3">
+                <InputText class="form-control" @bind-Value="cliente.Nombres" />
+            </div>
+            <div class="col-md-3">
+                <InputText class="form-control" @bind-Value="cliente.Apellidos" />
+            </div>
+            <div class="col-md-4 mt-2">
+                <InputText class="form-control" @bind-Value="cliente.Correo" />
+            </div>
+            <div class="col-md-3 mt-2">
+                <InputText class="form-control" @bind-Value="cliente.Telefono" />
+            </div>
+            <div class="col-md-5 mt-2">
+                <InputText class="form-control" @bind-Value="cliente.Direccion" />
+            </div>
+            <div class="col-12 mt-3">
+                <button class="btn btn-success" type="submit">Guardar cambios</button>
+                <button type="button" class="btn btn-secondary ms-2" @onclick="Volver">Volver</button>
+            </div>
+        </div>
+    </EditForm>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger mt-2">@error</div>
+    }
+}
+
+@code {
+    [Parameter] public int id { get; set; }
+    private Cliente? cliente;
+    private bool cargando = true;
+    private string? error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        cargando = true;
+        error = null;
+        try
+        {
+            cliente = await Http.GetFromJsonAsync<Cliente>($"/api/clientes/{id}");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        error = null;
+        try
+        {
+            var resp = await Http.PutAsJsonAsync($"/api/clientes/{id}", cliente);
+            if (resp.IsSuccessStatusCode)
+                Volver();
+            else
+                error = $"Error: {resp.StatusCode} - {await resp.Content.ReadAsStringAsync()}";
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private void Volver() => Nav.NavigateTo("/clientes");
+}

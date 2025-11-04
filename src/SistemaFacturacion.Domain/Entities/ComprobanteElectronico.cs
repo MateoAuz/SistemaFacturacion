@@ -13,5 +13,6 @@ public class ComprobanteElectronico
     public DateTime? FechaAutorizacion { get; set; }
     public string? NumeroAutorizacion { get; set; }
 
-    public Factura? Factura { get; set; }
+    public Factura Factura { get; set; } = null!;
+
 }
