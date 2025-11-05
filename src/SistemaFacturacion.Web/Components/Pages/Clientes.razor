@@ -1,8 +1,11 @@
 @page "/clientes"
+@layout MainLayout
 @rendermode InteractiveServer
 @using SistemaFacturacion.Domain.Entities
+@using SistemaFacturacion.Web.Components.Pages.Shared
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-people-fill"></i> Gestión de Clientes</h1>

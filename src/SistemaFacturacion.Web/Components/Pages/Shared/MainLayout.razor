@@ -1,4 +1,5 @@
-﻿@inherits LayoutComponentBase
+@* Pages/Shared/MainLayout.razor *@
+@inherits LayoutComponentBase
 
 <div class="sidebar-container">
     <div class="sidebar">
@@ -47,7 +48,8 @@
 </div>
 
 @code {
-    [Inject] NavigationManager Nav { get; set; } = default!;
+    [Inject] 
+    private NavigationManager Nav { get; set; } = default!;
 
     private string GetNavItemClass(string url)
     {
