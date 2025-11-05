@@ -1,23 +1,57 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized>
+            <!-- Layout normal cuando está autenticado -->
+            <div class="page">
+                <div class="sidebar">
+                    <NavMenu />
+                </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+                <main>
+                    <div class="top-row px-4 auth">
+                        <div class="d-flex align-items-center">
+                            <span class="me-3">Hola, @context.User.Identity!.Name!</span>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="CerrarSesion">
+                                Cerrar Sesión
+                            </button>
+                        </div>
+                        <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+                    </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+                    <article class="content px-4">
+                        @Body
+                    </article>
+                </main>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <!-- Solo muestra el login cuando NO está autenticado -->
+            <div class="login-fullscreen">
+                @Body
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</CascadingAuthenticationState>
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    private async Task CerrarSesion()
+    {
+        if (AuthStateProvider is SimpleAuthStateProvider simpleAuth)
+        {
+            simpleAuth.Logout();
+        }
+        Navigation.NavigateTo("/", true);
+    }
+}
