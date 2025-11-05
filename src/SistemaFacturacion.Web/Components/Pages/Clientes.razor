@@ -20,24 +20,23 @@
 else
 {
     <!-- Pestañas -->
-<div class="mb-4">
-    <ul class="nav nav-tabs">
-        <li class="nav-item">
-            <button class="nav-link @(tabActiva == "activos" ? "active" : "")" 
-                    @onclick='() => CambiarTab("activos")'>
-                <i class="bi bi-person-check"></i> Clientes Activos
-                <span class="badge bg-primary ms-1">@clientesActivos.Count</span>
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link @(tabActiva == "inactivos" ? "active" : "")" 
+    <div class="mb-4">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <button class="nav-link @(tabActiva == "activos" ? "active" : "")" @onclick='() => CambiarTab("activos")'>
+                    <i class="bi bi-person-check"></i> Clientes Activos
+                    <span class="badge bg-primary ms-1">@clientesActivos.Count</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(tabActiva == "inactivos" ? "active" : "")"
                     @onclick='() => CambiarTab("inactivos")'>
-                <i class="bi bi-person-x"></i> Clientes Inactivos
-                <span class="badge bg-secondary ms-1">@clientesInactivos.Count</span>
-            </button>
-        </li>
-    </ul>
-</div>
+                    <i class="bi bi-person-x"></i> Clientes Inactivos
+                    <span class="badge bg-secondary ms-1">@clientesInactivos.Count</span>
+                </button>
+            </li>
+        </ul>
+    </div>
 
     <div class="mb-4">
         @if (tabActiva == "activos")
@@ -84,7 +83,8 @@ else
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Dirección</label>
-                    <input type="text" class="form-control" @bind="nuevoCliente.Direccion" placeholder="Calle 123 y Av. Principal" />
+                    <input type="text" class="form-control" @bind="nuevoCliente.Direccion"
+                        placeholder="Calle 123 y Av. Principal" />
                 </div>
             </div>
             <div class="mt-4">
@@ -138,17 +138,20 @@ else
                             <td class="text-end">
                                 @if (tabActiva == "activos")
                                 {
-                                    <button class="btn btn-sm btn-warning btn-modern" 
-                                            @onclick="() => Desactivar(c.IdCliente)"
-                                            title="Desactivar cliente">
+                                    <button class="btn btn-sm btn-info btn-modern me-2" @onclick="() => Editar(c.IdCliente)"
+                                        title="Editar cliente">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </button>
+
+                                    <button class="btn btn-sm btn-warning btn-modern" @onclick="() => Desactivar(c.IdCliente)"
+                                        title="Desactivar cliente">
                                         <i class="bi bi-person-dash"></i> Desactivar
                                     </button>
                                 }
                                 else
                                 {
-                                    <button class="btn btn-sm btn-success btn-modern" 
-                                            @onclick="() => Reactivar(c.IdCliente)"
-                                            title="Reactivar cliente">
+                                    <button class="btn btn-sm btn-success btn-modern" @onclick="() => Reactivar(c.IdCliente)"
+                                        title="Reactivar cliente">
                                         <i class="bi bi-person-check"></i> Reactivar
                                     </button>
                                 }
@@ -216,8 +219,8 @@ else
         mensaje = null;
 
         if (string.IsNullOrWhiteSpace(nuevoCliente.TipoIdentificacion) ||
-            string.IsNullOrWhiteSpace(nuevoCliente.Identificacion) ||
-            string.IsNullOrWhiteSpace(nuevoCliente.Nombres))
+        string.IsNullOrWhiteSpace(nuevoCliente.Identificacion) ||
+        string.IsNullOrWhiteSpace(nuevoCliente.Nombres))
         {
             mensaje = "Complete Tipo, Identificación y Nombres";
             return;
@@ -301,4 +304,10 @@ else
             mensaje = $"Excepción: {ex.Message}";
         }
     }
+
+    private void Editar(int id)
+{
+    Console.WriteLine($"Navegando a editar cliente ID: {id}");
+    Nav.NavigateTo($"/editar-cliente/{id}");
+}
 }

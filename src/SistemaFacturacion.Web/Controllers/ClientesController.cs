@@ -24,13 +24,26 @@ public class ClientesController : ControllerBase
     }
 
     // GET /api/clientes/{id}
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<Cliente>> GetById(int id, CancellationToken ct)
+[HttpGet("{id:int}")]
+public async Task<ActionResult<Cliente>> GetById(int id, CancellationToken ct)
+{
+    try
     {
         var c = await _repo.GetByIdAsync(id, ct);
-        if (c is null) return NotFound();
+        if (c is null) 
+        {
+            Console.WriteLine($"Cliente con ID {id} no encontrado");
+            return NotFound();
+        }
+        Console.WriteLine($"Cliente encontrado: {c.Nombres} {c.Apellidos}");
         return Ok(c);
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error en GetById: {ex}");
+        return StatusCode(500, "Error interno del servidor");
+    }
+}
 
     // GET /api/clientes/by-identificacion/{id}
     [HttpGet("by-identificacion/{identificacion}")]

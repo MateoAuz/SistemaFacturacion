@@ -1,33 +1,52 @@
 using SistemaFacturacion.Web.Components;
 using Microsoft.EntityFrameworkCore;
 using SistemaFacturacion.Infrastructure.Persistence;
-using SistemaFacturacion.Application.Contracts;  // ✅ AGREGAR ESTE
-using SistemaFacturacion.Infrastructure.Repositories;  // ✅ AGREGAR ESTE
+using SistemaFacturacion.Application.Contracts;
+using SistemaFacturacion.Infrastructure.Repositories;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddHttpClient();
+
+// 🔧 CONFIGURACIÓN DE HTTPCLIENT (AGREGA ESTO)
+builder.Services.AddHttpClient("LocalApi", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["BaseUrl"] ?? builder.Configuration["Urls"]?.Split(';').First() ?? "https://localhost:7001/");
+});
+
+// También agrega HttpClient genérico con BaseAddress
+builder.Services.AddScoped(sp =>
+{
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    return httpClientFactory.CreateClient("LocalApi");
+});
+
 builder.Services.AddControllers();
 
-builder.Services.AddScoped<SistemaFacturacion.Application.Contracts.IUsuarioRepository, 
-                           SistemaFacturacion.Infrastructure.Repositories.UsuarioRepository>();
-builder.Services.AddScoped<SistemaFacturacion.Application.Contracts.IClienteRepository,
-                           SistemaFacturacion.Infrastructure.Repositories.ClienteRepository>();
+// 🔧 REPOSITORIOS
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
+
+// 🔧 CONFIGURACIÓN JSON
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.WriteIndented = true;
+});
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// 💾 Configurar la conexión a PostgreSQL
+// 💾 CONFIGURAR LA CONEXIÓN A POSTGRESQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
 
-// 🔄 REDIRECCIÓN TEMPORAL: De "/" a "/login"
+// 🔄 REDIRECCIÓN TEMPORAL: DE "/" A "/LOGIN"
 app.MapGet("/", () => Results.Redirect("/login"));
 
-// Configure the HTTP request pipeline.
+// CONFIGURE THE HTTP REQUEST PIPELINE.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
