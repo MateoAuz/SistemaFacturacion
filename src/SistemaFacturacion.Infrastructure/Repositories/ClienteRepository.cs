@@ -73,6 +73,34 @@ public class ClienteRepository : IClienteRepository
         return true;
     }
 
+    public async Task<bool> ReactivarAsync(int id, CancellationToken ct = default)
+{
+    var entity = await _db.Clientes.FirstOrDefaultAsync(c => c.IdCliente == id, ct);
+    if (entity is null) return false;
+
+    if (entity.Estado) return true; // ya está activo
+    entity.Estado = true;
+    await _db.SaveChangesAsync(ct);
+    return true;
+}
+
+public async Task<IReadOnlyList<Cliente>> GetAllInactivosAsync(CancellationToken ct = default)
+{
+    return await _db.Clientes.AsNoTracking()
+        .Where(c => !c.Estado)
+        .OrderBy(c => c.Nombres)
+        .ThenBy(c => c.Apellidos)
+        .ToListAsync(ct);
+}
+
+public async Task<IReadOnlyList<Cliente>> GetAllAsync(CancellationToken ct = default)
+{
+    return await _db.Clientes.AsNoTracking()
+        .OrderBy(c => c.Nombres)
+        .ThenBy(c => c.Apellidos)
+        .ToListAsync(ct);
+}
+
     public Task<Cliente?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         return _db.Clientes.AsNoTracking().FirstOrDefaultAsync(c => c.IdCliente == id, ct);

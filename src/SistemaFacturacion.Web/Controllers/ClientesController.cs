@@ -66,4 +66,29 @@ public class ClientesController : ControllerBase
         if (!ok) return NotFound();
         return NoContent();
     }
+
+    // GET /api/clientes/inactivos
+[HttpGet("inactivos")]
+public async Task<ActionResult<IEnumerable<Cliente>>> GetInactivos(CancellationToken ct)
+{
+    var list = await _repo.GetAllInactivosAsync(ct);
+    return Ok(list);
+}
+
+// PATCH /api/clientes/{id}/reactivar
+[HttpPatch("{id:int}/reactivar")]
+public async Task<IActionResult> Reactivar(int id, CancellationToken ct)
+{
+    var result = await _repo.ReactivarAsync(id, ct);
+    if (!result) return NotFound();
+    return NoContent();
+}
+
+// GET /api/clientes/todos (opcional - para ver todos incluyendo inactivos)
+[HttpGet("todos")]
+public async Task<ActionResult<IEnumerable<Cliente>>> GetAllIncluyendoInactivos(CancellationToken ct)
+{
+    var list = await _repo.GetAllAsync(ct);
+    return Ok(list);
+}
 }

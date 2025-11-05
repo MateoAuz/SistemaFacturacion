@@ -19,11 +19,34 @@
 }
 else
 {
+    <!-- Pestañas -->
+<div class="mb-4">
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <button class="nav-link @(tabActiva == "activos" ? "active" : "")" 
+                    @onclick='() => CambiarTab("activos")'>
+                <i class="bi bi-person-check"></i> Clientes Activos
+                <span class="badge bg-primary ms-1">@clientesActivos.Count</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(tabActiva == "inactivos" ? "active" : "")" 
+                    @onclick='() => CambiarTab("inactivos")'>
+                <i class="bi bi-person-x"></i> Clientes Inactivos
+                <span class="badge bg-secondary ms-1">@clientesInactivos.Count</span>
+            </button>
+        </li>
+    </ul>
+</div>
+
     <div class="mb-4">
-        <button class="btn btn-primary btn-modern" @onclick="ToggleForm">
-            <i class="bi bi-@(mostrandoForm ? "x-circle" : "plus-circle")"></i>
-            @(mostrandoForm ? "Cancelar" : "Nuevo Cliente")
-        </button>
+        @if (tabActiva == "activos")
+        {
+            <button class="btn btn-primary btn-modern" @onclick="ToggleForm">
+                <i class="bi bi-@(mostrandoForm ? "x-circle" : "plus-circle")"></i>
+                @(mostrandoForm ? "Cancelar" : "Nuevo Cliente")
+            </button>
+        }
     </div>
 
     @if (mostrandoForm)
@@ -91,18 +114,20 @@ else
                 </tr>
             </thead>
             <tbody>
-                @if (clientes.Count == 0)
+                @if (clientesActuales.Count == 0)
                 {
                     <tr>
                         <td colspan="6" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox" style="font-size: 3rem;"></i>
-                            <p class="mt-2">No hay clientes registrados</p>
+                            <p class="mt-2">
+                                @(tabActiva == "activos" ? "No hay clientes activos" : "No hay clientes inactivos")
+                            </p>
                         </td>
                     </tr>
                 }
                 else
                 {
-                    @foreach (var c in clientes)
+                    foreach (var c in clientesActuales)
                     {
                         <tr>
                             <td><span class="badge bg-primary badge-custom">@c.TipoIdentificacion</span></td>
@@ -111,9 +136,22 @@ else
                             <td>@c.Correo</td>
                             <td>@c.Telefono</td>
                             <td class="text-end">
-                                <button class="btn btn-sm btn-danger btn-modern" @onclick="() => Eliminar(c.IdCliente)">
-                                    <i class="bi bi-trash"></i> Eliminar
-                                </button>
+                                @if (tabActiva == "activos")
+                                {
+                                    <button class="btn btn-sm btn-warning btn-modern" 
+                                            @onclick="() => Desactivar(c.IdCliente)"
+                                            title="Desactivar cliente">
+                                        <i class="bi bi-person-dash"></i> Desactivar
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-success btn-modern" 
+                                            @onclick="() => Reactivar(c.IdCliente)"
+                                            title="Reactivar cliente">
+                                        <i class="bi bi-person-check"></i> Reactivar
+                                    </button>
+                                }
                             </td>
                         </tr>
                     }
@@ -126,9 +164,13 @@ else
 @code {
     private bool isLoading = true;
     private bool mostrandoForm = false;
-    private List<Cliente> clientes = new();
+    private string tabActiva = "activos";
+    private List<Cliente> clientesActivos = new();
+    private List<Cliente> clientesInactivos = new();
     private Cliente nuevoCliente = new();
     private string? mensaje;
+
+    private List<Cliente> clientesActuales => tabActiva == "activos" ? clientesActivos : clientesInactivos;
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,8 +183,13 @@ else
         mensaje = null;
         try
         {
-            var url = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes";
-            clientes = await Http.GetFromJsonAsync<List<Cliente>>(url) ?? new();
+            // Cargar clientes activos
+            var urlActivos = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes";
+            clientesActivos = await Http.GetFromJsonAsync<List<Cliente>>(urlActivos) ?? new();
+
+            // Cargar clientes inactivos
+            var urlInactivos = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/inactivos";
+            clientesInactivos = await Http.GetFromJsonAsync<List<Cliente>>(urlInactivos) ?? new();
         }
         catch (Exception ex)
         {
@@ -199,7 +246,13 @@ else
         }
     }
 
-    private async Task Eliminar(int id)
+    private void CambiarTab(string tab)
+    {
+        tabActiva = tab;
+        mostrandoForm = false;
+    }
+
+    private async Task Desactivar(int id)
     {
         mensaje = null;
         try
@@ -209,7 +262,32 @@ else
 
             if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NoContent)
             {
-                mensaje = "Cliente eliminado";
+                mensaje = "Cliente desactivado correctamente";
+                await CargarClientes();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                mensaje = $"Error: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Excepción: {ex.Message}";
+        }
+    }
+
+    private async Task Reactivar(int id)
+    {
+        mensaje = null;
+        try
+        {
+            var url = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/{id}/reactivar";
+            var response = await Http.PatchAsync(url, null);
+
+            if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                mensaje = "Cliente reactivado correctamente";
                 await CargarClientes();
             }
             else
