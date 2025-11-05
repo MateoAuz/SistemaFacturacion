@@ -1,0 +1,43 @@
+# Build results
+**/bin/
+**/obj/
+# Visual Studio Code
+.vscode/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# ASP.NET / Blazor temporary
+**/wwwroot/_framework/
+**/staticwebassets.build.json
+**/staticwebassets.development.json
+**/staticwebassets*.json
+
+# Cache files
+*.cache
+*.pdb
+*.tmp
+
+# Backup and temp
+*.bak
+*.swp
+
+# Node / lib / publish
+node_modules/
+wwwroot/dist/
+publish/
+
+# NuGet packages
+**/packages/
+*.nupkg
+.nuget/
+nuget.exe
+
+# Rider IDE
+.idea/

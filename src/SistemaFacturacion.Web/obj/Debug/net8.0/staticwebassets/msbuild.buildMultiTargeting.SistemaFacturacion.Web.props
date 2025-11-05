@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\SistemaFacturacion.Web.props" />
-</Project>
