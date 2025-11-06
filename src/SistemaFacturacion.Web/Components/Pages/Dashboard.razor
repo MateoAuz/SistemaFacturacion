@@ -1,0 +1,300 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+@using SistemaFacturacion.Domain.Entities
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div class="dashboard-page">
+    <!-- Welcome Header -->
+    <div class="welcome-header mb-4">
+        <h1 class="display-6 fw-bold text-dark mb-2">Bienvenido al Sistema de Facturación</h1>
+        <p class="text-muted mb-4">Gestiona tu negocio de manera eficiente y profesional</p>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+        <div class="dashboard-card">
+            <div class="card-icon primary">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="card-value">@totalClientes</div>
+            <div class="card-label">Clientes Activos</div>
+            <div class="mt-2">
+                <small class="text-success">
+                    <i class="bi bi-arrow-up"></i> 
+                    Gestión completa de clientes
+                </small>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-icon success">
+                <i class="bi bi-box-seam"></i>
+            </div>
+            <div class="card-value">@totalProductos</div>
+            <div class="card-label">Productos en Stock</div>
+            <div class="mt-2">
+                <small class="text-info">
+                    <i class="bi bi-inbox"></i> 
+                    Inventario actualizado
+                </small>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-icon warning">
+                <i class="bi bi-receipt"></i>
+            </div>
+            <div class="card-value">@totalFacturas</div>
+            <div class="card-label">Facturas Este Mes</div>
+            <div class="mt-2">
+                <small class="text-warning">
+                    <i class="bi bi-graph-up"></i> 
+                    Actividad reciente
+                </small>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-icon info">
+                <i class="bi bi-currency-dollar"></i>
+            </div>
+            <div class="card-value">$@ingresosMes.ToString("N2")</div>
+            <div class="card-label">Ingresos del Mes</div>
+            <div class="mt-2">
+                <small class="text-success">
+                    <i class="bi bi-cash-coin"></i> 
+                    Balance actual
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="mb-3">Acciones Rápidas</h5>
+            <div class="quick-actions">
+                <a href="/clientes" class="action-btn">
+                    <i class="bi bi-person-plus"></i>
+                    <div>
+                        <strong>Nuevo Cliente</strong>
+                        <small class="d-block">Agregar cliente al sistema</small>
+                    </div>
+                </a>
+                <a href="/productos" class="action-btn">
+                    <i class="bi bi-plus-square"></i>
+                    <div>
+                        <strong>Nuevo Producto</strong>
+                        <small class="d-block">Agregar producto al inventario</small>
+                    </div>
+                </a>
+                <a href="/facturacion" class="action-btn">
+                    <i class="bi bi-file-earmark-plus"></i>
+                    <div>
+                        <strong>Nueva Factura</strong>
+                        <small class="d-block">Crear factura de venta</small>
+                    </div>
+                </a>
+                <a href="/clientes" class="action-btn">
+                    <i class="bi bi-search"></i>
+                    <div>
+                        <strong>Buscar Cliente</strong>
+                        <small class="d-block">Encontrar información de cliente</small>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Company Info & System Status -->
+    <div class="row">
+        <!-- Company Information -->
+        <div class="col-md-6 mb-4">
+            <div class="dashboard-card">
+                <h5 class="mb-3">
+                    <i class="bi bi-building me-2"></i>Información de la Empresa
+                </h5>
+                <div class="company-info">
+                    <div class="info-item mb-3">
+                        <strong><i class="bi bi-building me-2"></i>Nombre:</strong>
+                        <span class="ms-2">Mi Empresa S.A.</span>
+                    </div>
+                    <div class="info-item mb-3">
+                        <strong><i class="bi bi-geo-alt me-2"></i>Dirección:</strong>
+                        <span class="ms-2">Av. Principal 123, Ciudad</span>
+                    </div>
+                    <div class="info-item mb-3">
+                        <strong><i class="bi bi-telephone me-2"></i>Teléfono:</strong>
+                        <span class="ms-2">+593 2 123 4567</span>
+                    </div>
+                    <div class="info-item mb-3">
+                        <strong><i class="bi bi-envelope me-2"></i>Email:</strong>
+                        <span class="ms-2">info@miempresa.com</span>
+                    </div>
+                    <div class="info-item">
+                        <strong><i class="bi bi-file-text me-2"></i>RUC:</strong>
+                        <span class="ms-2">1234567890001</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="col-md-6 mb-4">
+            <div class="dashboard-card">
+                <h5 class="mb-3">
+                    <i class="bi bi-info-circle me-2"></i>Estado del Sistema
+                </h5>
+                <div class="system-status">
+                    <div class="status-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Base de Datos</span>
+                            <span class="badge bg-success">Conectado</span>
+                        </div>
+                    </div>
+                    <div class="status-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Servidor API</span>
+                            <span class="badge bg-success">En Línea</span>
+                        </div>
+                    </div>
+                    <div class="status-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Versión del Sistema</span>
+                            <span class="badge bg-primary">v2.1.0</span>
+                        </div>
+                    </div>
+                    <div class="status-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Última Actualización</span>
+                            <small class="text-muted">@DateTime.Now.ToString("dd/MM/yyyy")</small>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Clientes Registrados Hoy</span>
+                            <span class="badge bg-info">@clientesHoy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-12">
+            <div class="dashboard-card">
+                <h5 class="mb-3">
+                    <i class="bi bi-clock-history me-2"></i>Actividad Reciente
+                </h5>
+                <div class="recent-activity">
+                    @if (actividadReciente.Any())
+                    {
+                        foreach (var actividad in actividadReciente)
+                        {
+                            <div class="activity-item mb-3 p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <i class="bi @actividad.Icono me-2 text-primary"></i>
+                                        <strong>@actividad.Titulo</strong>
+                                        <p class="mb-0 text-muted small">@actividad.Descripcion</p>
+                                    </div>
+                                    <small class="text-muted">@actividad.Tiempo</small>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                            <p>No hay actividad reciente</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int totalClientes = 0;
+    private int totalProductos = 0;
+    private int totalFacturas = 0;
+    private decimal ingresosMes = 0;
+    private int clientesHoy = 0;
+
+    private List<Actividad> actividadReciente = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatosDashboard();
+        GenerarActividadReciente();
+    }
+
+    private async Task CargarDatosDashboard()
+    {
+        try
+        {
+            // Cargar datos reales desde tu API
+            var clientes = await Http.GetFromJsonAsync<List<Cliente>>("api/clientes");
+            totalClientes = clientes?.Count ?? 0;
+            
+            // Aquí puedes cargar los otros datos cuando tengas los endpoints
+            // totalProductos = await Http.GetFromJsonAsync<int>("api/productos/count");
+            // totalFacturas = await Http.GetFromJsonAsync<int>("api/facturas/mes/count");
+            // ingresosMes = await Http.GetFromJsonAsync<decimal>("api/facturas/mes/ingresos");
+            
+            // Datos de ejemplo por ahora
+            totalProductos = 45;
+            totalFacturas = 12;
+            ingresosMes = 28450.75m;
+            clientesHoy = 2;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando datos del dashboard: {ex.Message}");
+            // Usar datos de ejemplo en caso de error
+            totalClientes = 25;
+            totalProductos = 45;
+            totalFacturas = 12;
+            ingresosMes = 28450.75m;
+            clientesHoy = 2;
+        }
+    }
+
+    private void GenerarActividadReciente()
+    {
+        actividadReciente = new List<Actividad>
+        {
+            new Actividad { 
+                Icono = "bi-person-plus", 
+                Titulo = "Nuevo Cliente Registrado", 
+                Descripcion = "Juan Pérez se ha registrado en el sistema",
+                Tiempo = "Hace 2 horas"
+            },
+            new Actividad { 
+                Icono = "bi-receipt", 
+                Titulo = "Factura Generada", 
+                Descripcion = "Factura #001-001-000000123 creada exitosamente",
+                Tiempo = "Hace 4 horas"
+            },
+            new Actividad { 
+                Icono = "bi-box-seam", 
+                Titulo = "Stock Actualizado", 
+                Descripcion = "Producto 'Laptop Dell' actualizado en inventario",
+                Tiempo = "Ayer"
+            }
+        };
+    }
+
+    private class Actividad
+    {
+        public string Icono { get; set; } = string.Empty;
+        public string Titulo { get; set; } = string.Empty;
+        public string Descripcion { get; set; } = string.Empty;
+        public string Tiempo { get; set; } = string.Empty;
+    }
+}

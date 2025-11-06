@@ -41,3 +41,4 @@ nuget.exe
 
 # Rider IDE
 .idea/
+.fake

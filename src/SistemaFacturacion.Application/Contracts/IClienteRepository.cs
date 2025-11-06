@@ -10,4 +10,7 @@ public interface IClienteRepository
     Task<Cliente?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<Cliente?> GetByIdentificacionAsync(string identificacion, CancellationToken ct = default);
     Task<IReadOnlyList<Cliente>> GetAllActivosAsync(CancellationToken ct = default);
+    Task<bool> ReactivarAsync(int id, CancellationToken ct = default);
+    Task<IReadOnlyList<Cliente>> GetAllInactivosAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<Cliente>> GetAllAsync(CancellationToken ct = default);
 }
