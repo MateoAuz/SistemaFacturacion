@@ -1,97 +1,168 @@
-@page "/clientes/{id:int}"
+@page "/editar-cliente/{IdCliente:int}"
+@rendermode InteractiveServer
 @using SistemaFacturacion.Domain.Entities
-@inject HttpClient Http
+@using System.Net.Http.Json
+@inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Nav
 
-<h2>Editar cliente</h2>
+<div class="page-header">
+    <h1 class="mb-0"><i class="bi bi-pencil-square"></i> Editar Cliente</h1>
+    <p class="mb-0 mt-2 opacity-75">Modifica la información del cliente</p>
+</div>
 
 @if (cargando)
 {
-    <p>Cargando...</p>
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-2">Cargando cliente ID: @IdCliente...</p>
+    </div>
 }
 else if (cliente is null)
 {
-    <div class="alert alert-warning">Cliente no encontrado</div>
+    <div class="alert alert-warning alert-modern">
+        <i class="bi bi-exclamation-triangle"></i> Cliente no encontrado (ID: @IdCliente)
+        <br><br>
+        <button class="btn btn-secondary btn-sm" @onclick="Volver">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </button>
+    </div>
 }
 else
 {
-    <EditForm Model="cliente" OnValidSubmit="Guardar">
-        <DataAnnotationsValidator />
-        <div class="row g-2">
-            <div class="col-md-2">
-                <InputText class="form-control" @bind-Value="cliente.TipoIdentificacion" />
+    <div class="card-modern">
+        <EditForm Model="cliente" OnValidSubmit="Guardar" FormName="editar-cliente">
+            <DataAnnotationsValidator />
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Tipo ID</label>
+                    <InputSelect class="form-select" @bind-Value="cliente.TipoIdentificacion">
+                        <option value="">Seleccione...</option>
+                        <option value="CEDUL">Cédula</option>
+                        <option value="RUC">RUC</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Identificación</label>
+                    <InputText class="form-control" @bind-Value="cliente.Identificacion" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Nombres</label>
+                    <InputText class="form-control" @bind-Value="cliente.Nombres" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Apellidos</label>
+                    <InputText class="form-control" @bind-Value="cliente.Apellidos" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Correo</label>
+                    <InputText class="form-control" @bind-Value="cliente.Correo" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Teléfono</label>
+                    <InputText class="form-control" @bind-Value="cliente.Telefono" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Dirección</label>
+                    <InputText class="form-control" @bind-Value="cliente.Direccion" />
+                </div>
             </div>
-            <div class="col-md-3">
-                <InputText class="form-control" @bind-Value="cliente.Identificacion" />
-            </div>
-            <div class="col-md-3">
-                <InputText class="form-control" @bind-Value="cliente.Nombres" />
-            </div>
-            <div class="col-md-3">
-                <InputText class="form-control" @bind-Value="cliente.Apellidos" />
-            </div>
-            <div class="col-md-4 mt-2">
-                <InputText class="form-control" @bind-Value="cliente.Correo" />
-            </div>
-            <div class="col-md-3 mt-2">
-                <InputText class="form-control" @bind-Value="cliente.Telefono" />
-            </div>
-            <div class="col-md-5 mt-2">
-                <InputText class="form-control" @bind-Value="cliente.Direccion" />
-            </div>
-            <div class="col-12 mt-3">
-                <button class="btn btn-success" type="submit">Guardar cambios</button>
-                <button type="button" class="btn btn-secondary ms-2" @onclick="Volver">Volver</button>
-            </div>
-        </div>
-    </EditForm>
+            
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="alert alert-danger alert-modern mt-3">
+                    <i class="bi bi-exclamation-circle"></i> @mensajeError
+                </div>
+            }
 
-    @if (!string.IsNullOrEmpty(error))
-    {
-        <div class="alert alert-danger mt-2">@error</div>
-    }
+            <div class="mt-4">
+                <button class="btn btn-success btn-modern" type="submit" disabled="@guardando">
+                    <i class="bi bi-check-circle"></i> 
+                    @(guardando ? "Guardando..." : "Guardar Cambios")
+                </button>
+                <button type="button" class="btn btn-secondary btn-modern ms-2" @onclick="Volver" disabled="@guardando">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </button>
+            </div>
+        </EditForm>
+    </div>
 }
 
 @code {
-    [Parameter] public int id { get; set; }
+    [Parameter] public int IdCliente { get; set; }
     private Cliente? cliente;
     private bool cargando = true;
-    private string? error;
+    private bool guardando = false;
+    private string? mensajeError;
 
     protected override async Task OnParametersSetAsync()
     {
+        await CargarCliente();
+    }
+
+    private async Task CargarCliente()
+    {
         cargando = true;
-        error = null;
+        mensajeError = null;
+        StateHasChanged();
+
         try
         {
-            cliente = await Http.GetFromJsonAsync<Cliente>($"/api/clientes/{id}");
+            var httpClient = HttpClientFactory.CreateClient("LocalApi");
+            cliente = await httpClient.GetFromJsonAsync<Cliente>($"api/clientes/{IdCliente}");
+            
+            if (cliente == null)
+            {
+                mensajeError = "No se pudo cargar la información del cliente";
+            }
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            mensajeError = $"Error al cargar cliente: {ex.Message}";
+            Console.WriteLine($"Error detallado: {ex}");
         }
         finally
         {
             cargando = false;
+            StateHasChanged();
         }
     }
 
     private async Task Guardar()
     {
-        error = null;
+        guardando = true;
+        mensajeError = null;
+        StateHasChanged();
+
         try
         {
-            var resp = await Http.PutAsJsonAsync($"/api/clientes/{id}", cliente);
-            if (resp.IsSuccessStatusCode)
-                Volver();
+            var httpClient = HttpClientFactory.CreateClient("LocalApi");
+            var response = await httpClient.PutAsJsonAsync($"api/clientes/{IdCliente}", cliente);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo("/clientes");
+            }
             else
-                error = $"Error: {resp.StatusCode} - {await resp.Content.ReadAsStringAsync()}";
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                mensajeError = $"Error al guardar: {errorContent}";
+            }
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            mensajeError = $"Error de conexión: {ex.Message}";
+        }
+        finally
+        {
+            guardando = false;
+            StateHasChanged();
         }
     }
 
-    private void Volver() => Nav.NavigateTo("/clientes");
+    private void Volver()
+    {
+        Nav.NavigateTo("/clientes");
+    }
 }

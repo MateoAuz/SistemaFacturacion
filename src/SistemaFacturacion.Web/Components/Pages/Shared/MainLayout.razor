@@ -1,4 +1,6 @@
-﻿@inherits LayoutComponentBase
+@* Pages/Shared/MainLayout.razor *@
+@inherits LayoutComponentBase
+@inject IJSRuntime JS
 
 <div class="sidebar-container">
     <div class="sidebar">
@@ -34,10 +36,10 @@
         </nav>
         
         <div class="sidebar-footer">
-            <a href="/logout" class="nav-item logout">
+            <button class="nav-item logout btn btn-link" @onclick="ConfirmarLogout">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Cerrar Sesión</span>
-            </a>
+            </button>
         </div>
     </div>
 
@@ -47,11 +49,33 @@
 </div>
 
 @code {
-    [Inject] NavigationManager Nav { get; set; } = default!;
+    [Inject] 
+    private NavigationManager Nav { get; set; } = default!;
+
+    private bool isInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isInitialized)
+        {
+            isInitialized = true;
+            // Cualquier inicialización que necesite JS iría aquí
+        }
+    }
 
     private string GetNavItemClass(string url)
     {
         var currentUri = Nav.Uri;
         return currentUri.Contains(url) ? "active" : "";
+    }
+
+    private async Task ConfirmarLogout()
+    {
+        var confirmado = await JS.InvokeAsync<bool>("confirm", "¿Está seguro que desea cerrar sesión?");
+        
+        if (confirmado)
+        {
+            Nav.NavigateTo("/logout");
+        }
     }
 }
