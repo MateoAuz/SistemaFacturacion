@@ -105,7 +105,10 @@ public class ApplicationDbContext : DbContext
             e.Property(x => x.IdProducto).HasColumnName("idproducto");
             e.Property(x => x.Cantidad).HasColumnName("cantidad");
             e.Property(x => x.PrecioUnitario).HasColumnName("preciounitario").HasColumnType("numeric(12,2)");
-            e.Property(x => x.TotalLinea).HasColumnName("totallinea").HasColumnType("numeric(12,2)");
+            e.Property(x => x.TotalLinea)
+                .HasColumnName("totallinea")
+                .HasColumnType("numeric(12,2)")
+                .HasComputedColumnSql("(cantidad * preciounitario)", stored: true);
 
             e.HasOne(x => x.Factura).WithMany(f => f.Detalles).HasForeignKey(x => x.IdFactura).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Producto).WithMany().HasForeignKey(x => x.IdProducto).OnDelete(DeleteBehavior.Restrict);

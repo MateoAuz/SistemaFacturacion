@@ -1,4 +1,6 @@
 @page "/testdb"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
 @using SistemaFacturacion.Infrastructure.Persistence
 @using SistemaFacturacion.Domain.Entities
 @inject ApplicationDbContext _context
@@ -15,7 +17,7 @@ else if (!_clientes.Any())
 }
 else
 {
-    <table class="table table-striped">
+    <table class="table table-striped table-modern">
         <thead>
             <tr>
                 <th>ID</th>
@@ -41,8 +43,8 @@ else
 @code {
     private List<Cliente>? _clientes;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _clientes = _context.Clientes.ToList();
+        _clientes = await _context.Clientes.AsNoTracking().ToListAsync();
     }
 }
