@@ -6,32 +6,43 @@
 @inject IHttpClientFactory HttpFactory
 @inject IJSRuntime JS
 
-<!-- Título principal -->
-<div class="d-flex align-items-center mb-3">
-    <h3 class="fw-bold text-primary me-2 mb-0">
-        <i class="bi bi-box"></i> Gestión de Productos
-    </h3>
+<!-- ENCABEZADO PRINCIPAL -->
+<div class="card-header text-white fw-bold shadow-sm mb-4" style="background-color:#4a56e2; border-radius:12px;">
+    <div class="d-flex align-items-center p-3">
+        <i class="bi bi-box-seam me-3 fs-2"></i>
+        <div>
+            <h3 class="mb-0">Gestión de Productos</h3>
+            <small>Administra la información de tus productos</small>
+        </div>
+    </div>
 </div>
 
-<!-- Tabs: Activos / Inactivos -->
-<div class="d-flex align-items-center mb-3">
-    <button class="btn @(mostrarActivos ? "btn-primary" : "btn-outline-primary") me-2"
-        @onclick="() => CambiarVista(true)">
-        <i class="bi bi-diagram-3"></i> Productos Activos
-        <span class="badge bg-light text-dark">@productosActivos.Count</span>
+<!-- 🔔 NOTIFICACIONES -->
+@if (mostrarMensaje)
+{
+    <div class="alert alert-@tipoMensaje-custom text-center fade-in">
+        @mensaje
+    </div>
+}
+
+
+<!-- TABS ACTIVOS / INACTIVOS -->
+<div class="tabs-container d-flex align-items-center mb-3">
+    <button class="tab-btn @(mostrarActivos ? "active" : "") me-2" @onclick="() => CambiarVista(true)">
+        <i class="bi bi-boxes"></i> Productos Activos
+        <span class="badge-count">@productosActivos.Count</span>
     </button>
 
-    <button class="btn @(mostrarActivos ? "btn-outline-secondary" : "btn-secondary")"
-        @onclick="() => CambiarVista(false)">
+    <button class="tab-btn @(mostrarActivos ? "" : "active")" @onclick="() => CambiarVista(false)">
         <i class="bi bi-archive"></i> Productos Inactivos
-        <span class="badge bg-light text-dark">@productosInactivos.Count</span>
+        <span class="badge-count">@productosInactivos.Count</span>
     </button>
 </div>
 
-<!-- Botón Nuevo -->
+<!-- BOTÓN NUEVO -->
 @if (mostrarActivos)
 {
-    <button class="btn btn-primary mb-3" @onclick="Nuevo">
+    <button class="btn btn-primary btn-new mb-3" @onclick="Nuevo">
         <i class="bi bi-plus-circle"></i> Nuevo Producto
     </button>
 }
@@ -39,8 +50,9 @@
 @if (mostrarForm)
 {
     <div class="card mt-4 border-0 shadow-sm">
-        <div class="card-header text-white fw-bold" style="background-color:#4a56e2;">
-            <i class="bi bi-journal-plus"></i>
+        <div class="card-header text-white fw-bold"
+            style="background-color:#4a56e2; border-top-left-radius:12px; border-top-right-radius:12px;">
+            <i class="bi bi-journal-plus me-2"></i>
             @(editando ? "Editar Producto" : "Nuevo Producto")
         </div>
 
@@ -50,50 +62,77 @@
                 <ValidationSummary class="alert alert-danger" />
 
                 <div class="row g-3">
+                    <!-- CÓDIGO -->
                     <div class="col-md-3">
-                        <label class="form-label">Código *</label>
-                        <InputText class="form-control" @bind-Value="form.Codigo" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-upc-scan me-1 text-primary"></i> Código *
+                        </label>
+                        <InputText class="form-control" @bind-Value="form.Codigo" placeholder="Ej. PUR001" />
                         <ValidationMessage For="@(() => form.Codigo)" />
                     </div>
 
+                    <!-- NOMBRE -->
                     <div class="col-md-5">
-                        <label class="form-label">Nombre *</label>
-                        <InputText class="form-control" @bind-Value="form.Nombre" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-box-seam me-1 text-primary"></i> Nombre *
+                        </label>
+                        <InputText class="form-control" @bind-Value="form.Nombre"
+                            placeholder="Ej. Purina Pro Plan Adulto" />
                         <ValidationMessage For="@(() => form.Nombre)" />
                     </div>
 
+                    <!-- CATEGORÍA -->
                     <div class="col-md-4">
-                        <label class="form-label">Categoría</label>
-                        <InputText class="form-control" @bind-Value="form.Categoria" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-tags me-1 text-primary"></i> Categoría
+                        </label>
+                        <InputText class="form-control" @bind-Value="form.Categoria"
+                            placeholder="Ej. Alimento, Juguete..." />
                     </div>
 
+                    <!-- PRECIO UNITARIO -->
                     <div class="col-md-3">
-                        <label class="form-label">Precio Unitario *</label>
-                        <InputNumber class="form-control" @bind-Value="form.PrecioUnitario" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-cash-coin me-1 text-primary"></i> Precio Unitario *
+                        </label>
+                        <InputNumber class="form-control" @bind-Value="form.PrecioUnitario" placeholder="0.00" />
+                        <ValidationMessage For="@(() => form.PrecioUnitario)" />
                     </div>
 
+                    <!-- PRECIO VENTA -->
                     <div class="col-md-3">
-                        <label class="form-label">Precio Venta *</label>
-                        <InputNumber class="form-control" @bind-Value="form.PrecioVenta" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-cart-check me-1 text-primary"></i> Precio Venta *
+                        </label>
+                        <InputNumber class="form-control" @bind-Value="form.PrecioVenta" placeholder="0.00" />
+                        <ValidationMessage For="@(() => form.PrecioVenta)" />
                     </div>
 
+                    <!-- STOCK -->
                     <div class="col-md-2">
-                        <label class="form-label">Stock *</label>
-                        <InputNumber class="form-control" @bind-Value="form.StockActual" />
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-box2 me-1 text-primary"></i> Stock *
+                        </label>
+                        <InputNumber class="form-control" @bind-Value="form.StockActual" placeholder="Ej. 50" />
+                        <ValidationMessage For="@(() => form.StockActual)" />
                     </div>
 
+                    <!-- FECHA EXPIRACIÓN -->
                     <div class="col-md-3">
-                        <label class="form-label">Fecha Expiración</label>
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-event me-1 text-primary"></i> Fecha Expiración
+                        </label>
                         <InputDate class="form-control" @bind-Value="form.FechaExpiracion" />
                     </div>
                 </div>
 
+                <!-- BOTONES -->
                 <div class="mt-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-success px-3">
                         <i class="bi bi-check-circle"></i>
                         @(editando ? "Guardar Cambios" : "Guardar Producto")
                     </button>
-                    <button type="button" class="btn btn-secondary" @onclick="Cancelar">
+                    <button type="button" class="btn btn-secondary px-3" @onclick="Cancelar">
                         <i class="bi bi-x-circle"></i> Cancelar
                     </button>
                 </div>
@@ -101,6 +140,7 @@
         </div>
     </div>
 }
+
 
 <!-- Tabla de productos -->
 @if (cargando)
@@ -153,21 +193,23 @@ else
                                     <div class="d-flex justify-content-center gap-2">
                                         @if (p.Estado)
                                         {
-                                            <button class="btn btn-info btn-sm text-white" @onclick="() => Editar(p)">
-                                                <i class="bi bi-pencil-square"></i> Editar
+                                            <button class="btn-action btn-edit" @onclick="() => Editar(p)">
+                                                <i class="bi bi-pencil"></i> Editar
                                             </button>
-                                            <button class="btn btn-warning btn-sm text-white" @onclick="() => CambiarEstado(p, false)">
-                                                <i class="bi bi-slash-circle"></i> Desactivar
+
+                                            <button class="btn-action btn-disable" @onclick="() => CambiarEstado(p, false)">
+                                                <i class="bi bi-person-dash"></i> Desactivar
                                             </button>
                                         }
                                         else
                                         {
-                                            <button class="btn btn-success btn-sm" @onclick="() => CambiarEstado(p, true)">
-                                                <i class="bi bi-check2-circle"></i> Reactivar
+                                            <button class="btn-action btn-enable" @onclick="() => CambiarEstado(p, true)">
+                                                <i class="bi bi-person-check"></i> Reactivar
                                             </button>
                                         }
                                     </div>
                                 </td>
+
                             </tr>
                         }
                     }
@@ -191,6 +233,11 @@ else
     private bool cargando = true;
     private bool mostrarForm = false;
     private bool editando = false;
+
+    private string? mensaje;
+    private string tipoMensaje = "success";
+    private bool mostrarMensaje;
+
 
     private Producto form = new();
     private EditContext EditContext = default!;
@@ -246,29 +293,27 @@ else
     }
 
     private async Task Guardar()
-    {
-        HttpResponseMessage resp = editando
+{
+    HttpResponseMessage resp = editando
         ? await _http.PutAsJsonAsync($"api/productos/{form.IdProducto}", form)
         : await _http.PostAsJsonAsync("api/productos", form);
 
-        if (resp.IsSuccessStatusCode)
-        {
-            await Cargar();
-            mostrarForm = false;
-        }
-
-        if (resp.IsSuccessStatusCode)
-        {
-            await JS.InvokeVoidAsync("alert", editando ? "Producto actualizado correctamente" : "Producto registrado correctamente");
-            await Cargar();
-            mostrarForm = false;
-        }
-        else
-        {
-            var msg = await resp.Content.ReadAsStringAsync();
-            await JS.InvokeVoidAsync("alert", $"Error al guardar: {msg}");
-        }
+    if (resp.IsSuccessStatusCode)
+    {
+        await Cargar();
+        mostrarForm = false;
+        MostrarMensaje(editando 
+            ? "Producto actualizado correctamente ✅" 
+            : "Producto registrado exitosamente 🎉", 
+            "success");
     }
+    else
+    {
+        var msg = await resp.Content.ReadAsStringAsync();
+        MostrarMensaje($"Error al guardar: {msg}", "error");
+    }
+}
+
 
     private void Cancelar()
     {
@@ -277,22 +322,42 @@ else
     }
 
     private async Task CambiarEstado(Producto p, bool activar)
-    {
-        var endpoint = activar
+{
+    var endpoint = activar
         ? $"api/productos/{p.IdProducto}/activar"
         : $"api/productos/{p.IdProducto}/desactivar";
 
-        var resp = await _http.PatchAsync(endpoint, null);
+    var resp = await _http.PatchAsync(endpoint, null);
 
-        if (resp.IsSuccessStatusCode)
-        {
-            await Cargar();
-        }
-        else
-        {
-            var mensaje = await resp.Content.ReadAsStringAsync();
-            await JS.InvokeVoidAsync("alert", $"Error al cambiar estado: {mensaje}");
-        }
+    if (resp.IsSuccessStatusCode)
+    {
+        await Cargar();
+        MostrarMensaje(activar 
+            ? "Producto reactivado correctamente ✅" 
+            : "Producto desactivado correctamente ⚠️", 
+            "info");
     }
+    else
+    {
+        var mensajeError = await resp.Content.ReadAsStringAsync();
+        MostrarMensaje($"Error al cambiar estado: {mensajeError}", "error");
+    }
+}
+
+
+    private void MostrarMensaje(string texto, string tipo = "success")
+    {
+        mensaje = texto;
+        tipoMensaje = tipo;
+        mostrarMensaje = true;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(4000);
+            mostrarMensaje = false;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
 
 }
