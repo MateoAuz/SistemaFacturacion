@@ -37,6 +37,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+
 // 💾 CONFIGURAR LA CONEXIÓN A POSTGRESQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
