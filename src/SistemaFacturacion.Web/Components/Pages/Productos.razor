@@ -1,0 +1,363 @@
+@page "/productos"
+@rendermode InteractiveServer
+@using System.Net.Http.Json
+@using SistemaFacturacion.Domain.Entities
+@using Microsoft.AspNetCore.Components.Forms
+@inject IHttpClientFactory HttpFactory
+@inject IJSRuntime JS
+
+<!-- ENCABEZADO PRINCIPAL -->
+<div class="card-header text-white fw-bold shadow-sm mb-4" style="background-color:#4a56e2; border-radius:12px;">
+    <div class="d-flex align-items-center p-3">
+        <i class="bi bi-box-seam me-3 fs-2"></i>
+        <div>
+            <h3 class="mb-0">Gestión de Productos</h3>
+            <small>Administra la información de tus productos</small>
+        </div>
+    </div>
+</div>
+
+<!-- 🔔 NOTIFICACIONES -->
+@if (mostrarMensaje)
+{
+    <div class="alert alert-@tipoMensaje-custom text-center fade-in">
+        @mensaje
+    </div>
+}
+
+
+<!-- TABS ACTIVOS / INACTIVOS -->
+<div class="tabs-container d-flex align-items-center mb-3">
+    <button class="tab-btn @(mostrarActivos ? "active" : "") me-2" @onclick="() => CambiarVista(true)">
+        <i class="bi bi-boxes"></i> Productos Activos
+        <span class="badge-count">@productosActivos.Count</span>
+    </button>
+
+    <button class="tab-btn @(mostrarActivos ? "" : "active")" @onclick="() => CambiarVista(false)">
+        <i class="bi bi-archive"></i> Productos Inactivos
+        <span class="badge-count">@productosInactivos.Count</span>
+    </button>
+</div>
+
+<!-- BOTÓN NUEVO -->
+@if (mostrarActivos)
+{
+    <button class="btn btn-primary btn-new mb-3" @onclick="Nuevo">
+        <i class="bi bi-plus-circle"></i> Nuevo Producto
+    </button>
+}
+
+@if (mostrarForm)
+{
+    <div class="card mt-4 border-0 shadow-sm">
+        <div class="card-header text-white fw-bold"
+            style="background-color:#4a56e2; border-top-left-radius:12px; border-top-right-radius:12px;">
+            <i class="bi bi-journal-plus me-2"></i>
+            @(editando ? "Editar Producto" : "Nuevo Producto")
+        </div>
+
+        <div class="card-body">
+            <EditForm EditContext="@EditContext" OnValidSubmit="@Guardar">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="alert alert-danger" />
+
+                <div class="row g-3">
+                    <!-- CÓDIGO -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-upc-scan me-1 text-primary"></i> Código *
+                        </label>
+                        <InputText class="form-control" @bind-Value="form.Codigo" placeholder="Ej. PUR001" />
+                        <ValidationMessage For="@(() => form.Codigo)" />
+                    </div>
+
+                    <!-- NOMBRE -->
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-box-seam me-1 text-primary"></i> Nombre *
+                        </label>
+                        <InputText class="form-control" @bind-Value="form.Nombre"
+                            placeholder="Ej. Purina Pro Plan Adulto" />
+                        <ValidationMessage For="@(() => form.Nombre)" />
+                    </div>
+
+                    <!-- CATEGORÍA -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-tags me-1 text-primary"></i> Categoría
+                        </label>
+                        <InputText class="form-control" @bind-Value="form.Categoria"
+                            placeholder="Ej. Alimento, Juguete..." />
+                    </div>
+
+                    <!-- PRECIO UNITARIO -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-cash-coin me-1 text-primary"></i> Precio Unitario *
+                        </label>
+                        <InputNumber class="form-control" @bind-Value="form.PrecioUnitario" placeholder="0.00" />
+                        <ValidationMessage For="@(() => form.PrecioUnitario)" />
+                    </div>
+
+                    <!-- PRECIO VENTA -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-cart-check me-1 text-primary"></i> Precio Venta *
+                        </label>
+                        <InputNumber class="form-control" @bind-Value="form.PrecioVenta" placeholder="0.00" />
+                        <ValidationMessage For="@(() => form.PrecioVenta)" />
+                    </div>
+
+                    <!-- STOCK -->
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-box2 me-1 text-primary"></i> Stock *
+                        </label>
+                        <InputNumber class="form-control" @bind-Value="form.StockActual" placeholder="Ej. 50" />
+                        <ValidationMessage For="@(() => form.StockActual)" />
+                    </div>
+
+                    <!-- FECHA EXPIRACIÓN -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-event me-1 text-primary"></i> Fecha Expiración
+                        </label>
+                        <InputDate class="form-control" @bind-Value="form.FechaExpiracion" />
+                    </div>
+                </div>
+
+                <!-- BOTONES -->
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-success px-3">
+                        <i class="bi bi-check-circle"></i>
+                        @(editando ? "Guardar Cambios" : "Guardar Producto")
+                    </button>
+                    <button type="button" class="btn btn-secondary px-3" @onclick="Cancelar">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+
+<!-- Tabla de productos -->
+@if (cargando)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Cargando productos...</p>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0 align-middle">
+                <thead class="text-white" style="background-color:#4a56e2;">
+                    <tr class="text-center">
+                        <th scope="col">Código</th>
+                        <th scope="col">Nombre</th>
+                        <th scope="col">Categoría</th>
+                        <th scope="col">Precio Unitario</th>
+                        <th scope="col">Precio Venta</th>
+                        <th scope="col">Stock</th>
+                        <th scope="col">Expira</th>
+                        <th scope="col" style="width:200px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!productosMostrados.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-3">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                No hay productos para mostrar.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var p in productosMostrados)
+                        {
+                            <tr>
+                                <td>@p.Codigo</td>
+                                <td>@p.Nombre</td>
+                                <td>@p.Categoria</td>
+                                <td class="text-end">@p.PrecioUnitario.ToString("0.00")</td>
+                                <td class="text-end">@p.PrecioVenta.ToString("0.00")</td>
+                                <td class="text-center">@p.StockActual</td>
+                                <td class="text-center">@((p.FechaExpiracion?.ToString("dd/MM/yyyy")) ?? "-")</td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        @if (p.Estado)
+                                        {
+                                            <button class="btn-action btn-edit" @onclick="() => Editar(p)">
+                                                <i class="bi bi-pencil"></i> Editar
+                                            </button>
+
+                                            <button class="btn-action btn-disable" @onclick="() => CambiarEstado(p, false)">
+                                                <i class="bi bi-person-dash"></i> Desactivar
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-action btn-enable" @onclick="() => CambiarEstado(p, true)">
+                                                <i class="bi bi-person-check"></i> Reactivar
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<!-- Formulario -->
+
+@code {
+    private HttpClient _http => HttpFactory.CreateClient("LocalApi");
+
+    private List<Producto> productos = new();
+    private List<Producto> productosActivos => productos.Where(p => p.Estado).ToList();
+    private List<Producto> productosInactivos => productos.Where(p => !p.Estado).ToList();
+    private IEnumerable<Producto> productosMostrados => mostrarActivos ? productosActivos : productosInactivos;
+
+    private bool mostrarActivos = true;
+    private bool cargando = true;
+    private bool mostrarForm = false;
+    private bool editando = false;
+
+    private string? mensaje;
+    private string tipoMensaje = "success";
+    private bool mostrarMensaje;
+
+
+    private Producto form = new();
+    private EditContext EditContext = default!;
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        cargando = true;
+        try
+        {
+            var data = await _http.GetFromJsonAsync<List<Producto>>("api/productos");
+            productos = data ?? new();
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CambiarVista(bool activos)
+    {
+        mostrarActivos = activos;
+        mostrarForm = false;
+    }
+
+    private void Nuevo()
+    {
+        form = new Producto { Estado = true };
+        EditContext = new EditContext(form);
+        editando = false;
+        mostrarForm = true;
+    }
+
+    private void Editar(Producto p)
+    {
+        form = new Producto
+        {
+            IdProducto = p.IdProducto,
+            Codigo = p.Codigo,
+            Nombre = p.Nombre,
+            Categoria = p.Categoria,
+            PrecioUnitario = p.PrecioUnitario,
+            PrecioVenta = p.PrecioVenta,
+            StockActual = p.StockActual,
+            FechaExpiracion = p.FechaExpiracion,
+            Estado = p.Estado
+        };
+        EditContext = new EditContext(form);
+        editando = true;
+        mostrarForm = true;
+    }
+
+    private async Task Guardar()
+{
+    HttpResponseMessage resp = editando
+        ? await _http.PutAsJsonAsync($"api/productos/{form.IdProducto}", form)
+        : await _http.PostAsJsonAsync("api/productos", form);
+
+    if (resp.IsSuccessStatusCode)
+    {
+        await Cargar();
+        mostrarForm = false;
+        MostrarMensaje(editando 
+            ? "Producto actualizado correctamente ✅" 
+            : "Producto registrado exitosamente 🎉", 
+            "success");
+    }
+    else
+    {
+        var msg = await resp.Content.ReadAsStringAsync();
+        MostrarMensaje($"Error al guardar: {msg}", "error");
+    }
+}
+
+
+    private void Cancelar()
+    {
+        mostrarForm = false;
+        editando = false;
+    }
+
+    private async Task CambiarEstado(Producto p, bool activar)
+{
+    var endpoint = activar
+        ? $"api/productos/{p.IdProducto}/activar"
+        : $"api/productos/{p.IdProducto}/desactivar";
+
+    var resp = await _http.PatchAsync(endpoint, null);
+
+    if (resp.IsSuccessStatusCode)
+    {
+        await Cargar();
+        MostrarMensaje(activar 
+            ? "Producto reactivado correctamente ✅" 
+            : "Producto desactivado correctamente ⚠️", 
+            "info");
+    }
+    else
+    {
+        var mensajeError = await resp.Content.ReadAsStringAsync();
+        MostrarMensaje($"Error al cambiar estado: {mensajeError}", "error");
+    }
+}
+
+
+    private void MostrarMensaje(string texto, string tipo = "success")
+    {
+        mensaje = texto;
+        tipoMensaje = tipo;
+        mostrarMensaje = true;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(4000);
+            mostrarMensaje = false;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+
+}
