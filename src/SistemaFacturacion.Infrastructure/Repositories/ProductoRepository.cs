@@ -33,10 +33,11 @@ public class ProductoRepository : IProductoRepository
     }
 
     public async Task UpdateAsync(Producto entity, CancellationToken ct = default)
-    {
-        _ctx.Productos.Update(entity);
-        await _ctx.SaveChangesAsync(ct);
-    }
+{
+    _ctx.Entry(entity).State = EntityState.Modified;
+    await _ctx.SaveChangesAsync(ct);
+}
+
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
