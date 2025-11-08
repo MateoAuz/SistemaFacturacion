@@ -42,3 +42,6 @@ nuget.exe
 # Rider IDE
 .idea/
 .fake
+
+# Configuración local
+appsettings.json
