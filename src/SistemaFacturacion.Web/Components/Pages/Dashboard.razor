@@ -1,7 +1,7 @@
 @page "/dashboard"
 @rendermode InteractiveServer
 @using SistemaFacturacion.Domain.Entities
-@inject HttpClient Http
+@inject IHttpClientFactory HttpFactory
 @inject NavigationManager Nav
 
 <div class="dashboard-page">
@@ -13,6 +13,7 @@
 
     <!-- Stats Overview -->
     <div class="stats-grid">
+        <!-- CLIENTES -->
         <div class="dashboard-card">
             <div class="card-icon primary">
                 <i class="bi bi-people"></i>
@@ -21,26 +22,39 @@
             <div class="card-label">Clientes Activos</div>
             <div class="mt-2">
                 <small class="text-success">
-                    <i class="bi bi-arrow-up"></i> 
+                    <i class="bi bi-arrow-up"></i>
                     Gestión completa de clientes
                 </small>
             </div>
         </div>
 
+        <!-- PRODUCTOS -->
         <div class="dashboard-card">
             <div class="card-icon success">
                 <i class="bi bi-box-seam"></i>
             </div>
-            <div class="card-value">@totalProductos</div>
+
+            @if (cargandoProductos)
+            {
+                <div class="d-flex justify-content-center align-items-center" style="height: 80px;">
+                    <div class="spinner-border text-success" role="status"></div>
+                </div>
+            }
+            else
+            {
+                <div class="card-value">@totalProductos</div>
+            }
+
             <div class="card-label">Productos en Stock</div>
             <div class="mt-2">
                 <small class="text-info">
-                    <i class="bi bi-inbox"></i> 
+                    <i class="bi bi-inbox"></i>
                     Inventario actualizado
                 </small>
             </div>
         </div>
 
+        <!-- FACTURAS -->
         <div class="dashboard-card">
             <div class="card-icon warning">
                 <i class="bi bi-receipt"></i>
@@ -49,12 +63,13 @@
             <div class="card-label">Facturas Este Mes</div>
             <div class="mt-2">
                 <small class="text-warning">
-                    <i class="bi bi-graph-up"></i> 
+                    <i class="bi bi-graph-up"></i>
                     Actividad reciente
                 </small>
             </div>
         </div>
 
+        <!-- INGRESOS -->
         <div class="dashboard-card">
             <div class="card-icon info">
                 <i class="bi bi-currency-dollar"></i>
@@ -63,7 +78,7 @@
             <div class="card-label">Ingresos del Mes</div>
             <div class="mt-2">
                 <small class="text-success">
-                    <i class="bi bi-cash-coin"></i> 
+                    <i class="bi bi-cash-coin"></i>
                     Balance actual
                 </small>
             </div>
@@ -220,11 +235,15 @@
 </div>
 
 @code {
+    private HttpClient _http => HttpFactory.CreateClient("LocalApi");
+
     private int totalClientes = 0;
     private int totalProductos = 0;
     private int totalFacturas = 0;
     private decimal ingresosMes = 0;
     private int clientesHoy = 0;
+
+    private bool cargandoProductos = true;
 
     private List<Actividad> actividadReciente = new();
 
@@ -238,52 +257,41 @@
     {
         try
         {
-            // Cargar datos reales desde tu API
-            var clientes = await Http.GetFromJsonAsync<List<Cliente>>("api/clientes");
+            var clientes = await _http.GetFromJsonAsync<List<Cliente>>("api/clientes");
             totalClientes = clientes?.Count ?? 0;
-            
-            // Aquí puedes cargar los otros datos cuando tengas los endpoints
-            // totalProductos = await Http.GetFromJsonAsync<int>("api/productos/count");
-            // totalFacturas = await Http.GetFromJsonAsync<int>("api/facturas/mes/count");
-            // ingresosMes = await Http.GetFromJsonAsync<decimal>("api/facturas/mes/ingresos");
-            
-            // Datos de ejemplo por ahora
-            totalProductos = 45;
-            totalFacturas = 12;
-            ingresosMes = 28450.75m;
-            clientesHoy = 2;
+
+            totalProductos = await _http.GetFromJsonAsync<int>("api/productos/count-stock");
+
+            cargandoProductos = false;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error cargando datos del dashboard: {ex.Message}");
-            // Usar datos de ejemplo en caso de error
-            totalClientes = 25;
-            totalProductos = 45;
-            totalFacturas = 12;
-            ingresosMes = 28450.75m;
-            clientesHoy = 2;
+            totalClientes = 0;
+            totalProductos = 0;
+            cargandoProductos = false;
         }
     }
 
     private void GenerarActividadReciente()
     {
-        actividadReciente = new List<Actividad>
+        actividadReciente = new()
         {
-            new Actividad { 
-                Icono = "bi-person-plus", 
-                Titulo = "Nuevo Cliente Registrado", 
+            new Actividad {
+                Icono = "bi-person-plus",
+                Titulo = "Nuevo Cliente Registrado",
                 Descripcion = "Juan Pérez se ha registrado en el sistema",
                 Tiempo = "Hace 2 horas"
             },
-            new Actividad { 
-                Icono = "bi-receipt", 
-                Titulo = "Factura Generada", 
+            new Actividad {
+                Icono = "bi-receipt",
+                Titulo = "Factura Generada",
                 Descripcion = "Factura #001-001-000000123 creada exitosamente",
                 Tiempo = "Hace 4 horas"
             },
-            new Actividad { 
-                Icono = "bi-box-seam", 
-                Titulo = "Stock Actualizado", 
+            new Actividad {
+                Icono = "bi-box-seam",
+                Titulo = "Stock Actualizado",
                 Descripcion = "Producto 'Laptop Dell' actualizado en inventario",
                 Tiempo = "Ayer"
             }
