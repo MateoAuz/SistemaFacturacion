@@ -24,26 +24,26 @@ public class ClientesController : ControllerBase
     }
 
     // GET /api/clientes/{id}
-[HttpGet("{id:int}")]
-public async Task<ActionResult<Cliente>> GetById(int id, CancellationToken ct)
-{
-    try
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<Cliente>> GetById(int id, CancellationToken ct)
     {
-        var c = await _repo.GetByIdAsync(id, ct);
-        if (c is null) 
+        try
         {
-            Console.WriteLine($"Cliente con ID {id} no encontrado");
-            return NotFound();
+            var c = await _repo.GetByIdAsync(id, ct);
+            if (c is null)
+            {
+                Console.WriteLine($"Cliente con ID {id} no encontrado");
+                return NotFound();
+            }
+            Console.WriteLine($"Cliente encontrado: {c.Nombres} {c.Apellidos}");
+            return Ok(c);
         }
-        Console.WriteLine($"Cliente encontrado: {c.Nombres} {c.Apellidos}");
-        return Ok(c);
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en GetById: {ex}");
+            return StatusCode(500, "Error interno del servidor");
+        }
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error en GetById: {ex}");
-        return StatusCode(500, "Error interno del servidor");
-    }
-}
 
     // GET /api/clientes/by-identificacion/{id}
     [HttpGet("by-identificacion/{identificacion}")]
@@ -81,27 +81,35 @@ public async Task<ActionResult<Cliente>> GetById(int id, CancellationToken ct)
     }
 
     // GET /api/clientes/inactivos
-[HttpGet("inactivos")]
-public async Task<ActionResult<IEnumerable<Cliente>>> GetInactivos(CancellationToken ct)
-{
-    var list = await _repo.GetAllInactivosAsync(ct);
-    return Ok(list);
-}
+    [HttpGet("inactivos")]
+    public async Task<ActionResult<IEnumerable<Cliente>>> GetInactivos(CancellationToken ct)
+    {
+        var list = await _repo.GetAllInactivosAsync(ct);
+        return Ok(list);
+    }
 
-// PATCH /api/clientes/{id}/reactivar
-[HttpPatch("{id:int}/reactivar")]
-public async Task<IActionResult> Reactivar(int id, CancellationToken ct)
-{
-    var result = await _repo.ReactivarAsync(id, ct);
-    if (!result) return NotFound();
-    return NoContent();
-}
+    // PATCH /api/clientes/{id}/reactivar
+    [HttpPatch("{id:int}/reactivar")]
+    public async Task<IActionResult> Reactivar(int id, CancellationToken ct)
+    {
+        var result = await _repo.ReactivarAsync(id, ct);
+        if (!result) return NotFound();
+        return NoContent();
+    }
 
-// GET /api/clientes/todos (opcional - para ver todos incluyendo inactivos)
-[HttpGet("todos")]
-public async Task<ActionResult<IEnumerable<Cliente>>> GetAllIncluyendoInactivos(CancellationToken ct)
-{
-    var list = await _repo.GetAllAsync(ct);
-    return Ok(list);
-}
+    // GET /api/clientes/todos (opcional - para ver todos incluyendo inactivos)
+    [HttpGet("todos")]
+    public async Task<ActionResult<IEnumerable<Cliente>>> GetAllIncluyendoInactivos(CancellationToken ct)
+    {
+        var list = await _repo.GetAllAsync(ct);
+        return Ok(list);
+    }
+
+    // En tu ClienteController agrega este método
+    [HttpGet("existe/{identificacion}")]
+    public async Task<ActionResult<bool>> ExisteIdentificacion(string identificacion)
+    {
+        var cliente = await _repo.GetByIdentificacionAsync(identificacion);
+        return Ok(cliente != null);
+    }
 }

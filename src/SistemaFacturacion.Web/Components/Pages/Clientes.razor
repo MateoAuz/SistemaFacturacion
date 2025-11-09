@@ -1,8 +1,7 @@
 @page "/clientes"
-
 @rendermode InteractiveServer
 @using SistemaFacturacion.Domain.Entities
-
+@using System.ComponentModel.DataAnnotations 
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -55,46 +54,90 @@ else
     {
         <div class="card-modern">
             <h5 class="mb-3"><i class="bi bi-person-plus"></i> Nuevo Cliente</h5>
-            <div class="row g-3">
-                <div class="col-md-2">
-                    <label class="form-label">Tipo ID</label>
-                    <select class="form-select" @bind="nuevoCliente.TipoIdentificacion">
-                        <option value="">Seleccione...</option>
-                        <option value="CEDUL">Cédula</option>
-                        <option value="RUC">RUC</option>
-                    </select>
+            
+            <EditForm Model="nuevoCliente" OnValidSubmit="Guardar" Context="formContext">
+                <DataAnnotationsValidator />
+                
+                @if (!string.IsNullOrEmpty(mensajeError))
+                {
+                    <div class="alert alert-danger alert-modern">
+                        <i class="bi bi-exclamation-triangle"></i> @mensajeError
+                    </div>
+                }
+
+                <div class="row g-3">
+                    <!-- Tipo Identificación -->
+                    <div class="col-md-2">
+                        <label class="form-label">Tipo ID *</label>
+                        <InputSelect class="form-select" @bind-Value="nuevoCliente.TipoIdentificacion">
+                            <option value="">Seleccione...</option>
+                            <option value="CEDUL">Cédula</option>
+                            <option value="RUC">RUC</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => nuevoCliente.TipoIdentificacion)" class="text-danger small" />
+                    </div>
+
+                    <!-- Identificación -->
+                    <div class="col-md-4">
+                        <label class="form-label">Identificación *</label>
+                        <InputText class="form-control" @bind-Value="nuevoCliente.Identificacion" 
+                                  placeholder="0123456789" maxlength="13" />
+                        <ValidationMessage For="@(() => nuevoCliente.Identificacion)" class="text-danger small" />
+                        @if (!string.IsNullOrEmpty(mensajeValidacionCedula))
+                        {
+                            <div class="text-danger small">@mensajeValidacionCedula</div>
+                        }
+                    </div>
+
+                    <!-- Nombres -->
+                    <div class="col-md-3">
+                        <label class="form-label">Nombres *</label>
+                        <InputText class="form-control" @bind-Value="nuevoCliente.Nombres" 
+                                  placeholder="Juan Carlos" maxlength="60" />
+                        <ValidationMessage For="@(() => nuevoCliente.Nombres)" class="text-danger small" />
+                    </div>
+
+                    <!-- Apellidos -->
+                    <div class="col-md-3">
+                        <label class="form-label">Apellidos</label>
+                        <InputText class="form-control" @bind-Value="nuevoCliente.Apellidos" 
+                                  placeholder="Pérez López" maxlength="60" />
+                        <ValidationMessage For="@(() => nuevoCliente.Apellidos)" class="text-danger small" />
+                    </div>
+
+                    <!-- Correo -->
+                    <div class="col-md-5">
+                        <label class="form-label">Correo</label>
+                        <InputText class="form-control" @bind-Value="nuevoCliente.Correo" 
+                                  placeholder="ejemplo@correo.com" type="email" maxlength="80" />
+                        <ValidationMessage For="@(() => nuevoCliente.Correo)" class="text-danger small" />
+                    </div>
+
+                    <!-- Teléfono -->
+                    <div class="col-md-3">
+                        <label class="form-label">Teléfono</label>
+                        <InputText class="form-control" @bind-Value="nuevoCliente.Telefono" 
+                                  placeholder="0999999999" maxlength="15" />
+                        <ValidationMessage For="@(() => nuevoCliente.Telefono)" class="text-danger small" />
+                    </div>
+
+                    <!-- Dirección -->
+                    <div class="col-md-4">
+                        <label class="form-label">Dirección</label>
+                        <InputText class="form-control" @bind-Value="nuevoCliente.Direccion"
+                                placeholder="Calle 123 y Av. Principal" maxlength="120" />
+                        <ValidationMessage For="@(() => nuevoCliente.Direccion)" class="text-danger small" />
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Identificación</label>
-                    <input type="text" class="form-control" @bind="nuevoCliente.Identificacion" placeholder="0123456789" />
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success btn-modern" disabled="@guardando">
+                        <i class="bi bi-check-circle"></i> 
+                        @(guardando ? "Guardando..." : "Guardar Cliente")
+                    </button>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label">Nombres</label>
-                    <input type="text" class="form-control" @bind="nuevoCliente.Nombres" placeholder="Juan Carlos" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Apellidos</label>
-                    <input type="text" class="form-control" @bind="nuevoCliente.Apellidos" placeholder="Pérez López" />
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label">Correo</label>
-                    <input type="email" class="form-control" @bind="nuevoCliente.Correo" placeholder="ejemplo@correo.com" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Teléfono</label>
-                    <input type="text" class="form-control" @bind="nuevoCliente.Telefono" placeholder="0999999999" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Dirección</label>
-                    <input type="text" class="form-control" @bind="nuevoCliente.Direccion"
-                        placeholder="Calle 123 y Av. Principal" />
-                </div>
-            </div>
-            <div class="mt-4">
-                <button class="btn btn-success btn-modern" @onclick="Guardar">
-                    <i class="bi bi-check-circle"></i> Guardar Cliente
-                </button>
-            </div>
+            </EditForm>
+
             @if (!string.IsNullOrEmpty(mensaje))
             {
                 <div class="alert alert-info alert-modern mt-3">
@@ -104,6 +147,7 @@ else
         </div>
     }
 
+    <!-- El resto del código de la tabla permanece igual -->
     <div class="table-modern">
         <table class="table table-hover mb-0">
             <thead>
@@ -170,11 +214,14 @@ else
 @code {
     private bool isLoading = true;
     private bool mostrandoForm = false;
+    private bool guardando = false;
     private string tabActiva = "activos";
     private List<Cliente> clientesActivos = new();
     private List<Cliente> clientesInactivos = new();
     private Cliente nuevoCliente = new();
     private string? mensaje;
+    private string? mensajeError;
+    private string? mensajeValidacionCedula;
 
     private List<Cliente> clientesActuales => tabActiva == "activos" ? clientesActivos : clientesInactivos;
 
@@ -187,6 +234,7 @@ else
     {
         isLoading = true;
         mensaje = null;
+        mensajeError = null;
         try
         {
             // Cargar clientes activos
@@ -199,7 +247,7 @@ else
         }
         catch (Exception ex)
         {
-            mensaje = $"Error: {ex.Message}";
+            mensajeError = $"Error al cargar clientes: {ex.Message}";
         }
         finally
         {
@@ -213,54 +261,84 @@ else
         if (mostrandoForm)
         {
             nuevoCliente = new Cliente { Estado = true };
+            LimpiarMensajes();
         }
-        mensaje = null;
     }
 
     private async Task Guardar()
     {
-        mensaje = null;
-
-        if (string.IsNullOrWhiteSpace(nuevoCliente.TipoIdentificacion) ||
-        string.IsNullOrWhiteSpace(nuevoCliente.Identificacion) ||
-        string.IsNullOrWhiteSpace(nuevoCliente.Nombres))
-        {
-            mensaje = "Complete Tipo, Identificación y Nombres";
-            return;
-        }
+        guardando = true;
+        LimpiarMensajes();
 
         try
         {
-            var url = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes";
-            var response = await Http.PostAsJsonAsync(url, nuevoCliente);
+            // Validación personalizada de cédula/RUC
+            var validacionIdentificacion = nuevoCliente.ValidarIdentificacion();
+            if (validacionIdentificacion != ValidationResult.Success)
+            {
+                mensajeValidacionCedula = validacionIdentificacion.ErrorMessage;
+                guardando = false;
+                return;
+            }
+
+            // Validar si la identificación ya existe
+            var urlVerificar = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/existe/{nuevoCliente.Identificacion}";
+            var responseVerificar = await Http.GetAsync(urlVerificar);
+            
+            if (responseVerificar.IsSuccessStatusCode)
+            {
+                var existe = await responseVerificar.Content.ReadFromJsonAsync<bool>();
+                if (existe)
+                {
+                    mensajeError = "Ya existe un cliente con esta identificación";
+                    guardando = false;
+                    return;
+                }
+            }
+
+            // Guardar el cliente
+            var urlGuardar = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes";
+            var response = await Http.PostAsJsonAsync(urlGuardar, nuevoCliente);
 
             if (response.IsSuccessStatusCode)
             {
-                mensaje = "Cliente guardado exitosamente";
+                mensaje = "✅ Cliente guardado exitosamente";
                 mostrandoForm = false;
                 await CargarClientes();
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                mensaje = $"Error {(int)response.StatusCode}: {error}";
+                mensajeError = $"Error al guardar: {error}";
             }
         }
         catch (Exception ex)
         {
-            mensaje = $"Excepción: {ex.Message}";
+            mensajeError = $"Error: {ex.Message}";
         }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void LimpiarMensajes()
+    {
+        mensaje = null;
+        mensajeError = null;
+        mensajeValidacionCedula = null;
     }
 
     private void CambiarTab(string tab)
     {
         tabActiva = tab;
         mostrandoForm = false;
+        LimpiarMensajes();
     }
 
     private async Task Desactivar(int id)
     {
-        mensaje = null;
+        LimpiarMensajes();
         try
         {
             var url = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/{id}";
@@ -274,18 +352,18 @@ else
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                mensaje = $"Error: {error}";
+                mensajeError = $"Error: {error}";
             }
         }
         catch (Exception ex)
         {
-            mensaje = $"Excepción: {ex.Message}";
+            mensajeError = $"Error: {ex.Message}";
         }
     }
 
     private async Task Reactivar(int id)
     {
-        mensaje = null;
+        LimpiarMensajes();
         try
         {
             var url = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/{id}/reactivar";
@@ -299,18 +377,18 @@ else
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                mensaje = $"Error: {error}";
+                mensajeError = $"Error: {error}";
             }
         }
         catch (Exception ex)
         {
-            mensaje = $"Excepción: {ex.Message}";
+            mensajeError = $"Error: {ex.Message}";
         }
     }
 
     private void Editar(int id)
-{
-    Console.WriteLine($"Navegando a editar cliente ID: {id}");
-    Nav.NavigateTo($"/editar-cliente/{id}");
-}
+    {
+        Console.WriteLine($"Navegando a editar cliente ID: {id}");
+        Nav.NavigateTo($"/editar-cliente/{id}");
+    }
 }
