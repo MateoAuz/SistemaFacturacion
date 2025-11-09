@@ -57,10 +57,7 @@ public class UsuarioRepository : IUsuarioRepository
 
         // Para desarrollo: verificación simple
         // Esto es TEMPORAL - en producción usar siempre crypt
-        if (password == "123456")
-        {
-            return usuario;
-        }
+       
 
         return null;
     }
