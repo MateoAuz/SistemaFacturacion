@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 namespace SistemaFacturacion.Domain.Entities;
 
 public class Usuario
@@ -8,6 +9,8 @@ public class Usuario
     public string? Correo { get; set; }
     public char Rol { get; set; }  // 'A' = Admin, 'V' = Vendedor
     public bool Estado { get; set; } = true;
+    
+    [JsonIgnore] // <-- AÑADE ESTO
 
     public ICollection<Factura>? Facturas { get; set; }
     public ICollection<HistorialPrecio>? HistorialPrecios { get; set; }

@@ -85,8 +85,15 @@ public class ApplicationDbContext : DbContext
             e.Property(x => x.Total).HasColumnName("total").HasColumnType("numeric(12,2)").IsRequired();
             e.Property(x => x.Estado).HasColumnName("estado").HasMaxLength(12).HasDefaultValue("PENDIENTE");
 
-            e.HasOne(x => x.Cliente).WithMany().HasForeignKey(x => x.IdCliente).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.IdUsuario).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Cliente)
+            .WithMany(c => c.Facturas) // <--- Especifica la colección en Cliente
+            .HasForeignKey(x => x.IdCliente)
+            .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.Usuario)
+            .WithMany(u => u.Facturas) // <--- Especifica la colección en Usuario
+            .HasForeignKey(x => x.IdUsuario)
+            .OnDelete(DeleteBehavior.SetNull);
 
             // 1–1 Factura ↔ Comprobante (dependiente: Comprobante)
             e.HasOne(x => x.Comprobante)

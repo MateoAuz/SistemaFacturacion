@@ -218,9 +218,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("cantidad");
 
-                    b.Property<int?>("FacturaIdFactura")
-                        .HasColumnType("integer");
-
                     b.Property<int>("IdFactura")
                         .HasColumnType("integer")
                         .HasColumnName("idfactura");
@@ -233,22 +230,17 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("preciounitario");
 
-                    b.Property<int?>("ProductoIdProducto")
-                        .HasColumnType("integer");
-
                     b.Property<decimal>("TotalLinea")
+                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("numeric(12,2)")
-                        .HasColumnName("totallinea");
+                        .HasColumnName("totallinea")
+                        .HasComputedColumnSql("(cantidad * preciounitario)", true);
 
                     b.HasKey("IdDetalle");
-
-                    b.HasIndex("FacturaIdFactura");
 
                     b.HasIndex("IdFactura");
 
                     b.HasIndex("IdProducto");
-
-                    b.HasIndex("ProductoIdProducto");
 
                     b.ToTable("detallefactura", (string)null);
                 });
@@ -261,9 +253,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                         .HasColumnName("idfactura");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("IdFactura"));
-
-                    b.Property<int?>("ClienteIdCliente")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Estado")
                         .IsRequired()
@@ -304,12 +293,7 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("total");
 
-                    b.Property<int?>("UsuarioIdUsuario")
-                        .HasColumnType("integer");
-
                     b.HasKey("IdFactura");
-
-                    b.HasIndex("ClienteIdCliente");
 
                     b.HasIndex("IdCliente");
 
@@ -318,8 +302,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                     b.HasIndex("NumeroFactura")
                         .IsUnique()
                         .HasDatabaseName("idx_facturas_numero");
-
-                    b.HasIndex("UsuarioIdUsuario");
 
                     b.ToTable("facturas", (string)null);
                 });
@@ -360,9 +342,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("precionuevo");
 
-                    b.Property<int?>("ProductoIdProducto")
-                        .HasColumnType("integer");
-
                     b.Property<int?>("UsuarioIdUsuario")
                         .HasColumnType("integer");
 
@@ -372,8 +351,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                         .HasDatabaseName("idx_historial_productos");
 
                     b.HasIndex("IdUsuario");
-
-                    b.HasIndex("ProductoIdProducto");
 
                     b.HasIndex("UsuarioIdUsuario");
 
@@ -491,10 +468,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
 
             modelBuilder.Entity("SistemaFacturacion.Domain.Entities.DetalleFactura", b =>
                 {
-                    b.HasOne("SistemaFacturacion.Domain.Entities.Factura", null)
-                        .WithMany("DetallesFactura")
-                        .HasForeignKey("FacturaIdFactura");
-
                     b.HasOne("SistemaFacturacion.Domain.Entities.Factura", "Factura")
                         .WithMany("Detalles")
                         .HasForeignKey("IdFactura")
@@ -507,10 +480,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SistemaFacturacion.Domain.Entities.Producto", null)
-                        .WithMany("DetallesFactura")
-                        .HasForeignKey("ProductoIdProducto");
-
                     b.Navigation("Factura");
 
                     b.Navigation("Producto");
@@ -518,25 +487,17 @@ namespace SistemaFacturacion.Infrastructure.Migrations
 
             modelBuilder.Entity("SistemaFacturacion.Domain.Entities.Factura", b =>
                 {
-                    b.HasOne("SistemaFacturacion.Domain.Entities.Cliente", null)
-                        .WithMany("Facturas")
-                        .HasForeignKey("ClienteIdCliente");
-
                     b.HasOne("SistemaFacturacion.Domain.Entities.Cliente", "Cliente")
-                        .WithMany()
+                        .WithMany("Facturas")
                         .HasForeignKey("IdCliente")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SistemaFacturacion.Domain.Entities.Usuario", "Usuario")
-                        .WithMany()
+                        .WithMany("Facturas")
                         .HasForeignKey("IdUsuario")
                         .OnDelete(DeleteBehavior.SetNull)
                         .IsRequired();
-
-                    b.HasOne("SistemaFacturacion.Domain.Entities.Usuario", null)
-                        .WithMany("Facturas")
-                        .HasForeignKey("UsuarioIdUsuario");
 
                     b.Navigation("Cliente");
 
@@ -555,10 +516,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("IdUsuario")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("SistemaFacturacion.Domain.Entities.Producto", null)
-                        .WithMany("HistorialPrecios")
-                        .HasForeignKey("ProductoIdProducto");
 
                     b.HasOne("SistemaFacturacion.Domain.Entities.Usuario", null)
                         .WithMany("HistorialPrecios")
@@ -579,15 +536,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                     b.Navigation("Comprobante");
 
                     b.Navigation("Detalles");
-
-                    b.Navigation("DetallesFactura");
-                });
-
-            modelBuilder.Entity("SistemaFacturacion.Domain.Entities.Producto", b =>
-                {
-                    b.Navigation("DetallesFactura");
-
-                    b.Navigation("HistorialPrecios");
                 });
 
             modelBuilder.Entity("SistemaFacturacion.Domain.Entities.Usuario", b =>
