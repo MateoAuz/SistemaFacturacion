@@ -2,7 +2,6 @@
 @rendermode InteractiveServer
 @inject HttpClient Http
 
-
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white d-flex align-items-center justify-content-between">
         <h4 class="mb-0 text-primary d-flex align-items-center gap-2">
@@ -38,7 +37,6 @@
                         <tr>
                             <th>N° Factura</th>
                             <th>Cliente</th>
-                            <th>Usuario</th>
                             <th>Fecha</th>
                             <th class="text-end">Subtotal</th>
                             <th class="text-end">IVA</th>
@@ -52,7 +50,6 @@
                             <tr>
                                 <td>@f.NumeroFactura</td>
                                 <td>@($"{f.Cliente?.Nombres} {f.Cliente?.Apellidos}")</td>
-                                <td>@f.Usuario?.NombreUsuario</td>
                                 <td>@f.FechaEmision.ToString("dd/MM/yyyy")</td>
                                 <td class="text-end">@f.Subtotal.ToString("C")</td>
                                 <td class="text-end">@f.Iva.ToString("C")</td>
@@ -105,8 +102,7 @@
                         </div>
                         <div class="col-6 text-end">
                             <h6 class="fw-bold text-secondary">Fecha de Emisión</h6>
-                            <p>@facturaSeleccionada.FechaEmision.ToString("dd/MM/yyyy")</p>
-                            <p><strong>Usuario:</strong> @facturaSeleccionada.Usuario?.NombreUsuario</p>
+                            <p>@facturaSeleccionada.FechaEmision.ToString("dd/MM/yyyy HH:mm")</p>
                         </div>
                     </div>
 
@@ -188,7 +184,6 @@
         public decimal Iva { get; set; }
         public decimal Total { get; set; }
         public ClienteDto? Cliente { get; set; }
-        public UsuarioDto? Usuario { get; set; }
         public List<DetalleDto>? Detalles { get; set; }
     }
 
@@ -199,11 +194,6 @@
         public string? Correo { get; set; }
         public string? Identificacion { get; set; }
         public string? Direccion { get; set; }
-    }
-
-    public class UsuarioDto
-    {
-        public string? NombreUsuario { get; set; }
     }
 
     public class DetalleDto

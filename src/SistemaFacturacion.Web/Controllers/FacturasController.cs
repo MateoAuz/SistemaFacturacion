@@ -3,12 +3,13 @@ using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Domain.Entities;
 using SistemaFacturacion.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaFacturacion.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[AllowAnonymous] // Permitir acceso sin autenticación
 public class FacturasController : ControllerBase
 {
     private readonly IFacturaRepository _facturaRepo;
@@ -35,12 +36,11 @@ public class FacturasController : ControllerBase
         if (!factura.Detalles.Any())
             return BadRequest("La factura debe tener al menos un producto.");
 
-        // 1. Recalcular totales en el backend (¡Importante!)
+        // 1. Recalcular totales en el backend
         decimal subtotal = 0;
         foreach (var detalle in factura.Detalles)
         {
-            // NO calculamos TotalLinea aquí
-            subtotal += (detalle.PrecioUnitario * detalle.Cantidad); // <-- CORRECCIÓN AQUÍ
+            subtotal += (detalle.PrecioUnitario * detalle.Cantidad);
         }
 
         var calculo = _taxCalculator.CalcularImpuestos(subtotal);
@@ -48,11 +48,14 @@ public class FacturasController : ControllerBase
         factura.Iva = calculo.MontoIva;
         factura.Total = calculo.Total;
 
-        // Asignar ID de usuario (simulado) y fecha
-        factura.IdUsuario = 1; // Debería venir del usuario autenticado
+        // Asignar fecha y generar número de factura
+        factura.IdUsuario = 1; // Valor temporal
         factura.FechaEmision = DateTime.UtcNow;
-        // Generamos un secuencial temporal único para la prueba
-        factura.NumeroFactura = $"001-001-{Guid.NewGuid().ToString().Substring(0, 9)}";
+        
+        // Generar número de factura secuencial
+        var consecutivo = await _context.Facturas.CountAsync() + 1;
+        factura.NumeroFactura = $"001-001-{consecutivo:000000000}";
+        
         factura.Estado = "PENDIENTE";
 
         try
@@ -74,51 +77,63 @@ public class FacturasController : ControllerBase
 
     // GET /api/facturas
     [HttpGet]
-public async Task<IActionResult> GetFacturas()
-{
-    var facturas = await _context.Facturas
-        .Include(f => f.Cliente)
-        .Include(f => f.Usuario)
-        .Include(f => f.Detalles)
-            .ThenInclude(d => d.Producto)
-        .OrderByDescending(f => f.FechaEmision)
-        .ToListAsync();
-
-    var result = facturas.Select(f => new
+    public async Task<IActionResult> GetFacturas()
     {
-        f.IdFactura,
-        f.NumeroFactura,
-        f.FechaEmision,
-        f.Subtotal,
-        f.Iva,
-        f.Total,
-        Cliente = new
+        try
         {
-            f.Cliente.IdCliente,
-            f.Cliente.Nombres,
-            f.Cliente.Apellidos,
-            f.Cliente.Correo,
-            f.Cliente.Direccion,
-            f.Cliente.Identificacion,
-            f.Cliente.Telefono
-        },
-        Usuario = new
+            var facturas = await _context.Facturas
+                .Include(f => f.Cliente)
+                .Include(f => f.Detalles)
+                    .ThenInclude(d => d.Producto)
+                .OrderByDescending(f => f.FechaEmision)
+                .ToListAsync();
+
+            // Validar que existan facturas
+            if (!facturas.Any())
+            {
+                return Ok(new List<object>()); // Devolver array vacío
+            }
+
+            var result = facturas.Select(f => new
+            {
+                f.IdFactura,
+                f.NumeroFactura,
+                f.FechaEmision,
+                f.Subtotal,
+                f.Iva,
+                f.Total,
+                Cliente = f.Cliente == null ? null : new
+                {
+                    f.Cliente.IdCliente,
+                    f.Cliente.Nombres,
+                    f.Cliente.Apellidos,
+                    f.Cliente.Correo,
+                    f.Cliente.Direccion,
+                    f.Cliente.Identificacion,
+                    f.Cliente.Telefono
+                },
+                Detalles = f.Detalles.Select(d => new
+                {
+                    d.Cantidad,
+                    d.PrecioUnitario,
+                    d.TotalLinea,
+                    NombreProducto = d.Producto?.Nombre ?? "Producto no disponible",
+                    Codigo = d.Producto?.Codigo ?? "N/A"
+                })
+            });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
         {
-            f.Usuario.IdUsuario,
-            f.Usuario.NombreUsuario
-        },
-        Detalles = f.Detalles.Select(d => new
-        {
-            d.Cantidad,
-            d.PrecioUnitario,
-            d.TotalLinea,
-            NombreProducto = d.Producto.Nombre,
-            Codigo = d.Producto.Codigo
-        })
-    });
-
-    return Ok(result);
-}
-
-
+            // Log del error
+            Console.WriteLine($"Error al obtener facturas: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            
+            return StatusCode(500, new { 
+                error = "Error interno del servidor",
+                details = ex.Message
+            });
+        }
+    }
 }
