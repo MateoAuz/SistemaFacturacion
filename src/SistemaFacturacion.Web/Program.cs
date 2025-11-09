@@ -25,6 +25,15 @@ builder.Services.AddControllers();
 // 🔧 REPOSITORIOS
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
+builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+builder.Services.AddScoped<IConfiguracionRepository, ConfiguracionRepository>();
+builder.Services.AddScoped<IFacturaRepository, FacturaRepository>();
+
+// 🔧 SERVICIOS DE APLICACIÓN (Lógica Pura)
+builder.Services.AddScoped<ITaxCalculator, SistemaFacturacion.Application.Services.TaxCalculator>();
+
+// 🔧 SERVICIOS DE INFRAESTRUCTURA (Conexión a BD)
+builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Services.StockService>(); // <-- [CAMBIO 2]
 
 // 🔧 CONFIGURACIÓN JSON
 builder.Services.ConfigureHttpJsonOptions(options =>

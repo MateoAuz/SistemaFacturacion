@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 namespace SistemaFacturacion.Domain.Entities;
 
 public class DetalleFactura
@@ -8,7 +9,8 @@ public class DetalleFactura
     public short Cantidad { get; set; }
     public decimal PrecioUnitario { get; set; }
     public decimal TotalLinea { get; set; }
-
+    [JsonIgnore] // <-- AÑADE ESTO
     public Factura? Factura { get; set; }
     public Producto? Producto { get; set; }
+
 }

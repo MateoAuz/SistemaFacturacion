@@ -1,0 +1,150 @@
+@page "/configuracion"
+@rendermode InteractiveServer
+@using SistemaFacturacion.Domain.Entities
+@inject IHttpClientFactory HttpFactory
+@inject NavigationManager Nav
+
+<div class="page-header">
+    <h1 class="mb-0"><i class="bi bi-gear-fill"></i> Configuración de la Empresa</h1>
+    <p class="mb-0 mt-2 opacity-75">Define los datos principales de tu negocio para la facturación.</p>
+</div>
+
+@if (cargando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-2">Cargando configuración...</p>
+    </div>
+}
+else
+{
+    <div class="card-modern">
+        <EditForm Model="config" OnValidSubmit="GuardarConfiguracion" FormName="configuracion-empresa">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrEmpty(mensajeExito))
+            {
+                <div class="alert alert-success alert-modern">@mensajeExito</div>
+            }
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="alert alert-danger alert-modern">@mensajeError</div>
+            }
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Razón Social</label>
+                    <InputText class="form-control" @bind-Value="config.RazonSocial" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Nombre Comercial</label>
+                    <InputText class="form-control" @bind-Value="config.NombreComercial" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">RUC</label>
+                    <InputText class="form-control" @bind-Value="config.Ruc" />
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Dirección Matriz</label>
+                    <InputText class="form-control" @bind-Value="config.DireccionMatriz" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Punto de Emisión (Ej. 001)</label>
+                    <InputText class="form-control" @bind-Value="config.PuntoEmision" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ambiente SRI</label>
+                    <InputSelect class="form-select" @bind-Value="config.Ambiente">
+                        <option value="1">1 - Pruebas</option>
+                        <option value="2">2 - Producción</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Correo Empresa (para notificaciones)</label>
+                    <InputText type="email" class="form-control" @bind-Value="config.CorreoEmpresa" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Ruta Certificado (.p12)</label>
+                    <InputText class="form-control" @bind-Value="config.RutaCertificado" placeholder="Ej. C:\cert\mi_certificado.p12" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Clave Certificado Digital</label>
+                    <InputText type="password" class="form-control" @bind-Value="config.ClaveCertificado" />
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-success btn-modern" type="submit" disabled="@guardando">
+                    @if (guardando)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="bi bi-save"></i> 
+                    @(guardando ? "Guardando..." : "Guardar Configuración")
+                </button>
+            </div>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private HttpClient _http = null!;
+    private ConfiguracionEmpresa config = new();
+    private bool cargando = true;
+    private bool guardando = false;
+    private string? mensajeError;
+    private string? mensajeExito;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _http = HttpFactory.CreateClient("LocalApi");
+        try
+        {
+            config = await _http.GetFromJsonAsync<ConfiguracionEmpresa>("api/configuracion") ?? new();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar la configuración: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task GuardarConfiguracion()
+    {
+        guardando = true;
+        LimpiarMensajes();
+
+        try
+        {
+            var response = await _http.PostAsJsonAsync("api/configuracion", config);
+            if (response.IsSuccessStatusCode)
+            {
+                mensajeExito = "¡Configuración guardada exitosamente!";
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                mensajeError = $"Error al guardar: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error de conexión: {ex.Message}";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void LimpiarMensajes()
+    {
+        mensajeError = null;
+        mensajeExito = null;
+    }
+}

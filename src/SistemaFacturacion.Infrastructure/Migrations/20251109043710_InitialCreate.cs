@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace SistemaFacturacion.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Baseline : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -103,29 +103,17 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                     subtotal = table.Column<decimal>(type: "numeric(12,2)", nullable: false),
                     iva = table.Column<decimal>(type: "numeric(12,2)", nullable: false),
                     total = table.Column<decimal>(type: "numeric(12,2)", nullable: false),
-                    estado = table.Column<string>(type: "character varying(12)", maxLength: 12, nullable: false, defaultValue: "PENDIENTE"),
-                    ClienteIdCliente = table.Column<int>(type: "integer", nullable: true),
-                    UsuarioIdUsuario = table.Column<int>(type: "integer", nullable: true)
+                    estado = table.Column<string>(type: "character varying(12)", maxLength: 12, nullable: false, defaultValue: "PENDIENTE")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_facturas", x => x.idfactura);
-                    table.ForeignKey(
-                        name: "FK_facturas_clientes_ClienteIdCliente",
-                        column: x => x.ClienteIdCliente,
-                        principalTable: "clientes",
-                        principalColumn: "idcliente");
                     table.ForeignKey(
                         name: "FK_facturas_clientes_idcliente",
                         column: x => x.idcliente,
                         principalTable: "clientes",
                         principalColumn: "idcliente",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_facturas_usuarios_UsuarioIdUsuario",
-                        column: x => x.UsuarioIdUsuario,
-                        principalTable: "usuarios",
-                        principalColumn: "idusuario");
                     table.ForeignKey(
                         name: "FK_facturas_usuarios_idusuario",
                         column: x => x.idusuario,
@@ -146,17 +134,11 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                     fechacambio = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     idusuario = table.Column<int>(type: "integer", nullable: true),
                     motivo = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
-                    ProductoIdProducto = table.Column<int>(type: "integer", nullable: true),
                     UsuarioIdUsuario = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_historialprecios", x => x.idhistorial);
-                    table.ForeignKey(
-                        name: "FK_historialprecios_productos_ProductoIdProducto",
-                        column: x => x.ProductoIdProducto,
-                        principalTable: "productos",
-                        principalColumn: "idproducto");
                     table.ForeignKey(
                         name: "FK_historialprecios_productos_idproducto",
                         column: x => x.idproducto,
@@ -213,29 +195,17 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                     idproducto = table.Column<int>(type: "integer", nullable: false),
                     cantidad = table.Column<short>(type: "smallint", nullable: false),
                     preciounitario = table.Column<decimal>(type: "numeric(12,2)", nullable: false),
-                    totallinea = table.Column<decimal>(type: "numeric(12,2)", nullable: false),
-                    FacturaIdFactura = table.Column<int>(type: "integer", nullable: true),
-                    ProductoIdProducto = table.Column<int>(type: "integer", nullable: true)
+                    totallinea = table.Column<decimal>(type: "numeric(12,2)", nullable: false, computedColumnSql: "(cantidad * preciounitario)", stored: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_detallefactura", x => x.iddetalle);
-                    table.ForeignKey(
-                        name: "FK_detallefactura_facturas_FacturaIdFactura",
-                        column: x => x.FacturaIdFactura,
-                        principalTable: "facturas",
-                        principalColumn: "idfactura");
                     table.ForeignKey(
                         name: "FK_detallefactura_facturas_idfactura",
                         column: x => x.idfactura,
                         principalTable: "facturas",
                         principalColumn: "idfactura",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_detallefactura_productos_ProductoIdProducto",
-                        column: x => x.ProductoIdProducto,
-                        principalTable: "productos",
-                        principalColumn: "idproducto");
                     table.ForeignKey(
                         name: "FK_detallefactura_productos_idproducto",
                         column: x => x.idproducto,
@@ -268,11 +238,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_detallefactura_FacturaIdFactura",
-                table: "detallefactura",
-                column: "FacturaIdFactura");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_detallefactura_idfactura",
                 table: "detallefactura",
                 column: "idfactura");
@@ -283,20 +248,10 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                 column: "idproducto");
 
             migrationBuilder.CreateIndex(
-                name: "IX_detallefactura_ProductoIdProducto",
-                table: "detallefactura",
-                column: "ProductoIdProducto");
-
-            migrationBuilder.CreateIndex(
                 name: "idx_facturas_numero",
                 table: "facturas",
                 column: "numerofactura",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_facturas_ClienteIdCliente",
-                table: "facturas",
-                column: "ClienteIdCliente");
 
             migrationBuilder.CreateIndex(
                 name: "IX_facturas_idcliente",
@@ -309,11 +264,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                 column: "idusuario");
 
             migrationBuilder.CreateIndex(
-                name: "IX_facturas_UsuarioIdUsuario",
-                table: "facturas",
-                column: "UsuarioIdUsuario");
-
-            migrationBuilder.CreateIndex(
                 name: "idx_historial_productos",
                 table: "historialprecios",
                 column: "idproducto");
@@ -322,11 +272,6 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                 name: "IX_historialprecios_idusuario",
                 table: "historialprecios",
                 column: "idusuario");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_historialprecios_ProductoIdProducto",
-                table: "historialprecios",
-                column: "ProductoIdProducto");
 
             migrationBuilder.CreateIndex(
                 name: "IX_historialprecios_UsuarioIdUsuario",
