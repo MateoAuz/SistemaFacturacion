@@ -10,19 +10,21 @@
     <link rel="stylesheet" href="SistemaFacturacion.Web.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <HeadOutlet @rendermode="RenderModeForHeadOutlet" />
+    <HeadOutlet />
 </head>
 
 <body>
-    <Routes />
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(Layout.MainLayout)">
+                <Pages.Error404 />
+            </LayoutView>
+        </NotFound>
+    </Router>
+
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>
-
-@code {
-    [CascadingParameter]
-    private HttpContext? HttpContext { get; set; }
-
-    private IComponentRenderMode? RenderModeForHeadOutlet => 
-        HttpContext is null ? null : RenderMode.InteractiveServer;
-}
