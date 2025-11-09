@@ -2,15 +2,21 @@
 @rendermode InteractiveServer
 @inject HttpClient Http
 
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-white d-flex align-items-center justify-content-between">
-        <h4 class="mb-0 text-primary d-flex align-items-center gap-2">
-            <i class="fas fa-chart-line"></i> Reporte de Facturas
-        </h4>
+
+<div class="page-header">
+    <h1 class="mb-0"><i class="bi bi-check-circle"></i> Reporte de Facturas</h1>
+    <p class="mb-0 mt-2 opacity-75">Consulta y analiza el historial de facturas emitidas</p>
+</div>
+
+
+
+<div class="card card-modern">
+    <div class="card-header">
+        <h4 class="mb-0">Facturas</h4>
     </div>
 
     <div class="card-body">
-        <div class="tabs-container mb-3 d-flex align-items-center justify-content-between">
+        <div class="tabs-container mb-3">
             <button class="tab-btn active">
                 <i class="fas fa-file-invoice"></i> Facturas
                 <span class="badge-count">@facturas?.Count</span>
