@@ -1,0 +1,221 @@
+@page "/reportes"
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+
+<div class="page-header">
+    <h1 class="mb-0"><i class="bi bi-check-circle"></i> Reporte de Facturas</h1>
+</div>
+
+
+
+<div class="card card-modern">
+    <div class="card-header">
+        <h4 class="mb-0">Facturas</h4>
+    </div>
+
+    <div class="card-body">
+        <div class="tabs-container mb-3">
+            <button class="tab-btn active">
+                <i class="fas fa-file-invoice"></i> Facturas
+                <span class="badge-count">@facturas?.Count</span>
+            </button>
+        </div>
+
+        @if (facturas is null)
+        {
+            <div class="alert-info-custom fade-in">
+                <i class="fas fa-spinner fa-spin"></i> Cargando facturas...
+            </div>
+        }
+        else if (facturas.Count == 0)
+        {
+            <div class="alert-error-custom fade-in">
+                <i class="fas fa-exclamation-circle"></i> No hay facturas registradas.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive fade-in">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>N° Factura</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-end">IVA</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var f in facturas)
+                        {
+                            <tr>
+                                <td>@f.NumeroFactura</td>
+                                <td>@($"{f.Cliente?.Nombres} {f.Cliente?.Apellidos}")</td>
+                                <td>@f.FechaEmision.ToString("dd/MM/yyyy")</td>
+                                <td class="text-end">@f.Subtotal.ToString("C")</td>
+                                <td class="text-end">@f.Iva.ToString("C")</td>
+                                <td class="text-end fw-bold text-primary">@f.Total.ToString("C")</td>
+                                <td class="text-center">
+                                    <button class="btn-action btn-edit" @onclick="() => VerFactura(f)">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@if (facturaSeleccionada is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.4);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content p-3" style="border-radius: 10px;">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title text-primary">
+                        <i class="fas fa-file-invoice"></i> Factura N° @facturaSeleccionada.NumeroFactura
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+
+                <div class="modal-body">
+                    @if (empresa is not null)
+                    {
+                        <div class="text-center mb-4 factura-empresa-header">
+                            <h5>@empresa.RazonSocial</h5>
+                            <p class="mb-0">@empresa.NombreComercial</p>
+                            <p class="mb-0"><strong>RUC:</strong> @empresa.Ruc</p>
+                            <p class="mb-0"><strong>Dirección:</strong> @empresa.DireccionMatriz</p>
+                            <p class="mb-0"><strong>Punto Emisión:</strong> @empresa.PuntoEmision</p>
+                        </div>
+                    }
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <h6 class="fw-bold text-secondary">Cliente</h6>
+                            <p>@facturaSeleccionada.Cliente?.Nombres @facturaSeleccionada.Cliente?.Apellidos</p>
+                            <p><strong>Correo:</strong> @facturaSeleccionada.Cliente?.Correo</p>
+                            <p><strong>Identificación:</strong> @facturaSeleccionada.Cliente?.Identificacion</p>
+                            <p><strong>Dirección:</strong> @facturaSeleccionada.Cliente?.Direccion</p>
+                        </div>
+                        <div class="col-6 text-end">
+                            <h6 class="fw-bold text-secondary">Fecha de Emisión</h6>
+                            <p>@facturaSeleccionada.FechaEmision.ToString("dd/MM/yyyy HH:mm")</p>
+                        </div>
+                    </div>
+
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th class="text-center">Cantidad</th>
+                                <th class="text-end">Precio Unitario</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (facturaSeleccionada.Detalles is not null && facturaSeleccionada.Detalles.Any())
+                            {
+                                @foreach (var d in facturaSeleccionada.Detalles)
+                                {
+                                    <tr>
+                                        <td>@d.NombreProducto</td>
+                                        <td class="text-center">@d.Cantidad</td>
+                                        <td class="text-end">@d.PrecioUnitario.ToString("C")</td>
+                                        <td class="text-end">@d.TotalLinea.ToString("C")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">No hay detalles disponibles.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <div class="d-flex justify-content-end mt-3">
+                        <div class="text-end">
+                            <p><strong>Subtotal:</strong> @facturaSeleccionada.Subtotal.ToString("C")</p>
+                            <p><strong>IVA:</strong> @facturaSeleccionada.Iva.ToString("C")</p>
+                            <p class="fw-bold text-primary fs-5">Total: @facturaSeleccionada.Total.ToString("C")</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0">
+                    <button class="btn btn-secondary" @onclick="CerrarModal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<FacturaDto>? facturas;
+    private FacturaDto? facturaSeleccionada;
+    private EmpresaDto? empresa;
+
+    protected override async Task OnInitializedAsync()
+    {
+        facturas = await Http.GetFromJsonAsync<List<FacturaDto>>("api/facturas");
+        empresa = await Http.GetFromJsonAsync<EmpresaDto>("api/configuracion");
+    }
+
+    private void VerFactura(FacturaDto factura)
+    {
+        facturaSeleccionada = factura;
+    }
+
+    private void CerrarModal()
+    {
+        facturaSeleccionada = null;
+    }
+
+    public class FacturaDto
+    {
+        public int IdFactura { get; set; }
+        public string? NumeroFactura { get; set; }
+        public DateTime FechaEmision { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal Iva { get; set; }
+        public decimal Total { get; set; }
+        public ClienteDto? Cliente { get; set; }
+        public List<DetalleDto>? Detalles { get; set; }
+    }
+
+    public class ClienteDto
+    {
+        public string? Nombres { get; set; }
+        public string? Apellidos { get; set; }
+        public string? Correo { get; set; }
+        public string? Identificacion { get; set; }
+        public string? Direccion { get; set; }
+    }
+
+    public class DetalleDto
+    {
+        public string? NombreProducto { get; set; }
+        public int Cantidad { get; set; }
+        public decimal PrecioUnitario { get; set; }
+        public decimal TotalLinea { get; set; }
+    }
+
+    public class EmpresaDto
+    {
+        public string? RazonSocial { get; set; }
+        public string? NombreComercial { get; set; }
+        public string? Ruc { get; set; }
+        public string? DireccionMatriz { get; set; }
+        public string? PuntoEmision { get; set; }
+        public string? Ambiente { get; set; }
+    }
+}

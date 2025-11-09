@@ -6,7 +6,6 @@
 
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-gear-fill"></i> Configuración de la Empresa</h1>
-    <p class="mb-0 mt-2 opacity-75">Define los datos principales de tu negocio para la facturación.</p>
 </div>
 
 @if (cargando)
@@ -35,24 +34,27 @@ else
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">Razón Social</label>
+                    <label class="form-label">Razón Social *</label>
                     <InputText class="form-control" @bind-Value="config.RazonSocial" />
+                    <ValidationMessage For="@(() => config.RazonSocial)" />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Nombre Comercial</label>
                     <InputText class="form-control" @bind-Value="config.NombreComercial" />
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">RUC</label>
+                    <label class="form-label">RUC *</label>
                     <InputText class="form-control" @bind-Value="config.Ruc" />
+                    <ValidationMessage For="@(() => config.Ruc)" />
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label">Dirección Matriz</label>
+                    <label class="form-label">Dirección Matriz *</label>
                     <InputText class="form-control" @bind-Value="config.DireccionMatriz" />
+                    <ValidationMessage For="@(() => config.DireccionMatriz)" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Punto de Emisión (Ej. 001)</label>
-                    <InputText class="form-control" @bind-Value="config.PuntoEmision" />
+                    <label class="form-label">Punto de Emisión</label>
+                    <InputText class="form-control" @bind-Value="config.PuntoEmision" placeholder="Ej. 001" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Ambiente SRI</label>
@@ -62,17 +64,33 @@ else
                     </InputSelect>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Correo Empresa (para notificaciones)</label>
+                    <label class="form-label">Correo Empresa</label>
                     <InputText type="email" class="form-control" @bind-Value="config.CorreoEmpresa" />
+                    <ValidationMessage For="@(() => config.CorreoEmpresa)" />
                 </div>
+                
+                <!-- Sección oculta para Sprint 2 -->
+                <div class="col-12 mt-4">
+                    <div class="border-start border-3 border-warning ps-3">
+                        <h6 class="text-warning mb-2">
+                            <i class="bi bi-clock-history"></i> Configuración para Sprint 2
+                        </h6>
+                        <p class="text-muted small mb-3">
+                            Los siguientes campos se habilitarán en la siguiente fase del proyecto
+                        </p>
+                    </div>
+                </div>
+                
+                <!--
                 <div class="col-md-6">
                     <label class="form-label">Ruta Certificado (.p12)</label>
-                    <InputText class="form-control" @bind-Value="config.RutaCertificado" placeholder="Ej. C:\cert\mi_certificado.p12" />
+                    <InputText class="form-control" @bind-Value="config.RutaCertificado" placeholder="Ej. C:\cert\mi_certificado.p12" disabled />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Clave Certificado Digital</label>
-                    <InputText type="password" class="form-control" @bind-Value="config.ClaveCertificado" />
+                    <InputText type="password" class="form-control" @bind-Value="config.ClaveCertificado" disabled />
                 </div>
+                -->
             </div>
 
             <div class="mt-4">

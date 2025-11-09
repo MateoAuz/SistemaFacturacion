@@ -33,7 +33,7 @@ builder.Services.AddScoped<IFacturaRepository, FacturaRepository>();
 builder.Services.AddScoped<ITaxCalculator, SistemaFacturacion.Application.Services.TaxCalculator>();
 
 // 🔧 SERVICIOS DE INFRAESTRUCTURA (Conexión a BD)
-builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Services.StockService>(); // <-- [CAMBIO 2]
+builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Services.StockService>();
 
 // 🔧 CONFIGURACIÓN JSON
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -45,8 +45,6 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
-builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 
 // 💾 CONFIGURAR LA CONEXIÓN A POSTGRESQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -67,9 +65,26 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
+
 app.MapControllers();
 
+// ✅ ORDEN CORRECTO: Primero mapear componentes, luego el manejo de 404
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// ✅ MIDDLEWARE PARA RUTAS NO MANEJADAS - DEBE IR AL FINAL
+app.Use(async (context, next) =>
+{
+    await next();
+    
+    // Si después de procesar la request sigue siendo 404 y no es una ruta de Blazor
+    if (context.Response.StatusCode == 404 && 
+        !context.Request.Path.StartsWithSegments("/_blazor") &&
+        !context.Request.Path.StartsWithSegments("/_framework"))
+    {
+        // Redirigir a la página de error 404 de Blazor
+        context.Response.Redirect("/error-404");
+    }
+});
 
 app.Run();
