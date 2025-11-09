@@ -52,7 +52,6 @@
         <div class="card-body">
             <EditForm EditContext="@EditContext" OnValidSubmit="@Guardar">
                 <DataAnnotationsValidator />
-                
 
                 <div class="row g-3">
                     <!-- CÓDIGO -->
@@ -60,10 +59,32 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-upc-scan me-1 text-primary"></i> Código *
                         </label>
-                        <InputText class="form-control" @bind-Value="form.Codigo" 
-                                @oninput="async () => await ValidarCodigoUnico()"
-                                placeholder="Ej. PUR001" />
-                        <ValidationMessage For="@(() => form.Codigo)" />
+                        @if (editando)
+                        {
+                            <!-- En modo edición: campo deshabilitado -->
+                            <InputText class="form-control" 
+                                    @bind-Value="form.Codigo" 
+                                    disabled
+                                    placeholder="Ej. PUR001" />
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i> El código no se puede modificar en edición
+                            </small>
+                        }
+                        else
+                        {
+                            <!-- En modo nuevo: campo habilitado con validación -->
+                            <InputText class="form-control" 
+                                    @bind-Value="form.Codigo" 
+                                    @oninput="async () => await ValidarCodigoUnico()"
+                                    placeholder="Ej. PUR001" />
+                            <ValidationMessage For="@(() => form.Codigo)" />
+                            @if (codigoDuplicado)
+                            {
+                                <div class="text-danger small mt-1">
+                                    <i class="bi bi-exclamation-triangle"></i> Este código ya existe
+                                </div>
+                            }
+                        }
                     </div>
 
                     <!-- NOMBRE -->
@@ -81,7 +102,7 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-tags me-1 text-primary"></i> Categoría
                         </label>
-                        <InputSelect class="form-select" @bind-Value="form.Categoria">
+                        <InputSelect class="form-select" @bind-Value="form.Categoria" @onchange="OnCategoriaChanged">
                             <option value="">Seleccione una categoría</option>
                             @foreach (var categoria in categorias)
                             {
@@ -96,7 +117,9 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-cash-coin me-1 text-primary"></i> Precio Unitario *
                         </label>
-                        <InputNumber class="form-control" @bind-Value="form.PrecioUnitario" placeholder="0.00" />
+                        <InputNumber class="form-control" @bind-Value="form.PrecioUnitario" 
+                                @oninput="ValidarPrecios"
+                                placeholder="0.00" />
                         <ValidationMessage For="@(() => form.PrecioUnitario)" />
                     </div>
 
@@ -105,7 +128,9 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-cart-check me-1 text-primary"></i> Precio Venta *
                         </label>
-                        <InputNumber class="form-control" @bind-Value="form.PrecioVenta" placeholder="0.00" />
+                        <InputNumber class="form-control" @bind-Value="form.PrecioVenta" 
+                                @oninput="ValidarPrecios"
+                                placeholder="0.00" />
                         <ValidationMessage For="@(() => form.PrecioVenta)" />
                     </div>
 
@@ -155,7 +180,7 @@
 
                 <!-- BOTONES -->
                 <div class="mt-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-success px-3">
+                    <button type="submit" class="btn btn-success px-3" disabled="@(codigoDuplicado && !editando)">
                         <i class="bi bi-check-circle"></i>
                         @(editando ? "Guardar Cambios" : "Guardar Producto")
                     </button>
@@ -168,7 +193,6 @@
     </div>
 }
 
-<!-- Resto del código de la tabla permanece igual -->
 <!-- Tabla de productos -->
 @if (cargando)
 {
@@ -296,6 +320,7 @@ else
     private bool cargando = true;
     private bool mostrarForm = false;
     private bool editando = false;
+    private bool codigoDuplicado = false;
 
     private string? mensaje;
     private string tipoMensaje = "success";
@@ -325,6 +350,7 @@ else
     {
         mostrarActivos = activos;
         mostrarForm = false;
+        codigoDuplicado = false;
     }
 
     private void Nuevo()
@@ -333,6 +359,7 @@ else
         EditContext = new EditContext(form);
         editando = false;
         mostrarForm = true;
+        codigoDuplicado = false;
     }
 
     private void Editar(Producto p)
@@ -346,16 +373,34 @@ else
             PrecioUnitario = p.PrecioUnitario,
             PrecioVenta = p.PrecioVenta,
             StockActual = p.StockActual,
-            FechaExpiracion = p.FechaExpiracion,
+            FechaExpiracion = p.FechaExpiracion?.Date,
             Estado = p.Estado
         };
         EditContext = new EditContext(form);
         editando = true;
         mostrarForm = true;
+        codigoDuplicado = false;
+        
+        // Validación inicial de precios
+        ValidarPrecios();
     }
 
     private async Task Guardar()
     {
+        // ✅ VALIDACIÓN EXTRA: Precio de venta no menor al unitario
+        if (form.PrecioVenta < form.PrecioUnitario)
+        {
+            MostrarMensaje("❌ El precio de venta no puede ser menor al precio unitario", "error");
+            return;
+        }
+
+        // ✅ VALIDACIÓN EXTRA: Código único para nuevos productos
+        if (!editando && codigoDuplicado)
+        {
+            MostrarMensaje("❌ El código ya existe. Por favor, use un código diferente.", "error");
+            return;
+        }
+
         // Si la categoría no requiere fecha de expiración, limpiar el campo
         if (!RequiereFechaExpiracion(form.Categoria))
         {
@@ -371,14 +416,14 @@ else
             await Cargar();
             mostrarForm = false;
             MostrarMensaje(editando 
-                ? "Producto actualizado correctamente ✅" 
-                : "Producto registrado exitosamente 🎉", 
+                ? "✅ Producto actualizado correctamente" 
+                : "🎉 Producto registrado exitosamente", 
                 "success");
         }
         else
         {
             var msg = await resp.Content.ReadAsStringAsync();
-            MostrarMensaje($"Error al guardar: {msg}", "error");
+            MostrarMensaje($"❌ Error al guardar: {msg}", "error");
         }
     }
 
@@ -386,6 +431,7 @@ else
     {
         mostrarForm = false;
         editando = false;
+        codigoDuplicado = false;
     }
 
     private async Task CambiarEstado(Producto p, bool activar)
@@ -400,14 +446,14 @@ else
         {
             await Cargar();
             MostrarMensaje(activar 
-                ? "Producto reactivado correctamente ✅" 
-                : "Producto desactivado correctamente ⚠️", 
+                ? "✅ Producto reactivado correctamente" 
+                : "⚠️ Producto desactivado correctamente", 
                 "info");
         }
         else
         {
             var mensajeError = await resp.Content.ReadAsStringAsync();
-            MostrarMensaje($"Error al cambiar estado: {mensajeError}", "error");
+            MostrarMensaje($"❌ Error al cambiar estado: {mensajeError}", "error");
         }
     }
 
@@ -418,6 +464,47 @@ else
             return false;
 
         return categoriasConExpiracion.Contains(categoria, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task ValidarCodigoUnico()
+    {
+        if (!string.IsNullOrWhiteSpace(form.Codigo) && !editando)
+        {
+            try
+            {
+                var productoExistente = await _http.GetFromJsonAsync<Producto>($"api/productos/by-codigo/{form.Codigo}");
+                if (productoExistente != null)
+                {
+                    codigoDuplicado = true;
+                }
+                else
+                {
+                    codigoDuplicado = false;
+                }
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Código no existe - está bien
+                codigoDuplicado = false;
+            }
+            StateHasChanged();
+        }
+    }
+
+    private void ValidarPrecios()
+    {
+        // Esta validación se refleja en la alerta que ya tienes en el HTML
+        StateHasChanged();
+    }
+
+    private void OnCategoriaChanged()
+    {
+        // Si la categoría cambia y no requiere fecha, limpiar la fecha
+        if (!RequiereFechaExpiracion(form.Categoria) && form.FechaExpiracion.HasValue)
+        {
+            form.FechaExpiracion = null;
+        }
+        StateHasChanged();
     }
 
     private void MostrarMensaje(string texto, string tipo = "success")
@@ -433,29 +520,4 @@ else
             await InvokeAsync(StateHasChanged);
         });
     }
-
-    private async Task ValidarCodigoUnico()
-{
-    if (!string.IsNullOrWhiteSpace(form.Codigo))
-    {
-        // Solo validar si estamos creando nuevo producto (no editando)
-        if (!editando)
-        {
-            try
-            {
-                var productoExistente = await _http.GetFromJsonAsync<Producto>($"api/productos/by-codigo/{form.Codigo}");
-                if (productoExistente != null)
-                {
-                    // Agregar error de validación
-                    EditContext?.NotifyValidationStateChanged();
-                    MostrarMensaje($"⚠️ El código {form.Codigo} ya existe", "warning");
-                }
-            }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                // Código no existe - está bien
-            }
-        }
-    }
-}
 }
