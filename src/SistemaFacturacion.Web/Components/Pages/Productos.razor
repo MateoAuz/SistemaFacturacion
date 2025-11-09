@@ -7,7 +7,6 @@
 @inject IJSRuntime JS
 
 <!-- ENCABEZADO PRINCIPAL -->
-
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-box-seam"></i> Gestión de Productos</h1>
 </div>
@@ -19,7 +18,6 @@
         @mensaje
     </div>
 }
-
 
 <!-- TABS ACTIVOS / INACTIVOS -->
 <div class="tabs-container d-flex align-items-center mb-3">
@@ -54,7 +52,7 @@
         <div class="card-body">
             <EditForm EditContext="@EditContext" OnValidSubmit="@Guardar">
                 <DataAnnotationsValidator />
-                <ValidationSummary class="alert alert-danger" />
+                
 
                 <div class="row g-3">
                     <!-- CÓDIGO -->
@@ -62,7 +60,9 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-upc-scan me-1 text-primary"></i> Código *
                         </label>
-                        <InputText class="form-control" @bind-Value="form.Codigo" placeholder="Ej. PUR001" />
+                        <InputText class="form-control" @bind-Value="form.Codigo" 
+                                @oninput="async () => await ValidarCodigoUnico()"
+                                placeholder="Ej. PUR001" />
                         <ValidationMessage For="@(() => form.Codigo)" />
                     </div>
 
@@ -81,8 +81,14 @@
                         <label class="form-label fw-semibold">
                             <i class="bi bi-tags me-1 text-primary"></i> Categoría
                         </label>
-                        <InputText class="form-control" @bind-Value="form.Categoria"
-                            placeholder="Ej. Alimento, Juguete..." />
+                        <InputSelect class="form-select" @bind-Value="form.Categoria">
+                            <option value="">Seleccione una categoría</option>
+                            @foreach (var categoria in categorias)
+                            {
+                                <option value="@categoria">@categoria</option>
+                            }
+                        </InputSelect>
+                        <small class="text-muted">Seleccione una categoría de la lista</small>
                     </div>
 
                     <!-- PRECIO UNITARIO -->
@@ -112,14 +118,40 @@
                         <ValidationMessage For="@(() => form.StockActual)" />
                     </div>
 
-                    <!-- FECHA EXPIRACIÓN -->
+                    <!-- FECHA EXPIRACIÓN - CONDICIONAL -->
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-calendar-event me-1 text-primary"></i> Fecha Expiración
                         </label>
-                        <InputDate class="form-control" @bind-Value="form.FechaExpiracion" />
+                        @if (RequiereFechaExpiracion(form.Categoria))
+                        {
+                            <InputDate class="form-control" @bind-Value="form.FechaExpiracion" />
+                            <small class="text-muted">Productos perecederos requieren fecha de expiración</small>
+                        }
+                        else
+                        {
+                            <InputDate class="form-control" @bind-Value="form.FechaExpiracion" disabled />
+                            <small class="text-muted">No requerido para esta categoría</small>
+                            <!-- Limpiar fecha si no es requerida -->
+                            @if (form.FechaExpiracion.HasValue)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1" 
+                                        @onclick="() => form.FechaExpiracion = null">
+                                    <i class="bi bi-x-circle"></i> Limpiar fecha
+                                </button>
+                            }
+                        }
                     </div>
                 </div>
+
+                <!-- ALERTA DE PRECIOS -->
+                @if (form.PrecioVenta < form.PrecioUnitario && form.PrecioUnitario > 0)
+                {
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        El precio de venta es menor al precio unitario. Esto podría generar pérdidas.
+                    </div>
+                }
 
                 <!-- BOTONES -->
                 <div class="mt-4 d-flex gap-2">
@@ -136,7 +168,7 @@
     </div>
 }
 
-
+<!-- Resto del código de la tabla permanece igual -->
 <!-- Tabla de productos -->
 @if (cargando)
 {
@@ -179,11 +211,28 @@ else
                             <tr>
                                 <td>@p.Codigo</td>
                                 <td>@p.Nombre</td>
-                                <td>@p.Categoria</td>
-                                <td class="text-end">@p.PrecioUnitario.ToString("0.00")</td>
-                                <td class="text-end">@p.PrecioVenta.ToString("0.00")</td>
-                                <td class="text-center">@p.StockActual</td>
-                                <td class="text-center">@((p.FechaExpiracion?.ToString("dd/MM/yyyy")) ?? "-")</td>
+                                <td>
+                                    <span class="badge bg-secondary">@p.Categoria</span>
+                                </td>
+                                <td class="text-end">@p.PrecioUnitario.ToString("C2")</td>
+                                <td class="text-end">@p.PrecioVenta.ToString("C2")</td>
+                                <td class="text-center">
+                                    <span class="badge @(p.StockActual <= 5 ? "bg-warning" : "bg-success")">
+                                        @p.StockActual
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    @if (p.FechaExpiracion.HasValue)
+                                    {
+                                        <span class="badge @(p.FechaExpiracion.Value < DateTime.Now.AddDays(30) ? "bg-danger" : "bg-info")">
+                                            @p.FechaExpiracion?.ToString("dd/MM/yyyy")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-2">
                                         @if (p.Estado)
@@ -204,7 +253,6 @@ else
                                         }
                                     </div>
                                 </td>
-
                             </tr>
                         }
                     }
@@ -214,8 +262,6 @@ else
     </div>
 }
 
-<!-- Formulario -->
-
 @code {
     private HttpClient _http => HttpFactory.CreateClient("LocalApi");
 
@@ -223,6 +269,28 @@ else
     private List<Producto> productosActivos => productos.Where(p => p.Estado).ToList();
     private List<Producto> productosInactivos => productos.Where(p => !p.Estado).ToList();
     private IEnumerable<Producto> productosMostrados => mostrarActivos ? productosActivos : productosInactivos;
+
+    // Lista de categorías predefinidas
+    private List<string> categorias = new()
+    {
+        "Alimento",
+        "Medicamento",
+        "Juguete",
+        "Accesorio",
+        "Higiene",
+        "Ropa",
+        "Transportadora",
+        "Suplemento",
+        "Otros"
+    };
+
+    // Categorías que requieren fecha de expiración
+    private List<string> categoriasConExpiracion = new()
+    {
+        "Alimento",
+        "Medicamento",
+        "Suplemento"
+    };
 
     private bool mostrarActivos = true;
     private bool cargando = true;
@@ -232,7 +300,6 @@ else
     private string? mensaje;
     private string tipoMensaje = "success";
     private bool mostrarMensaje;
-
 
     private Producto form = new();
     private EditContext EditContext = default!;
@@ -288,27 +355,32 @@ else
     }
 
     private async Task Guardar()
-{
-    HttpResponseMessage resp = editando
-        ? await _http.PutAsJsonAsync($"api/productos/{form.IdProducto}", form)
-        : await _http.PostAsJsonAsync("api/productos", form);
-
-    if (resp.IsSuccessStatusCode)
     {
-        await Cargar();
-        mostrarForm = false;
-        MostrarMensaje(editando 
-            ? "Producto actualizado correctamente ✅" 
-            : "Producto registrado exitosamente 🎉", 
-            "success");
-    }
-    else
-    {
-        var msg = await resp.Content.ReadAsStringAsync();
-        MostrarMensaje($"Error al guardar: {msg}", "error");
-    }
-}
+        // Si la categoría no requiere fecha de expiración, limpiar el campo
+        if (!RequiereFechaExpiracion(form.Categoria))
+        {
+            form.FechaExpiracion = null;
+        }
 
+        HttpResponseMessage resp = editando
+            ? await _http.PutAsJsonAsync($"api/productos/{form.IdProducto}", form)
+            : await _http.PostAsJsonAsync("api/productos", form);
+
+        if (resp.IsSuccessStatusCode)
+        {
+            await Cargar();
+            mostrarForm = false;
+            MostrarMensaje(editando 
+                ? "Producto actualizado correctamente ✅" 
+                : "Producto registrado exitosamente 🎉", 
+                "success");
+        }
+        else
+        {
+            var msg = await resp.Content.ReadAsStringAsync();
+            MostrarMensaje($"Error al guardar: {msg}", "error");
+        }
+    }
 
     private void Cancelar()
     {
@@ -317,28 +389,36 @@ else
     }
 
     private async Task CambiarEstado(Producto p, bool activar)
-{
-    var endpoint = activar
-        ? $"api/productos/{p.IdProducto}/activar"
-        : $"api/productos/{p.IdProducto}/desactivar";
-
-    var resp = await _http.PatchAsync(endpoint, null);
-
-    if (resp.IsSuccessStatusCode)
     {
-        await Cargar();
-        MostrarMensaje(activar 
-            ? "Producto reactivado correctamente ✅" 
-            : "Producto desactivado correctamente ⚠️", 
-            "info");
-    }
-    else
-    {
-        var mensajeError = await resp.Content.ReadAsStringAsync();
-        MostrarMensaje($"Error al cambiar estado: {mensajeError}", "error");
-    }
-}
+        var endpoint = activar
+            ? $"api/productos/{p.IdProducto}/activar"
+            : $"api/productos/{p.IdProducto}/desactivar";
 
+        var resp = await _http.PatchAsync(endpoint, null);
+
+        if (resp.IsSuccessStatusCode)
+        {
+            await Cargar();
+            MostrarMensaje(activar 
+                ? "Producto reactivado correctamente ✅" 
+                : "Producto desactivado correctamente ⚠️", 
+                "info");
+        }
+        else
+        {
+            var mensajeError = await resp.Content.ReadAsStringAsync();
+            MostrarMensaje($"Error al cambiar estado: {mensajeError}", "error");
+        }
+    }
+
+    // Método para determinar si una categoría requiere fecha de expiración
+    private bool RequiereFechaExpiracion(string? categoria)
+    {
+        if (string.IsNullOrEmpty(categoria))
+            return false;
+
+        return categoriasConExpiracion.Contains(categoria, StringComparer.OrdinalIgnoreCase);
+    }
 
     private void MostrarMensaje(string texto, string tipo = "success")
     {
@@ -354,5 +434,28 @@ else
         });
     }
 
-
+    private async Task ValidarCodigoUnico()
+{
+    if (!string.IsNullOrWhiteSpace(form.Codigo))
+    {
+        // Solo validar si estamos creando nuevo producto (no editando)
+        if (!editando)
+        {
+            try
+            {
+                var productoExistente = await _http.GetFromJsonAsync<Producto>($"api/productos/by-codigo/{form.Codigo}");
+                if (productoExistente != null)
+                {
+                    // Agregar error de validación
+                    EditContext?.NotifyValidationStateChanged();
+                    MostrarMensaje($"⚠️ El código {form.Codigo} ya existe", "warning");
+                }
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Código no existe - está bien
+            }
+        }
+    }
+}
 }

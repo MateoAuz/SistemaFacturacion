@@ -156,3 +156,13 @@ input.form-control:focus {
     transform: translateY(0);
     transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
 }
+
+    .codigo-valido {
+        border-color: #198754 !important;
+        background-color: #f8fff8;
+    }
+    
+    .codigo-invalido {
+        border-color: #dc3545 !important;
+        background-color: #fff8f8;
+    }
