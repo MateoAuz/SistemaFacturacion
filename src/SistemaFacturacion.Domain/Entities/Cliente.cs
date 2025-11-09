@@ -41,20 +41,20 @@ public class Cliente
     [JsonIgnore]
     public ICollection<Factura>? Facturas { get; set; }
 
-    // Método para validación personalizada de cédula/RUC
-    public ValidationResult ValidarIdentificacion()
+    // Método para validación personalizada de cédula/RUC - VERSIÓN CORREGIDA
+    public string? ValidarIdentificacion()
     {
         if (TipoIdentificacion == "CEDUL" && Identificacion.Length != 10)
-            return new ValidationResult("La cédula debe tener exactamente 10 dígitos");
+            return "La cédula debe tener exactamente 10 dígitos";
         
         if (TipoIdentificacion == "RUC" && Identificacion.Length != 13)
-            return new ValidationResult("El RUC debe tener exactamente 13 dígitos");
+            return "El RUC debe tener exactamente 13 dígitos";
         
         // Validar cédula ecuatoriana
         if (TipoIdentificacion == "CEDUL" && !ValidarCedulaEcuatoriana(Identificacion))
-            return new ValidationResult("El número de cédula no es válido");
+            return "El número de cédula no es válido";
             
-        return ValidationResult.Success;
+        return null; // null significa que no hay error
     }
 
     private bool ValidarCedulaEcuatoriana(string cedula)

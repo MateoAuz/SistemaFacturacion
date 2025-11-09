@@ -273,10 +273,10 @@ else
         try
         {
             // Validación personalizada de cédula/RUC
-            var validacionIdentificacion = nuevoCliente.ValidarIdentificacion();
-            if (validacionIdentificacion != ValidationResult.Success)
+            var errorValidacion = nuevoCliente.ValidarIdentificacion();
+            if (!string.IsNullOrEmpty(errorValidacion))
             {
-                mensajeValidacionCedula = validacionIdentificacion.ErrorMessage;
+                mensajeValidacionCedula = errorValidacion;
                 guardando = false;
                 return;
             }
