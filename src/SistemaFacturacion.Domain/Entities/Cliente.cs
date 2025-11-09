@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 namespace SistemaFacturacion.Domain.Entities;
 
 public class Cliente
@@ -12,5 +13,7 @@ public class Cliente
     public string? Correo { get; set; }
     public bool Estado { get; set; } = true;
 
+    [JsonIgnore] // <-- AÑADE ESTO
     public ICollection<Factura>? Facturas { get; set; }
+
 }

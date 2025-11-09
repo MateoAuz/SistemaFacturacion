@@ -17,6 +17,5 @@ public class Factura
 
     public Cliente? Cliente { get; set; }
     public Usuario? Usuario { get; set; }
-    public ICollection<DetalleFactura>? DetallesFactura { get; set; }
     public ComprobanteElectronico? Comprobante { get; set; }
 }
