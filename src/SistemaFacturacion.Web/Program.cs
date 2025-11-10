@@ -21,6 +21,10 @@ builder.Services.AddScoped(sp =>
 });
 
 builder.Services.AddControllers();
+// --- Swagger ---
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 
 // 🔧 REPOSITORIOS
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -62,16 +66,24 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+// --- Middleware Swagger ---
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseAntiforgery();
+
 
 app.MapControllers();
 
 // ✅ ORDEN CORRECTO: Primero mapear componentes, luego el manejo de 404
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+    
+app.UseAntiforgery();
 
 // ✅ MIDDLEWARE PARA RUTAS NO MANEJADAS - DEBE IR AL FINAL
 app.Use(async (context, next) =>
