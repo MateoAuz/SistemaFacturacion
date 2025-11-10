@@ -14,16 +14,41 @@ public class ProductoRepository : IProductoRepository
         _ctx = ctx;
     }
 
-    public async Task<IEnumerable<Producto>> GetAllAsync(CancellationToken ct = default)
-        => await _ctx.Productos.AsNoTracking().OrderBy(p => p.Nombre).ToListAsync(ct);
+    public async Task<IEnumerable<Producto>> GetAllAsync(bool includeLotes = false, CancellationToken ct = default)
+    {
+        var query = _ctx.Productos.AsNoTracking();
+        
+        if (includeLotes)
+        {
+            query = query.Include(p => p.Lotes);
+        }
+        
+        return await query.OrderBy(p => p.Nombre).ToListAsync(ct);
+    }
 
-    public async Task<Producto?> GetByIdAsync(int id, CancellationToken ct = default)
-        => await _ctx.Productos.AsNoTracking()
-            .FirstOrDefaultAsync(p => p.IdProducto == id, ct);
+    public async Task<Producto?> GetByIdAsync(int id, bool includeLotes = false, CancellationToken ct = default)
+    {
+        var query = _ctx.Productos.AsNoTracking();
+        
+        if (includeLotes)
+        {
+            query = query.Include(p => p.Lotes);
+        }
+        
+        return await query.FirstOrDefaultAsync(p => p.IdProducto == id, ct);
+    }
 
-    public async Task<Producto?> GetByCodigoAsync(string codigo, CancellationToken ct = default)
-        => await _ctx.Productos.AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Codigo == codigo, ct);
+    public async Task<Producto?> GetByCodigoAsync(string codigo, bool includeLotes = false, CancellationToken ct = default)
+    {
+        var query = _ctx.Productos.AsNoTracking();
+        
+        if (includeLotes)
+        {
+            query = query.Include(p => p.Lotes);
+        }
+        
+        return await query.FirstOrDefaultAsync(p => p.Codigo == codigo, ct);
+    }
 
     public async Task<Producto> AddAsync(Producto entity, CancellationToken ct = default)
     {
@@ -33,11 +58,10 @@ public class ProductoRepository : IProductoRepository
     }
 
     public async Task UpdateAsync(Producto entity, CancellationToken ct = default)
-{
-    _ctx.Entry(entity).State = EntityState.Modified;
-    await _ctx.SaveChangesAsync(ct);
-}
-
+    {
+        _ctx.Entry(entity).State = EntityState.Modified;
+        await _ctx.SaveChangesAsync(ct);
+    }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
@@ -48,11 +72,15 @@ public class ProductoRepository : IProductoRepository
         await _ctx.SaveChangesAsync(ct);
     }
 
-    // ✅ MÉTODO NUEVO: Obtener total de stock de productos activos
+    // ✅ ACTUALIZAR: Obtener total de stock desde lotes
     public async Task<int> GetTotalStockAsync(CancellationToken ct = default)
     {
-        return await _ctx.Productos
-            .Where(p => p.Estado)
-            .SumAsync(p => p.StockActual, ct);
+        return await _ctx.Lotes
+            .Where(l => l.CantidadActual > 0)
+            .Join(_ctx.Productos.Where(p => p.Estado),
+                  l => l.ProductoId,
+                  p => p.IdProducto,
+                  (l, p) => l.CantidadActual)
+            .SumAsync(ct);
     }
 }

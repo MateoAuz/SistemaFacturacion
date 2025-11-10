@@ -3,60 +3,79 @@ using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Domain.Entities;
 using SistemaFacturacion.Infrastructure.Persistence;
 
-namespace SistemaFacturacion.Infrastructure.Services; // <-- [CAMBIO 1] ESTA ES LA RUTA CORRECTA
+namespace SistemaFacturacion.Infrastructure.Services;
 
 public class StockService : IStockService
 {
-    private readonly ApplicationDbContext _db;
+    private readonly ApplicationDbContext _context;
 
-    public StockService(ApplicationDbContext db)
+    public StockService(ApplicationDbContext context)
     {
-        _db = db;
+        _context = context;
     }
 
     public async Task<(bool, string)> ValidarStockAsync(IEnumerable<DetalleFactura> detalles, CancellationToken ct = default)
     {
-        var idsProductos = detalles.Select(d => d.IdProducto).Distinct().ToList();
-        
-        var productosEnDb = await _db.Productos
-            .Where(p => idsProductos.Contains(p.IdProducto))
-            .AsNoTracking()
-            .ToListAsync(ct);
-
-        foreach (var item in detalles)
+        foreach (var detalle in detalles)
         {
-            var producto = productosEnDb.FirstOrDefault(p => p.IdProducto == item.IdProducto);
-            if (producto == null)
-            {
-                return (false, $"Producto con ID {item.IdProducto} no encontrado.");
-            }
+            // ✅ ACTUALIZADO: Calcular stock desde lotes
+            var stockDisponible = await _context.Lotes
+                .Where(l => l.ProductoId == detalle.IdProducto && l.CantidadActual > 0)
+                .SumAsync(l => l.CantidadActual, ct);
 
-            if (producto.StockActual < item.Cantidad)
+            if (stockDisponible < detalle.Cantidad)
             {
-                return (false, $"Stock insuficiente para '{producto.Nombre}'. Stock actual: {producto.StockActual}, Solicitado: {item.Cantidad}.");
+                var producto = await _context.Productos
+                    .FirstOrDefaultAsync(p => p.IdProducto == detalle.IdProducto, ct);
+                
+                var nombreProducto = producto?.Nombre ?? "Producto desconocido";
+                return (false, $"Stock insuficiente para '{nombreProducto}'. Disponible: {stockDisponible}, Solicitado: {detalle.Cantidad}");
             }
         }
         
         return (true, string.Empty);
     }
-    
+
     public async Task DescontarStockAsync(IEnumerable<DetalleFactura> detalles, CancellationToken ct = default)
     {
-        var idsProductos = detalles.Select(d => d.IdProducto).Distinct().ToList();
-        
-        var productosEnDb = await _db.Productos
-            .Where(p => idsProductos.Contains(p.IdProducto))
+        foreach (var detalle in detalles)
+        {
+            await ReducirStockFifoAsync(detalle.IdProducto, detalle.Cantidad, ct);
+        }
+    }
+
+    // ✅ NUEVO: Método para reducir stock usando FIFO
+    private async Task ReducirStockFifoAsync(int productoId, int cantidad, CancellationToken ct = default)
+    {
+        var lotes = await _context.Lotes
+            .Where(l => l.ProductoId == productoId && l.CantidadActual > 0)
+            .OrderBy(l => l.FechaIngreso) // FIFO: primero los más antiguos
             .ToListAsync(ct);
 
-        foreach (var item in detalles)
+        var cantidadPendiente = cantidad;
+
+        foreach (var lote in lotes)
         {
-            var producto = productosEnDb.FirstOrDefault(p => p.IdProducto == item.IdProducto);
-            if (producto != null)
-            {
-                producto.StockActual -= item.Cantidad;
-            }
+            if (cantidadPendiente <= 0) break;
+
+            var cantidadAReducir = Math.Min(lote.CantidadActual, cantidadPendiente);
+            lote.CantidadActual -= cantidadAReducir;
+            cantidadPendiente -= cantidadAReducir;
         }
 
-        await _db.SaveChangesAsync(ct);
+        if (cantidadPendiente > 0)
+        {
+            throw new InvalidOperationException($"Stock insuficiente para el producto ID {productoId}. Faltan {cantidadPendiente} unidades.");
+        }
+
+        await _context.SaveChangesAsync(ct);
+    }
+
+    // ✅ NUEVO: Método auxiliar para obtener stock disponible
+    public async Task<int> ObtenerStockDisponibleAsync(int productoId, CancellationToken ct = default)
+    {
+        return await _context.Lotes
+            .Where(l => l.ProductoId == productoId && l.CantidadActual > 0)
+            .SumAsync(l => l.CantidadActual, ct);
     }
 }

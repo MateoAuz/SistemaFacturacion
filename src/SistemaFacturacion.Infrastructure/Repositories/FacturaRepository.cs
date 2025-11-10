@@ -33,15 +33,11 @@ public class FacturaRepository : IFacturaRepository
             // 2. Guardar la cabecera de la factura
             _db.Facturas.Add(factura);
             await _db.SaveChangesAsync(ct); 
-            // EF automáticamente actualiza el IdFactura en el objeto 'factura'
 
-            // 3. Asignar el IdFactura a los detalles (ya deberían venir asignados por el controlador)
-            // (EF maneja esto si la relación está bien configurada en la entidad)
-
-            // 4. Descontar el Stock
+            // 3. Descontar el Stock
             await _stockService.DescontarStockAsync(factura.Detalles, ct);
             
-            // 5. Confirmar la transacción
+            // 4. Confirmar la transacción
             await tx.CommitAsync(ct);
 
             return factura;

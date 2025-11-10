@@ -2,21 +2,18 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SistemaFacturacion.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace SistemaFacturacion.Infrastructure.Migrations
+namespace SistemaFacturacion.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251109043710_InitialCreate")]
-    partial class InitialCreate
+    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -57,6 +54,7 @@ namespace SistemaFacturacion.Infrastructure.Migrations
 
                     b.Property<string>("Identificacion")
                         .IsRequired()
+                        .HasMaxLength(13)
                         .HasColumnType("char(13)")
                         .HasColumnName("identificacion");
 
@@ -360,6 +358,56 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                     b.ToTable("historialprecios", (string)null);
                 });
 
+            modelBuilder.Entity("SistemaFacturacion.Domain.Entities.Lote", b =>
+                {
+                    b.Property<int>("IdLote")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("idlote");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("IdLote"));
+
+                    b.Property<int>("CantidadActual")
+                        .HasColumnType("integer")
+                        .HasColumnName("cantidadactual");
+
+                    b.Property<int>("CantidadInicial")
+                        .HasColumnType("integer")
+                        .HasColumnName("cantidadinicial");
+
+                    b.Property<DateTime?>("FechaExpiracion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fechaexpiracion");
+
+                    b.Property<DateTime>("FechaIngreso")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fechaingreso");
+
+                    b.Property<string>("NumeroLote")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("numerolote");
+
+                    b.Property<decimal>("PrecioCompra")
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("preciocompra");
+
+                    b.Property<int>("ProductoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("idproducto");
+
+                    b.HasKey("IdLote");
+
+                    b.HasIndex("NumeroLote")
+                        .HasDatabaseName("idx_lotes_numero");
+
+                    b.HasIndex("ProductoId")
+                        .HasDatabaseName("idx_lotes_producto");
+
+                    b.ToTable("lotes", (string)null);
+                });
+
             modelBuilder.Entity("SistemaFacturacion.Domain.Entities.Producto", b =>
                 {
                     b.Property<int>("IdProducto")
@@ -386,27 +434,15 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("estado");
 
-                    b.Property<DateTime?>("FechaExpiracion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fechaexpiracion");
-
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)")
                         .HasColumnName("nombre");
 
-                    b.Property<decimal>("PrecioUnitario")
-                        .HasColumnType("numeric(12,2)")
-                        .HasColumnName("preciounitario");
-
                     b.Property<decimal>("PrecioVenta")
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("precioventa");
-
-                    b.Property<short>("StockActual")
-                        .HasColumnType("smallint")
-                        .HasColumnName("stockactual");
 
                     b.HasKey("IdProducto");
 
@@ -529,6 +565,17 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                     b.Navigation("Usuario");
                 });
 
+            modelBuilder.Entity("SistemaFacturacion.Domain.Entities.Lote", b =>
+                {
+                    b.HasOne("SistemaFacturacion.Domain.Entities.Producto", "Producto")
+                        .WithMany("Lotes")
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Producto");
+                });
+
             modelBuilder.Entity("SistemaFacturacion.Domain.Entities.Cliente", b =>
                 {
                     b.Navigation("Facturas");
@@ -539,6 +586,11 @@ namespace SistemaFacturacion.Infrastructure.Migrations
                     b.Navigation("Comprobante");
 
                     b.Navigation("Detalles");
+                });
+
+            modelBuilder.Entity("SistemaFacturacion.Domain.Entities.Producto", b =>
+                {
+                    b.Navigation("Lotes");
                 });
 
             modelBuilder.Entity("SistemaFacturacion.Domain.Entities.Usuario", b =>

@@ -11,12 +11,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Producto> Productos => Set<Producto>();
+    public DbSet<Lote> Lotes => Set<Lote>(); // ✅ AGREGAR ESTA LÍNEA
     public DbSet<Factura> Facturas => Set<Factura>();
     public DbSet<DetalleFactura> DetallesFactura => Set<DetalleFactura>();
     public DbSet<ComprobanteElectronico> ComprobantesElectronicos => Set<ComprobanteElectronico>();
     public DbSet<ConfiguracionEmpresa> ConfiguracionEmpresa => Set<ConfiguracionEmpresa>();
     public DbSet<HistorialPrecio> HistorialPrecios => Set<HistorialPrecio>();
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,12 +62,60 @@ public class ApplicationDbContext : DbContext
             e.HasIndex(x => x.Codigo).IsUnique().HasDatabaseName("idx_productos_codigo");
             e.Property(x => x.Nombre).HasColumnName("nombre").HasMaxLength(80).IsRequired();
             e.Property(x => x.Categoria).HasColumnName("categoria").HasMaxLength(40);
-            e.Property(x => x.PrecioUnitario).HasColumnName("preciounitario").HasColumnType("numeric(12,2)").IsRequired();
+            
+            // ❌ ELIMINAR: PrecioUnitario, StockActual, FechaExpiracion
+            // e.Property(x => x.PrecioUnitario).HasColumnName("preciounitario").HasColumnType("numeric(12,2)").IsRequired();
+            
             e.Property(x => x.PrecioVenta).HasColumnName("precioventa").HasColumnType("numeric(12,2)").IsRequired();
-            e.Property(x => x.StockActual).HasColumnName("stockactual");
-            e.Property(x => x.FechaExpiracion).HasColumnName("fechaexpiracion");
+            
+            // ❌ ELIMINAR: StockActual y FechaExpiracion
+            // e.Property(x => x.StockActual).HasColumnName("stockactual");
+            // e.Property(x => x.FechaExpiracion).HasColumnName("fechaexpiracion");
+            
             e.Property(x => x.Estado).HasColumnName("estado").HasDefaultValue(true);
+
+            // ✅ AGREGAR: Relación con Lotes
+            e.HasMany(p => p.Lotes)
+                .WithOne(l => l.Producto)
+                .HasForeignKey(l => l.ProductoId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // LOTES (NUEVA ENTIDAD)
+        // En el método OnModelCreating, en la configuración de Lote
+// LOTES - CONFIGURACIÓN PARA timestamp with time zone
+modelBuilder.Entity<Lote>(e =>
+{
+    e.ToTable("lotes");
+    e.HasKey(x => x.IdLote);
+    e.Property(x => x.IdLote).HasColumnName("idlote").UseIdentityAlwaysColumn();
+    e.Property(x => x.ProductoId).HasColumnName("idproducto").IsRequired();
+    e.Property(x => x.NumeroLote).HasColumnName("numerolote").HasMaxLength(30).IsRequired();
+    
+    // ✅ CAMBIAR A timestamp with time zone
+    e.Property(x => x.FechaIngreso)
+        .HasColumnName("fechaingreso")
+        .HasColumnType("timestamp with time zone")
+        .IsRequired();
+    
+    e.Property(x => x.FechaExpiracion)
+        .HasColumnName("fechaexpiracion")
+        .HasColumnType("timestamp with time zone");
+        
+    e.Property(x => x.CantidadInicial).HasColumnName("cantidadinicial").IsRequired();
+    e.Property(x => x.CantidadActual).HasColumnName("cantidadactual").IsRequired();
+    e.Property(x => x.PrecioCompra).HasColumnName("preciocompra").HasColumnType("numeric(12,2)").IsRequired();
+
+    // Relación
+    e.HasOne(l => l.Producto)
+        .WithMany(p => p.Lotes)
+        .HasForeignKey(l => l.ProductoId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    // Índices
+    e.HasIndex(l => l.ProductoId).HasDatabaseName("idx_lotes_producto");
+    e.HasIndex(l => l.NumeroLote).HasDatabaseName("idx_lotes_numero");
+});
 
         // FACTURAS (principal)
         modelBuilder.Entity<Factura>(e =>
@@ -86,16 +134,15 @@ public class ApplicationDbContext : DbContext
             e.Property(x => x.Estado).HasColumnName("estado").HasMaxLength(12).HasDefaultValue("PENDIENTE");
 
             e.HasOne(x => x.Cliente)
-            .WithMany(c => c.Facturas) // <--- Especifica la colección en Cliente
+            .WithMany(c => c.Facturas)
             .HasForeignKey(x => x.IdCliente)
             .OnDelete(DeleteBehavior.Restrict);
 
             e.HasOne(x => x.Usuario)
-            .WithMany(u => u.Facturas) // <--- Especifica la colección en Usuario
+            .WithMany(u => u.Facturas)
             .HasForeignKey(x => x.IdUsuario)
             .OnDelete(DeleteBehavior.SetNull);
 
-            // 1–1 Factura ↔ Comprobante (dependiente: Comprobante)
             e.HasOne(x => x.Comprobante)
             .WithOne(c => c.Factura)
             .HasForeignKey<ComprobanteElectronico>(c => c.IdFactura)
@@ -121,7 +168,7 @@ public class ApplicationDbContext : DbContext
             e.HasOne(x => x.Producto).WithMany().HasForeignKey(x => x.IdProducto).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // COMPROBANTES (dependiente 1–1)
+        // COMPROBANTES
         modelBuilder.Entity<ComprobanteElectronico>(e =>
         {
             e.ToTable("comprobanteselectronicos");
@@ -175,5 +222,4 @@ public class ApplicationDbContext : DbContext
             e.HasOne(x => x.Usuario).WithMany().HasForeignKey(x => x.IdUsuario).OnDelete(DeleteBehavior.SetNull);
         });
     }
-
 }

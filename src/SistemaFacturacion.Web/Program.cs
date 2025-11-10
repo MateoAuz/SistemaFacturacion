@@ -4,6 +4,10 @@ using SistemaFacturacion.Infrastructure.Persistence;
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Infrastructure.Repositories;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +25,10 @@ builder.Services.AddScoped(sp =>
 });
 
 builder.Services.AddControllers();
+// --- Swagger ---
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 
 // 🔧 REPOSITORIOS
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -28,6 +36,7 @@ builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 builder.Services.AddScoped<IConfiguracionRepository, ConfiguracionRepository>();
 builder.Services.AddScoped<IFacturaRepository, FacturaRepository>();
+builder.Services.AddScoped<ILoteRepository, LoteRepository>();
 
 // 🔧 SERVICIOS DE APLICACIÓN (Lógica Pura)
 builder.Services.AddScoped<ITaxCalculator, SistemaFacturacion.Application.Services.TaxCalculator>();
@@ -50,6 +59,22 @@ builder.Services.AddRazorComponents()
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+    });
+
+
 var app = builder.Build();
 
 // 🔄 REDIRECCIÓN TEMPORAL: DE "/" A "/LOGIN"
@@ -61,16 +86,26 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+// --- Middleware Swagger ---
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseAntiforgery();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 
 // ✅ ORDEN CORRECTO: Primero mapear componentes, luego el manejo de 404
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+    
+app.UseAntiforgery();
 
 // ✅ MIDDLEWARE PARA RUTAS NO MANEJADAS - DEBE IR AL FINAL
 app.Use(async (context, next) =>
