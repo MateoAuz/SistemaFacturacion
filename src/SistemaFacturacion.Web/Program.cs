@@ -28,6 +28,7 @@ builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 builder.Services.AddScoped<IConfiguracionRepository, ConfiguracionRepository>();
 builder.Services.AddScoped<IFacturaRepository, FacturaRepository>();
+builder.Services.AddScoped<ILoteRepository, LoteRepository>();
 
 // 🔧 SERVICIOS DE APLICACIÓN (Lógica Pura)
 builder.Services.AddScoped<ITaxCalculator, SistemaFacturacion.Application.Services.TaxCalculator>();

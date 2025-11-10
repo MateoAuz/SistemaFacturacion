@@ -1,145 +1,138 @@
 using Microsoft.AspNetCore.Mvc;
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaFacturacion.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[AllowAnonymous]
 public class ProductosController : ControllerBase
 {
-    private readonly IProductoRepository _repo;
+    private readonly IProductoRepository _productoRepo;
 
-    public ProductosController(IProductoRepository repo)
+    public ProductosController(IProductoRepository productoRepo)
     {
-        _repo = repo;
+        _productoRepo = productoRepo;
     }
 
+    // GET: api/productos
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Producto>>> Get(CancellationToken ct)
+    public async Task<ActionResult<IEnumerable<Producto>>> GetProductos(CancellationToken ct)
     {
-        var items = await _repo.GetAllAsync(ct);
-        return Ok(items);
+        // ✅ ACTUALIZADO: Incluir lotes para calcular StockTotal
+        var productos = await _productoRepo.GetAllAsync(includeLotes: true, ct);
+        return Ok(productos);
     }
 
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<Producto>> GetById(int id, CancellationToken ct)
+    // GET: api/productos/5
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Producto>> GetProducto(int id, CancellationToken ct)
     {
-        var item = await _repo.GetByIdAsync(id, ct);
-        return item is null ? NotFound() : Ok(item);
+        // ✅ ACTUALIZADO: Incluir lotes
+        var producto = await _productoRepo.GetByIdAsync(id, includeLotes: true, ct);
+        if (producto == null) return NotFound();
+        return producto;
     }
 
+    // GET: api/productos/by-codigo/ABC123
     [HttpGet("by-codigo/{codigo}")]
-    public async Task<ActionResult<Producto>> GetByCodigo(string codigo, CancellationToken ct)
+    public async Task<ActionResult<Producto>> GetProductoByCodigo(string codigo, CancellationToken ct)
     {
-        var item = await _repo.GetByCodigoAsync(codigo, ct);
-        return item is null ? NotFound() : Ok(item);
+        // ✅ ACTUALIZADO: Incluir lotes
+        var producto = await _productoRepo.GetByCodigoAsync(codigo, includeLotes: true, ct);
+        if (producto == null) return NotFound();
+        return producto;
     }
 
+    // POST: api/productos
     [HttpPost]
-    public async Task<ActionResult<Producto>> Post([FromBody] Producto dto, CancellationToken ct)
+    public async Task<ActionResult<Producto>> PostProducto(Producto producto, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(dto.Codigo) || string.IsNullOrWhiteSpace(dto.Nombre))
-            return BadRequest("Código y Nombre son obligatorios.");
+        // ✅ ELIMINADO: Validaciones de propiedades eliminadas
+        // Solo validamos datos básicos
+        if (string.IsNullOrEmpty(producto.Codigo) || string.IsNullOrEmpty(producto.Nombre))
+            return BadRequest("Código y nombre son obligatorios");
 
-        var exists = await _repo.GetByCodigoAsync(dto.Codigo, ct);
-        if (exists != null)
-            return Conflict($"Ya existe un producto con código {dto.Codigo}.");
-
-        // ⚙️ Forzar fecha a UTC si tiene valor
-        if (dto.FechaExpiracion.HasValue)
-            dto.FechaExpiracion = DateTime.SpecifyKind(dto.FechaExpiracion.Value, DateTimeKind.Utc);
-
-        var created = await _repo.AddAsync(dto, ct);
-        return CreatedAtAction(nameof(GetById), new { id = created.IdProducto }, created);
+        try
+        {
+            var productoGuardado = await _productoRepo.AddAsync(producto, ct);
+            return CreatedAtAction(nameof(GetProducto), new { id = productoGuardado.IdProducto }, productoGuardado);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error al crear producto: {ex.Message}");
+        }
     }
 
-
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> Put(int id, [FromBody] Producto dto, CancellationToken ct)
+    // PUT: api/productos/5
+    [HttpPut("{id}")]
+    public async Task<IActionResult> PutProducto(int id, Producto producto, CancellationToken ct)
     {
-        if (dto.IdProducto == 0)
-            dto.IdProducto = id;
-        else if (id != dto.IdProducto)
-            return BadRequest("Id de ruta y cuerpo no coinciden.");
+        if (id != producto.IdProducto) return BadRequest();
 
-        var current = await _repo.GetByIdAsync(id, ct);
-        if (current is null)
-            return NotFound();
-
-        // ⚙️ Copiar datos actualizados
-        current.Codigo = dto.Codigo;
-        current.Nombre = dto.Nombre;
-        current.Categoria = dto.Categoria;
-        current.PrecioUnitario = dto.PrecioUnitario;
-        current.PrecioVenta = dto.PrecioVenta;
-        current.StockActual = dto.StockActual;
-        current.Estado = dto.Estado;
-
-        // ⚙️ Forzar fecha a UTC si tiene valor
-        if (dto.FechaExpiracion.HasValue)
-            current.FechaExpiracion = DateTime.SpecifyKind(dto.FechaExpiracion.Value, DateTimeKind.Utc);
-        else
-            current.FechaExpiracion = null;
-
-        await _repo.UpdateAsync(current, ct);
-        return NoContent();
+        try
+        {
+            await _productoRepo.UpdateAsync(producto, ct);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error al actualizar producto: {ex.Message}");
+        }
     }
 
-
-
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    // DELETE: api/productos/5
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteProducto(int id, CancellationToken ct)
     {
-        var current = await _repo.GetByIdAsync(id, ct);
-        if (current is null) return NotFound();
-
-        await _repo.DeleteAsync(id, ct);
-        return NoContent();
+        try
+        {
+            await _productoRepo.DeleteAsync(id, ct);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error al eliminar producto: {ex.Message}");
+        }
     }
 
-    [HttpGet("count-stock")]
-    public async Task<ActionResult<int>> GetTotalStock(CancellationToken ct)
-    {
-        var productos = await _repo.GetAllAsync(ct);
-        var total = productos.Where(p => p.Estado).Sum(p => p.StockActual);
-        return Ok(total);
-    }
-
-    [HttpPatch("{id:int}/desactivar")]
-    public async Task<IActionResult> DesactivarProducto(int id, CancellationToken ct)
-    {
-        var producto = await _repo.GetByIdAsync(id, ct);
-        if (producto is null)
-            return NotFound();
-
-        // ⚙️ Forzar la fecha a UTC si tiene valor
-        if (producto.FechaExpiracion.HasValue)
-            producto.FechaExpiracion = DateTime.SpecifyKind(producto.FechaExpiracion.Value, DateTimeKind.Utc);
-
-        producto.Estado = false;
-        await _repo.UpdateAsync(producto, ct);
-
-        return Ok(producto);
-    }
-
-    [HttpPatch("{id:int}/activar")]
+    // PATCH: api/productos/5/activar
+    [HttpPatch("{id}/activar")]
     public async Task<IActionResult> ActivarProducto(int id, CancellationToken ct)
     {
-        var producto = await _repo.GetByIdAsync(id, ct);
-        if (producto is null)
-            return NotFound();
+        try
+        {
+            var producto = await _productoRepo.GetByIdAsync(id, includeLotes: false, ct);
+            if (producto == null) return NotFound();
 
-        // ⚙️ Igual corrección: forzar la fecha a UTC
-        if (producto.FechaExpiracion.HasValue)
-            producto.FechaExpiracion = DateTime.SpecifyKind(producto.FechaExpiracion.Value, DateTimeKind.Utc);
-
-        producto.Estado = true;
-        await _repo.UpdateAsync(producto, ct);
-
-        return Ok(producto);
+            producto.Estado = true;
+            await _productoRepo.UpdateAsync(producto, ct);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error al activar producto: {ex.Message}");
+        }
     }
 
+    // PATCH: api/productos/5/desactivar
+    [HttpPatch("{id}/desactivar")]
+    public async Task<IActionResult> DesactivarProducto(int id, CancellationToken ct)
+    {
+        try
+        {
+            var producto = await _productoRepo.GetByIdAsync(id, includeLotes: false, ct);
+            if (producto == null) return NotFound();
 
-
+            producto.Estado = false;
+            await _productoRepo.UpdateAsync(producto, ct);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error al desactivar producto: {ex.Message}");
+        }
+    }
 }

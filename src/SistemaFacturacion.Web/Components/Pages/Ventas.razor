@@ -57,7 +57,7 @@
                     @foreach (var p in productosEncontrados)
                     {
                         <li class="list-group-item list-group-item-action" @onclick="() => SeleccionarProducto(p)">
-                            <strong>@p.Codigo</strong> - @p.Nombre (Stock: @p.StockActual, Precio: @p.PrecioVenta.ToString("C"))
+                            <strong>@p.Codigo</strong> - @p.Nombre (Stock: @p.StockTotal, Precio: @p.PrecioVenta.ToString("C"))
                         </li>
                     }
                 </ul>
@@ -243,9 +243,9 @@
         LimpiarMensajes();
         
         // Validar stock
-        if (productoParaAnadir.Cantidad > productoParaAnadir.Producto?.StockActual)
+        if (productoParaAnadir.Cantidad > (productoParaAnadir.Producto?.StockTotal ?? 0))
         {
-            mensajeError = $"Stock insuficiente para {productoParaAnadir.Nombre}. Disponible: {productoParaAnadir.Producto?.StockActual}";
+            mensajeError = $"Stock insuficiente para {productoParaAnadir.Nombre}. Disponible: {productoParaAnadir.Producto?.StockTotal ?? 0}";
             return;
         }
 
