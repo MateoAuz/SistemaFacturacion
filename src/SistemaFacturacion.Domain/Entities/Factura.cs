@@ -11,8 +11,10 @@ public class Factura
     public decimal Iva { get; set; }
     public decimal Total { get; set; }
     public string Estado { get; set; } = "PENDIENTE";
+    public decimal SaldoPendiente { get; set; } = 0;
 
     public ICollection<DetalleFactura> Detalles { get; set; } = new List<DetalleFactura>();
+    public ICollection<Pago> Pagos { get; set; } = new List<Pago>();
 
 
     public Cliente? Cliente { get; set; }

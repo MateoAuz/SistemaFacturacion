@@ -2,7 +2,8 @@ using SistemaFacturacion.Web.Components;
 using Microsoft.EntityFrameworkCore;
 using SistemaFacturacion.Infrastructure.Persistence;
 using SistemaFacturacion.Application.Contracts;
-using SistemaFacturacion.Infrastructure.Repositories;
+using SistemaFacturacion.Infrastructure.Repositories; // <<-- AÑADE ESTO
+using SistemaFacturacion.Application.Services;     // <<-- AÑADE ESTO
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -37,9 +38,11 @@ builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 builder.Services.AddScoped<IConfiguracionRepository, ConfiguracionRepository>();
 builder.Services.AddScoped<IFacturaRepository, FacturaRepository>();
 builder.Services.AddScoped<ILoteRepository, LoteRepository>();
+builder.Services.AddScoped<IPagoRepository, PagoRepository>();
 
 // 🔧 SERVICIOS DE APLICACIÓN (Lógica Pura)
 builder.Services.AddScoped<ITaxCalculator, SistemaFacturacion.Application.Services.TaxCalculator>();
+builder.Services.AddScoped<IPagoService, PagoService>();
 
 // 🔧 SERVICIOS DE INFRAESTRUCTURA (Conexión a BD)
 builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Services.StockService>();
