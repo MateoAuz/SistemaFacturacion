@@ -9,13 +9,16 @@ public class ComprobanteElectronicoController : ControllerBase
 {
     private readonly IXmlGeneratorService _xmlGeneratorService;
     private readonly IComprobanteElectronicoRepository _comprobanteRepository;
+    private readonly IXmlValidatorService _xmlValidatorService; // ✅ AGREGAR ESTA LÍNEA
 
     public ComprobanteElectronicoController(
         IXmlGeneratorService xmlGeneratorService,
-        IComprobanteElectronicoRepository comprobanteRepository)
+        IComprobanteElectronicoRepository comprobanteRepository,
+        IXmlValidatorService xmlValidatorService) // ✅ AGREGAR ESTE PARÁMETRO
     {
         _xmlGeneratorService = xmlGeneratorService;
         _comprobanteRepository = comprobanteRepository;
+        _xmlValidatorService = xmlValidatorService; // ✅ AGREGAR ESTA ASIGNACIÓN
     }
 
     /// <summary>
@@ -95,6 +98,41 @@ public class ComprobanteElectronicoController : ControllerBase
             
             var bytes = System.Text.Encoding.UTF8.GetBytes(comprobante.XmlGenerado);
             return File(bytes, "application/xml", $"factura_{idFactura}.xml");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Valida el XML de un comprobante contra el esquema XSD del SRI
+    /// </summary>
+    [HttpPost("validar-xml/{idFactura}")]
+    public async Task<IActionResult> ValidarXml(int idFactura, CancellationToken ct)
+    {
+        try
+        {
+            // Obtener el comprobante
+            var comprobante = await _comprobanteRepository.GetByFacturaIdAsync(idFactura, ct);
+            
+            if (comprobante == null)
+                return NotFound(new { success = false, message = "Comprobante no encontrado" });
+            
+            if (string.IsNullOrEmpty(comprobante.XmlGenerado))
+                return BadRequest(new { success = false, message = "El comprobante no tiene XML generado" });
+            
+            // Validar contra XSD (tipo "01" = factura)
+            var (esValido, mensajes) = _xmlValidatorService.ValidarXmlContraXsd(comprobante.XmlGenerado, "01");
+            
+            return Ok(new
+            {
+                success = esValido,
+                message = esValido ? "✅ XML válido según esquema XSD del SRI" : "❌ XML con errores",
+                idFactura = idFactura,
+                claveAcceso = comprobante.ClaveAcceso,
+                resultados = mensajes
+            });
         }
         catch (Exception ex)
         {

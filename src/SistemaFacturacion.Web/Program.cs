@@ -52,6 +52,8 @@ builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Serv
 // ==========================================
 builder.Services.AddScoped<IClaveAccesoService, ClaveAccesoService>(); // ✅ NUEVO
 builder.Services.AddScoped<IXmlGeneratorService, XmlGeneratorService>();
+builder.Services.AddScoped<IXmlValidatorService, XmlValidatorService>();
+
 
 // 🔧 CONFIGURACIÓN JSON
 builder.Services.ConfigureHttpJsonOptions(options =>
