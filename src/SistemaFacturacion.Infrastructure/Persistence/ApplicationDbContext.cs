@@ -223,11 +223,13 @@ public class ApplicationDbContext : DbContext
             e.Property(x => x.Ruc).HasColumnName("ruc").HasColumnType("char(13)").IsRequired();
             e.HasIndex(x => x.Ruc).IsUnique();
             e.Property(x => x.DireccionMatriz).HasColumnName("direccionmatriz").HasMaxLength(120);
+            e.Property(x => x.Establecimiento).HasColumnName("establecimiento").HasColumnType("char(3)");
             e.Property(x => x.PuntoEmision).HasColumnName("puntoemision").HasColumnType("char(3)");
             e.Property(x => x.Ambiente).HasColumnName("ambiente").HasColumnType("char(1)");
             e.Property(x => x.RutaCertificado).HasColumnName("rutacertificado").HasMaxLength(150);
             e.Property(x => x.ClaveCertificado).HasColumnName("clavecertificado").HasMaxLength(80);
             e.Property(x => x.CorreoEmpresa).HasColumnName("correoempresa").HasMaxLength(80);
+            e.Property(x => x.ObligadoContabilidad).HasColumnName("obligadocontabilidad").HasMaxLength(2);
         });
 
         // HISTORIAL PRECIOS

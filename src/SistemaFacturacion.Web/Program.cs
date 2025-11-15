@@ -39,6 +39,7 @@ builder.Services.AddScoped<IConfiguracionRepository, ConfiguracionRepository>();
 builder.Services.AddScoped<IFacturaRepository, FacturaRepository>();
 builder.Services.AddScoped<ILoteRepository, LoteRepository>();
 builder.Services.AddScoped<IPagoRepository, PagoRepository>();
+builder.Services.AddScoped<IComprobanteElectronicoRepository, ComprobanteElectronicoRepository>();
 
 // 🔧 SERVICIOS DE APLICACIÓN (Lógica Pura)
 builder.Services.AddScoped<ITaxCalculator, SistemaFacturacion.Application.Services.TaxCalculator>();
@@ -46,6 +47,11 @@ builder.Services.AddScoped<IPagoService, PagoService>();
 
 // 🔧 SERVICIOS DE INFRAESTRUCTURA (Conexión a BD)
 builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Services.StockService>();
+// ==========================================
+// SERVICIOS DE FACTURACIÓN ELECTRÓNICA (NUEVOS)
+// ==========================================
+builder.Services.AddScoped<IClaveAccesoService, ClaveAccesoService>(); // ✅ NUEVO
+builder.Services.AddScoped<IXmlGeneratorService, XmlGeneratorService>();
 
 // 🔧 CONFIGURACIÓN JSON
 builder.Services.ConfigureHttpJsonOptions(options =>
