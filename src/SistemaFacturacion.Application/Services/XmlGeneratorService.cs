@@ -244,23 +244,21 @@ public class XmlGeneratorService : IXmlGeneratorService
     }
     
     public string SerializarAXml<T>(T objeto)
+{
+    var xmlSerializer = new XmlSerializer(typeof(T));
+    var settings = new XmlWriterSettings
     {
-        var xmlSerializer = new XmlSerializer(typeof(T));
-        var settings = new XmlWriterSettings
-        {
-            Indent = true,
-            IndentChars = "  ",
-            Encoding = Encoding.UTF8,
-            OmitXmlDeclaration = false
-        };
-        
-        using var stringWriter = new StringWriter();
-        using var xmlWriter = XmlWriter.Create(stringWriter, settings);
-        
-        var namespaces = new XmlSerializerNamespaces();
-        namespaces.Add("", "");
-        
-        xmlSerializer.Serialize(xmlWriter, objeto, namespaces);
-        return stringWriter.ToString();
-    }
+        Indent = true,
+        IndentChars = "  ",
+        Encoding = new UTF8Encoding(false), // Sin BOM
+        OmitXmlDeclaration = false
+    };
+    using var stringWriter = new Utf8StringWriter(); // ← ESTA CLASE
+    using var xmlWriter = XmlWriter.Create(stringWriter, settings);
+    var namespaces = new XmlSerializerNamespaces();
+    namespaces.Add("", "");
+    xmlSerializer.Serialize(xmlWriter, objeto, namespaces);
+    return stringWriter.ToString();
+}
+
 }
