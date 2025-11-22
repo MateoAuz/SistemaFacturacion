@@ -7,6 +7,8 @@ public class ComprobanteElectronico
     public string? ClaveAcceso { get; set; }
     public string? XmlGenerado { get; set; }
     public string? XmlFirmado { get; set; }
+    public DateTime? FechaFirma { get; set; }
+    public string? XmlAutorizado { get; set; }
     public string EstadoEnvio { get; set; } = "NO_ENVIADO";
     public string? MensajeRespuesta { get; set; }
     public DateTime? FechaEnvio { get; set; }

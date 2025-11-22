@@ -205,6 +205,8 @@ public class ApplicationDbContext : DbContext
             e.HasIndex(x => x.ClaveAcceso).HasDatabaseName("idx_comprobantes_clave");
             e.Property(x => x.XmlGenerado).HasColumnName("xmlgenerado").HasColumnType("text");
             e.Property(x => x.XmlFirmado).HasColumnName("xmlfirmado").HasColumnType("text");
+            e.Property(x => x.FechaFirma).HasColumnName("fechafirma"); 
+            e.Property(x => x.XmlAutorizado).HasColumnName("xmlautorizado").HasColumnType("text");
             e.Property(x => x.EstadoEnvio).HasColumnName("estadoenvio").HasMaxLength(15).HasDefaultValue("NO_ENVIADO");
             e.Property(x => x.MensajeRespuesta).HasColumnName("mensajerespuesta").HasMaxLength(250);
             e.Property(x => x.FechaEnvio).HasColumnName("fechaenvio");

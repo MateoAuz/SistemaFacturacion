@@ -2,8 +2,9 @@ using SistemaFacturacion.Web.Components;
 using Microsoft.EntityFrameworkCore;
 using SistemaFacturacion.Infrastructure.Persistence;
 using SistemaFacturacion.Application.Contracts;
-using SistemaFacturacion.Infrastructure.Repositories; // <<-- AÑADE ESTO
-using SistemaFacturacion.Application.Services;     // <<-- AÑADE ESTO
+using SistemaFacturacion.Infrastructure.Repositories;
+using SistemaFacturacion.Application.Services;
+using SistemaFacturacion.Infrastructure.Services; // ✅ AGREGAR ESTE USING
 using SistemaFacturacion.Domain.Entities;
 using SistemaFacturacion.Domain.Configuration;
 using System.Text.Json;
@@ -11,13 +12,19 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
-// 🔧 CONFIGURACIÓN DE HTTPCLIENT (AGREGA ESTO)
+// 🔧 CONFIGURACIÓN DE HTTPCLIENT
 builder.Services.AddHttpClient("LocalApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["BaseUrl"] ?? builder.Configuration["Urls"]?.Split(';').First() ?? "https://localhost:7001/");
+});
+
+// ✅ AGREGAR HttpClient para el API del SRI (SOAP)
+builder.Services.AddHttpClient("SriSoap", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60);
+    client.DefaultRequestHeaders.Add("Accept", "text/xml");
 });
 
 // También agrega HttpClient genérico con BaseAddress
@@ -53,16 +60,18 @@ builder.Services.AddScoped<IPagoService, PagoService>();
 builder.Services.AddScoped<IXmlValidationService, XmlValidationService>();
 builder.Services.AddScoped<IValidacionFacturaService, ValidacionFacturaService>();
 
-
 // 🔧 SERVICIOS DE INFRAESTRUCTURA (Conexión a BD)
 builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Services.StockService>();
+
 // ==========================================
 // SERVICIOS DE FACTURACIÓN ELECTRÓNICA (NUEVOS)
 // ==========================================
-builder.Services.AddScoped<IClaveAccesoService, ClaveAccesoService>(); // ✅ NUEVO
+builder.Services.AddScoped<IClaveAccesoService, ClaveAccesoService>();
 builder.Services.AddScoped<IXmlGeneratorService, XmlGeneratorService>();
 
-
+// ✅ CORREGIR: SriApiService debe ser de Infrastructure.Services
+builder.Services.AddScoped<ISriApiService, SistemaFacturacion.Infrastructure.Services.SriApiService>();
+builder.Services.AddScoped<IFacturacionElectronicaService, FacturacionElectronicaService>();
 
 // 🔧 CONFIGURACIÓN JSON
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -93,7 +102,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
     });
-
 
 var app = builder.Build();
 
