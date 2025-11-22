@@ -33,7 +33,7 @@ public class SriApiService : ISriApiService
         xmlFirmado = xmlFirmado.Trim();
         
         // ✅ Remover el atributo standalone="no" que puede causar problemas
-        xmlFirmado = xmlFirmado.Replace(" standalone=\"no\"", "");
+        //xmlFirmado = xmlFirmado.Replace(" standalone=\"no\"", "");
         
         // ✅ Normalizar espacios en blanco
         xmlFirmado = System.Text.RegularExpressions.Regex.Replace(xmlFirmado, @">\s+<", "><");

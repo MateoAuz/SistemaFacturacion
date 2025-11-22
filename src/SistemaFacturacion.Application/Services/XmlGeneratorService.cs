@@ -288,7 +288,7 @@ private string MapearMetodoPagoASri(string metodoPago)
     // ✅ Crear namespaces para el XML con los prefijos del SRI
     var namespaces = new XmlSerializerNamespaces();
     namespaces.Add("ds", "http://www.w3.org/2000/09/xmldsig#");
-    namespaces.Add("xsi", "http://www.w3.org/2001/XMLSchema-instance");
+    namespaces.Add("etsi", "http://uri.etsi.org/01903/v1.3.2#");
 
     var serializer = new XmlSerializer(typeof(FacturaXml));
     

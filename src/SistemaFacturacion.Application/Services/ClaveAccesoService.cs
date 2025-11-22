@@ -51,25 +51,27 @@ public class ClaveAccesoService : IClaveAccesoService
         Random random = new Random();
         return random.Next(10000000, 99999999).ToString();
     }
-    
+        
     private string CalcularDigitoVerificadorModulo11(string clave48)
+{
+    int suma = 0;
+    int factor = 2;
+    
+    // Recorrer de derecha a izquierda
+    for (int i = clave48.Length - 1; i >= 0; i--)
     {
-        int[] claveDig = clave48.Select(c => int.Parse(c.ToString())).ToArray();
-        int suma = 0;
-        int factor = 7;
-        
-        foreach (int digito in claveDig)
-        {
-            suma += digito * factor;
-            factor--;
-            if (factor < 2) factor = 7;
-        }
-        
-        int modulo = suma % 11;
-        int resultado = 11 - modulo;
-        
-        if (resultado == 11) return "0";
-        else if (resultado == 10) return "1";
-        else return resultado.ToString();
+        int digito = int.Parse(clave48[i].ToString());
+        suma += digito * factor;
+        factor++;
+        if (factor > 7) factor = 2;
     }
+    
+    int modulo = suma % 11;
+    int resultado = 11 - modulo;
+    
+    if (resultado == 11) return "0";
+    if (resultado == 10) return "1";
+    return resultado.ToString();
+}
+
 }
