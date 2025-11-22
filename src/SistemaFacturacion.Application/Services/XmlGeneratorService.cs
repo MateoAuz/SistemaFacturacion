@@ -152,18 +152,25 @@ public class XmlGeneratorService : IXmlGeneratorService
         {
             FechaEmision = factura.FechaEmision.ToString("dd/MM/yyyy"),
             DirEstablecimiento = config.DireccionMatriz ?? "Matriz",
+            ContribuyenteEspecial = null,
             ObligadoContabilidad = config.ObligadoContabilidad ?? "NO",
             TipoIdentificacionComprador = tipoIdComprador,
+            GuiaRemision = null,
             RazonSocialComprador = $"{factura.Cliente.Nombres} {factura.Cliente.Apellidos}".Trim(),
-            IdentificacionComprador = factura.Cliente.Identificacion,
+            IdentificacionComprador = factura.Cliente.Identificacion.Trim(),
             DireccionComprador = factura.Cliente.Direccion ?? "S/N",
             TotalSinImpuestos = factura.Subtotal.ToString("F2"),
+            TotalSubsidio = null,
+            IncoTermTotalSinImpuestos = null,
             TotalDescuento = "0.00",
             TotalConImpuestos = ConstruirTotalImpuestos(factura),
             Propina = "0.00",
             ImporteTotal = factura.Total.ToString("F2"),
             Moneda = "DOLAR",
-            Pagos = ConstruirFormasPago(factura)
+            Placa = null,
+            Pagos = ConstruirFormasPago(factura),
+            ValorRetIva = null,
+            ValorRetRenta = null
         };
     }
     

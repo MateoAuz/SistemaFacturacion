@@ -4,6 +4,8 @@ using SistemaFacturacion.Infrastructure.Persistence;
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Infrastructure.Repositories; // <<-- AÑADE ESTO
 using SistemaFacturacion.Application.Services;     // <<-- AÑADE ESTO
+using SistemaFacturacion.Domain.Entities;
+using SistemaFacturacion.Domain.Configuration;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -30,6 +32,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configurar las opciones del SRI
+var sriConfig = new SriConfiguracion();
+builder.Configuration.GetSection("SRI").Bind(sriConfig);
+builder.Services.AddSingleton(sriConfig);
 
 // 🔧 REPOSITORIOS
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -44,6 +50,9 @@ builder.Services.AddScoped<IComprobanteElectronicoRepository, ComprobanteElectro
 // 🔧 SERVICIOS DE APLICACIÓN (Lógica Pura)
 builder.Services.AddScoped<ITaxCalculator, SistemaFacturacion.Application.Services.TaxCalculator>();
 builder.Services.AddScoped<IPagoService, PagoService>();
+builder.Services.AddScoped<IXmlValidationService, XmlValidationService>();
+builder.Services.AddScoped<IValidacionFacturaService, ValidacionFacturaService>();
+
 
 // 🔧 SERVICIOS DE INFRAESTRUCTURA (Conexión a BD)
 builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Services.StockService>();
@@ -52,7 +61,7 @@ builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Serv
 // ==========================================
 builder.Services.AddScoped<IClaveAccesoService, ClaveAccesoService>(); // ✅ NUEVO
 builder.Services.AddScoped<IXmlGeneratorService, XmlGeneratorService>();
-builder.Services.AddScoped<IXmlValidatorService, XmlValidatorService>();
+
 
 
 // 🔧 CONFIGURACIÓN JSON
