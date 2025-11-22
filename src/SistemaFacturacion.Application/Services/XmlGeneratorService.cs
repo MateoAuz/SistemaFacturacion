@@ -178,6 +178,7 @@ public class XmlGeneratorService : IXmlGeneratorService
                 Codigo = "2", // 2 = IVA
                 CodigoPorcentaje = "3", // 3 = 15% (verificar tabla SRI actualizada)
                 BaseImponible = factura.Subtotal.ToString("F2"),
+                Tarifa = "15",
                 Valor = factura.Iva.ToString("F2")
             }
         };
@@ -282,7 +283,32 @@ private string MapearMetodoPagoASri(string metodoPago)
         
         return campos.Count > 0 ? campos : null;
     }
+    private string SerializarAXml(FacturaXml facturaXml)
+{
+    // ✅ Crear namespaces para el XML con los prefijos del SRI
+    var namespaces = new XmlSerializerNamespaces();
+    namespaces.Add("ds", "http://www.w3.org/2000/09/xmldsig#");
+    namespaces.Add("xsi", "http://www.w3.org/2001/XMLSchema-instance");
+
+    var serializer = new XmlSerializer(typeof(FacturaXml));
     
+    var settings = new XmlWriterSettings
+    {
+        Encoding = new UTF8Encoding(false), // UTF-8 sin BOM
+        Indent = true,
+        IndentChars = "  ",
+        OmitXmlDeclaration = false
+    };
+
+    using var stringWriter = new Utf8StringWriter();
+    using var xmlWriter = XmlWriter.Create(stringWriter, settings);
+    
+    // ✅ Serializar con los namespaces
+    serializer.Serialize(xmlWriter, facturaXml, namespaces);
+    
+    return stringWriter.ToString();
+}
+
     public string SerializarAXml<T>(T objeto)
 {
     var xmlSerializer = new XmlSerializer(typeof(T));
@@ -302,3 +328,10 @@ private string MapearMetodoPagoASri(string metodoPago)
 }
 
 }
+
+// ✅ Clase helper para forzar encoding UTF-8
+public class Utf8StringWriter : StringWriter
+{
+    public override Encoding Encoding => Encoding.UTF8;
+}
+

@@ -18,6 +18,7 @@ public class SriApiService : ISriApiService
     {
         _httpClient = httpClientFactory.CreateClient("SriSoap");
         _config = config;
+        _httpClient.Timeout = TimeSpan.FromMinutes(5);
     }
 
     public async Task<(bool Success, string Message)> EnviarComprobanteAsync(
@@ -27,6 +28,15 @@ public class SriApiService : ISriApiService
     {
         try
         {
+
+            // ✅ Limpiar el XML firmado
+        xmlFirmado = xmlFirmado.Trim();
+        
+        // ✅ Remover el atributo standalone="no" que puede causar problemas
+        xmlFirmado = xmlFirmado.Replace(" standalone=\"no\"", "");
+        
+        // ✅ Normalizar espacios en blanco
+        xmlFirmado = System.Text.RegularExpressions.Regex.Replace(xmlFirmado, @">\s+<", "><");
             // Construir el SOAP Envelope
             var soapEnvelope = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <soapenv:Envelope xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"" 
