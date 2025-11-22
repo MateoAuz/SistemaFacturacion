@@ -158,19 +158,12 @@ public class XmlGeneratorService : IXmlGeneratorService
             GuiaRemision = null,
             RazonSocialComprador = $"{factura.Cliente.Nombres} {factura.Cliente.Apellidos}".Trim(),
             IdentificacionComprador = factura.Cliente.Identificacion.Trim(),
-            DireccionComprador = factura.Cliente.Direccion ?? "S/N",
             TotalSinImpuestos = factura.Subtotal.ToString("F2"),
-            TotalSubsidio = null,
-            IncoTermTotalSinImpuestos = null,
             TotalDescuento = "0.00",
             TotalConImpuestos = ConstruirTotalImpuestos(factura),
             Propina = "0.00",
             ImporteTotal = factura.Total.ToString("F2"),
             Moneda = "DOLAR",
-            Placa = null,
-            Pagos = ConstruirFormasPago(factura),
-            ValorRetIva = null,
-            ValorRetRenta = null
         };
     }
     
