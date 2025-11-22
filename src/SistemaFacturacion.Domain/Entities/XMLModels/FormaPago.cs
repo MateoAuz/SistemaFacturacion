@@ -2,6 +2,7 @@ using System.Xml.Serialization;
 
 namespace SistemaFacturacion.Domain.Entities.XmlModels;
 
+[XmlRoot("pago")]
 public class FormaPago
 {
     [XmlElement("formaPago")]

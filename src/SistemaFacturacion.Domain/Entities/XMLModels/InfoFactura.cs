@@ -29,10 +29,6 @@ public class InfoFactura
     [XmlElement("identificacionComprador")]
     public string IdentificacionComprador { get; set; } = string.Empty;
     
-    // ✅ ELIMINAR direccionComprador - NO está en este XSD
-    // [XmlElement("direccionComprador")]
-    // public string? DireccionComprador { get; set; }
-    
     [XmlElement("totalSinImpuestos")]
     public string TotalSinImpuestos { get; set; } = string.Empty;
     
@@ -51,4 +47,9 @@ public class InfoFactura
     
     [XmlElement("moneda")]
     public string? Moneda { get; set; }
+    
+    // ✅ PAGOS debe ir DESPUÉS de moneda según el XSD
+    [XmlArray("pagos")]
+    [XmlArrayItem("pago")]
+    public List<FormaPago> Pagos { get; set; } = new();
 }

@@ -164,6 +164,7 @@ public class XmlGeneratorService : IXmlGeneratorService
             Propina = "0.00",
             ImporteTotal = factura.Total.ToString("F2"),
             Moneda = "DOLAR",
+            Pagos = ConstruirFormasPago(factura)
         };
     }
     
@@ -183,16 +184,55 @@ public class XmlGeneratorService : IXmlGeneratorService
     }
     
     private List<FormaPago> ConstruirFormasPago(Factura factura)
+{
+    var pagos = new List<FormaPago>();
+    
+    if (factura.Pagos != null && factura.Pagos.Any())
     {
-        return new List<FormaPago>
+        foreach (var pago in factura.Pagos.Where(p => p.Estado == "REGISTRADO"))
         {
-            new FormaPago
+            pagos.Add(new FormaPago
             {
-                FormaPagoCode = "01", // 01 = Sin utilización del sistema financiero
-                Total = factura.Total.ToString("F2")
-            }
-        };
+                FormaPagoCode = MapearMetodoPagoASri(pago.MetodoPago),
+                Total = pago.Monto.ToString("F2"), // Siempre 2 decimales
+                Plazo = null,
+                UnidadTiempo = null
+            });
+        }
     }
+    
+    // Si no hay pagos, agregar uno por defecto
+    if (!pagos.Any())
+    {
+        pagos.Add(new FormaPago
+        {
+            FormaPagoCode = "01", // Sin utilización del sistema financiero
+            Total = factura.Total.ToString("F2"),
+            Plazo = null,
+            UnidadTiempo = null
+        });
+    }
+    
+    return pagos;
+}
+
+private string MapearMetodoPagoASri(string metodoPago)
+{
+    // Códigos oficiales del SRI (Tabla 24)
+    return metodoPago?.ToUpper() switch
+    {
+        "EFECTIVO" => "01", // Sin utilización del sistema financiero
+        "CHEQUE" => "02", // Cheque propio
+        "TRANSFERENCIA" => "17", // Transferencia - Depósito en cuenta
+        "TARJETA_DEBITO" => "19", // Tarjeta de débito
+        "TARJETA DEBITO" => "19",
+        "TARJETA_CREDITO" => "20", // Tarjeta de crédito nacional
+        "TARJETA CREDITO" => "20",
+        "TARJETA" => "20",
+        _ => "01"
+    };
+}
+
     
     private List<DetalleXml> ConstruirDetalles(List<DetalleFactura> detalles)
     {
@@ -235,7 +275,7 @@ public class XmlGeneratorService : IXmlGeneratorService
         {
             campos.Add(new CampoAdicional
             {
-                Nombre = "Teléfono",
+                Nombre = "Telefono",
                 Valor = factura.Cliente.Telefono
             });
         }
