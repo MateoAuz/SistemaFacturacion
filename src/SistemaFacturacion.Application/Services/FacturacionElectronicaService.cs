@@ -113,7 +113,7 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
             return (false, "No se encontró el comprobante electrónico");
         }
 
-        var (success, message, xmlAutorizado) = await _sriApi.ConsultarAutorizacionAsync(
+        var (success, message, xmlAutorizado, numeroAutorizacion) = await _sriApi.ConsultarAutorizacionAsync(
             comprobante.ClaveAcceso, 
             ct);
 
@@ -121,6 +121,7 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         {
             comprobante.EstadoEnvio = "AUTORIZADO";
             comprobante.XmlAutorizado = xmlAutorizado;
+            comprobante.NumeroAutorizacion = numeroAutorizacion;
             comprobante.FechaAutorizacion = DateTime.UtcNow;
             await _comprobanteRepo.UpdateAsync(comprobante, ct);
         }

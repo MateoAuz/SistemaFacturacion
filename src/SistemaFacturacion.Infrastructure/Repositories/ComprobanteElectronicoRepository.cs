@@ -47,6 +47,7 @@ public class ComprobanteElectronicoRepository : IComprobanteElectronicoRepositor
         existente.ClaveAcceso = comprobante.ClaveAcceso;
         existente.XmlGenerado = comprobante.XmlGenerado;
         existente.XmlFirmado = comprobante.XmlFirmado;
+        existente.XmlAutorizado = comprobante.XmlAutorizado;
         existente.EstadoEnvio = comprobante.EstadoEnvio;
         existente.MensajeRespuesta = comprobante.MensajeRespuesta;
         existente.FechaEnvio = comprobante.FechaEnvio;

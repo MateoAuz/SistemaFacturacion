@@ -154,13 +154,13 @@ public class SriApiService : ISriApiService
         }
     }
 
-    public async Task<(bool Success, string Message, string? XmlAutorizado)> ConsultarAutorizacionAsync(
-        string claveAcceso,
-        CancellationToken ct = default)
+    public async Task<(bool Success, string Message, string? XmlAutorizado, string? NumeroAutorizacion)> ConsultarAutorizacionAsync(
+    string claveAcceso,
+    CancellationToken ct = default)
+{
+    try
     {
-        try
-        {
-            var soapEnvelope = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+        var soapEnvelope = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <soapenv:Envelope xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"" 
                   xmlns:ec=""http://ec.gob.sri.ws.autorizacion"">
     <soapenv:Header/>
@@ -171,64 +171,65 @@ public class SriApiService : ISriApiService
     </soapenv:Body>
 </soapenv:Envelope>";
 
-            var content = new StringContent(soapEnvelope, Encoding.UTF8, "text/xml");
+        var content = new StringContent(soapEnvelope, Encoding.UTF8, "text/xml");
 
-            var response = await _httpClient.PostAsync(URL_AUTORIZACION_PRUEBAS, content, ct);
-            var responseBody = await response.Content.ReadAsStringAsync(ct);
+        var response = await _httpClient.PostAsync(URL_AUTORIZACION_PRUEBAS, content, ct);
+        var responseBody = await response.Content.ReadAsStringAsync(ct);
 
-            // ✅ LOG: Guardar la respuesta completa
-            Console.WriteLine("=== RESPUESTA DEL SRI (Autorización) ===");
-            Console.WriteLine(responseBody);
-            Console.WriteLine("========================================");
+        // LOG: Guardar la respuesta completa
+        Console.WriteLine("=== RESPUESTA DEL SRI (Autorización) ===");
+        Console.WriteLine(responseBody);
+        Console.WriteLine("========================================");
 
-            if (!response.IsSuccessStatusCode)
-            {
-                return (false, $"❌ Error HTTP {response.StatusCode}: {response.ReasonPhrase}", null);
-            }
-
-            var doc = XDocument.Parse(responseBody);
-
-            // Buscar autorizacion sin importar el namespace
-            var autorizacionElement = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "autorizacion");
-
-            if (autorizacionElement == null)
-            {
-                return (false, "⚠️ No se encontró información de autorización para esta clave de acceso", null);
-            }
-
-            var ns = autorizacionElement.Name.Namespace;
-            var estado = autorizacionElement.Element(ns + "estado")?.Value;
-            var numeroAutorizacion = autorizacionElement.Element(ns + "numeroAutorizacion")?.Value;
-            var fechaAutorizacion = autorizacionElement.Element(ns + "fechaAutorizacion")?.Value;
-            var comprobante = autorizacionElement.Element(ns + "comprobante")?.Value;
-
-            if (estado == "AUTORIZADO")
-            {
-                return (true,
-                       $"✅ Comprobante AUTORIZADO\n📋 Número: {numeroAutorizacion}\n📅 Fecha: {fechaAutorizacion}",
-                       comprobante);
-            }
-            else if (estado == "NO AUTORIZADO")
-            {
-                var mensajes = autorizacionElement.Element(ns + "mensajes");
-                var errorList = mensajes?.Elements(ns + "mensaje")
-                    .Select(m =>
-                    {
-                        var mensaje = m.Element(ns + "mensaje")?.Value;
-                        var tipo = m.Element(ns + "tipo")?.Value;
-                        return $"[{tipo}] {mensaje}";
-                    })
-                    .ToList() ?? new List<string>();
-
-                var errorMsg = "❌ Comprobante NO AUTORIZADO:\n" + string.Join("\n", errorList);
-                return (false, errorMsg, null);
-            }
-
-            return (false, $"⚠️ Estado inesperado: {estado}", null);
-        }
-        catch (Exception ex)
+        if (!response.IsSuccessStatusCode)
         {
-            return (false, $"❌ Error al consultar autorización: {ex.Message}", null);
+            return (false, $"❌ Error HTTP {response.StatusCode}: {response.ReasonPhrase}", null, null);
         }
+
+        var doc = XDocument.Parse(responseBody);
+
+        // Buscar autorizacion sin importar el namespace
+        var autorizacionElement = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "autorizacion");
+
+        if (autorizacionElement == null)
+        {
+            return (false, "⚠️ No se encontró información de autorización para esta clave de acceso", null, null);
+        }
+
+        var ns = autorizacionElement.Name.Namespace;
+        var estado = autorizacionElement.Element(ns + "estado")?.Value;
+        var numeroAutorizacion = autorizacionElement.Element(ns + "numeroAutorizacion")?.Value;
+        var fechaAutorizacion = autorizacionElement.Element(ns + "fechaAutorizacion")?.Value;
+        var comprobante = autorizacionElement.Element(ns + "comprobante")?.Value;
+
+        if (estado == "AUTORIZADO")
+        {
+            var msg = $"✅ Comprobante AUTORIZADO\n📋 Número: {numeroAutorizacion}\n📅 Fecha: {fechaAutorizacion}";
+            return (true, msg, comprobante, numeroAutorizacion);
+        }
+        else if (estado == "NO AUTORIZADO" || estado == "DEVUELTA")
+        {
+            var mensajes = autorizacionElement.Element(ns + "mensajes");
+            var errorList = mensajes?.Elements(ns + "mensaje")
+                .Select(m =>
+                {
+                    var codigo = m.Element(ns + "identificador")?.Value ?? "";
+                    var mensaje = m.Element(ns + "mensaje")?.Value ?? m.Value;
+                    var tipo = m.Element(ns + "tipo")?.Value ?? "";
+                    return $"[{tipo}] {codigo} - {mensaje}";
+                })
+                .ToList() ?? new List<string>();
+
+            var errorMsg = "❌ Comprobante NO AUTORIZADO/DEVUELTO:\n" + string.Join("\n", errorList);
+            return (false, errorMsg, null, null);
+        }
+
+        return (false, $"⚠️ Estado inesperado: {estado}", null, null);
     }
+    catch (Exception ex)
+    {
+        return (false, $"❌ Error al consultar autorización: {ex.Message}", null, null);
+    }
+}
+
 }
