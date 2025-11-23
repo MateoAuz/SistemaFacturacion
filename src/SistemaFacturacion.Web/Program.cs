@@ -3,18 +3,34 @@ using Microsoft.EntityFrameworkCore;
 using SistemaFacturacion.Infrastructure.Persistence;
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Infrastructure.Repositories;
+using SistemaFacturacion.Application.Services;
+using SistemaFacturacion.Infrastructure.Services; // ✅ AGREGAR ESTE USING
+using SistemaFacturacion.Domain.Entities;
+using SistemaFacturacion.Domain.Configuration;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+using System.Globalization;  // ← AGREGAR ESTA LÍNEA
+
+
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 🔧 CONFIGURACIÓN DE HTTPCLIENT (AGREGA ESTO)
+// 🔧 CONFIGURACIÓN DE HTTPCLIENT
 builder.Services.AddHttpClient("LocalApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["BaseUrl"] ?? builder.Configuration["Urls"]?.Split(';').First() ?? "https://localhost:7001/");
+});
+
+// ✅ AGREGAR HttpClient para el API del SRI (SOAP)
+builder.Services.AddHttpClient("SriSoap", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60);
+    client.DefaultRequestHeaders.Add("Accept", "text/xml");
 });
 
 // También agrega HttpClient genérico con BaseAddress
@@ -29,6 +45,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configurar las opciones del SRI
+var sriConfig = new SriConfiguracion();
+builder.Configuration.GetSection("SRI").Bind(sriConfig);
+builder.Services.AddSingleton(sriConfig);
 
 // 🔧 REPOSITORIOS
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -37,12 +57,27 @@ builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
 builder.Services.AddScoped<IConfiguracionRepository, ConfiguracionRepository>();
 builder.Services.AddScoped<IFacturaRepository, FacturaRepository>();
 builder.Services.AddScoped<ILoteRepository, LoteRepository>();
+builder.Services.AddScoped<IPagoRepository, PagoRepository>();
+builder.Services.AddScoped<IComprobanteElectronicoRepository, ComprobanteElectronicoRepository>();
 
 // 🔧 SERVICIOS DE APLICACIÓN (Lógica Pura)
 builder.Services.AddScoped<ITaxCalculator, SistemaFacturacion.Application.Services.TaxCalculator>();
+builder.Services.AddScoped<IPagoService, PagoService>();
+builder.Services.AddScoped<IXmlValidationService, XmlValidationService>();
+builder.Services.AddScoped<IValidacionFacturaService, ValidacionFacturaService>();
 
 // 🔧 SERVICIOS DE INFRAESTRUCTURA (Conexión a BD)
 builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Services.StockService>();
+
+// ==========================================
+// SERVICIOS DE FACTURACIÓN ELECTRÓNICA (NUEVOS)
+// ==========================================
+builder.Services.AddScoped<IClaveAccesoService, ClaveAccesoService>();
+builder.Services.AddScoped<IXmlGeneratorService, XmlGeneratorService>();
+
+// ✅ CORREGIR: SriApiService debe ser de Infrastructure.Services
+builder.Services.AddScoped<ISriApiService, SistemaFacturacion.Infrastructure.Services.SriApiService>();
+builder.Services.AddScoped<IFacturacionElectronicaService, FacturacionElectronicaService>();
 
 // 🔧 CONFIGURACIÓN JSON
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -73,7 +108,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
     });
-
 
 var app = builder.Build();
 

@@ -33,11 +33,13 @@ public class ConfiguracionRepository : IConfiguracionRepository
             existente.NombreComercial = config.NombreComercial;
             existente.Ruc = config.Ruc;
             existente.DireccionMatriz = config.DireccionMatriz;
+            existente.Establecimiento = config.Establecimiento;
             existente.PuntoEmision = config.PuntoEmision;
             existente.Ambiente = config.Ambiente;
             existente.RutaCertificado = config.RutaCertificado;
             existente.ClaveCertificado = config.ClaveCertificado;
             existente.CorreoEmpresa = config.CorreoEmpresa;
+            existente.ObligadoContabilidad = config.ObligadoContabilidad;
         }
 
         await _db.SaveChangesAsync(ct);

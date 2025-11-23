@@ -55,8 +55,8 @@ public class FacturasController : ControllerBase
         // Generar número de factura secuencial
         var consecutivo = await _context.Facturas.CountAsync() + 1;
         factura.NumeroFactura = $"001-001-{consecutivo:000000000}";
-        
         factura.Estado = "PENDIENTE";
+        factura.SaldoPendiente = factura.Total;
 
         try
         {
@@ -77,21 +77,18 @@ public class FacturasController : ControllerBase
 
     // GET /api/facturas
     [HttpGet]
-    public async Task<IActionResult> GetFacturas()
+    public async Task<IActionResult> GetFacturas([FromQuery] string? estado = null) // MODIFICADO
     {
         try
         {
-            var facturas = await _context.Facturas
-                .Include(f => f.Cliente)
-                .Include(f => f.Detalles)
-                    .ThenInclude(d => d.Producto)
-                .OrderByDescending(f => f.FechaEmision)
-                .ToListAsync();
+            var facturas = await _facturaRepo.GetAllAsync(
+                estado: estado, // Pasa el filtro de estado al repositorio
+                includeCliente: true,
+                includeDetalles: true);
 
-            // Validar que existan facturas
             if (!facturas.Any())
             {
-                return Ok(new List<object>()); // Devolver array vacío
+                return Ok(new List<object>()); 
             }
 
             var result = facturas.Select(f => new
@@ -102,6 +99,8 @@ public class FacturasController : ControllerBase
                 f.Subtotal,
                 f.Iva,
                 f.Total,
+                f.Estado, 
+                f.SaldoPendiente, // <<-- AÑADIDO
                 Cliente = f.Cliente == null ? null : new
                 {
                     f.Cliente.IdCliente,
