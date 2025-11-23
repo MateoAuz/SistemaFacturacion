@@ -154,6 +154,7 @@ public class XmlGeneratorService : IXmlGeneratorService
             DirEstablecimiento = config.DireccionMatriz ?? "Matriz",
             ContribuyenteEspecial = null,
             ObligadoContabilidad = config.ObligadoContabilidad ?? "NO",
+            DireccionComprador = factura.Cliente.Direccion.Trim(),
             TipoIdentificacionComprador = tipoIdComprador,
             GuiaRemision = null,
             RazonSocialComprador = $"{factura.Cliente.Nombres} {factura.Cliente.Apellidos}".Trim(),
@@ -176,7 +177,7 @@ public class XmlGeneratorService : IXmlGeneratorService
             new TotalImpuesto
             {
                 Codigo = "2", // 2 = IVA
-                CodigoPorcentaje = "3", // 3 = 15% (verificar tabla SRI actualizada)
+                CodigoPorcentaje = "4", // 3 = 15% (verificar tabla SRI actualizada)
                 BaseImponible = factura.Subtotal.ToString("F2"),
                 Tarifa = "15",
                 Valor = factura.Iva.ToString("F2")
@@ -250,7 +251,7 @@ private string MapearMetodoPagoASri(string metodoPago)
                 new ImpuestoDetalle
                 {
                     Codigo = "2", // IVA
-                    CodigoPorcentaje = "3", // 15%
+                    CodigoPorcentaje = "4", // 15%
                     Tarifa = "15",
                     BaseImponible = d.TotalLinea.ToString("F2"),
                     Valor = (d.TotalLinea * 0.15m).ToString("F2")
@@ -287,8 +288,7 @@ private string MapearMetodoPagoASri(string metodoPago)
 {
     // ✅ Crear namespaces para el XML con los prefijos del SRI
     var namespaces = new XmlSerializerNamespaces();
-    namespaces.Add("ds", "http://www.w3.org/2000/09/xmldsig#");
-    namespaces.Add("etsi", "http://uri.etsi.org/01903/v1.3.2#");
+
 
     var serializer = new XmlSerializer(typeof(FacturaXml));
     

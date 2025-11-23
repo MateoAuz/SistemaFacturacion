@@ -91,7 +91,7 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         if (success)
         {
             comprobante.EstadoEnvio = "ENVIADO";
-            comprobante.FechaEnvio = DateTime.Now;
+            comprobante.FechaEnvio = DateTime.UtcNow;
             await _comprobanteRepo.UpdateAsync(comprobante, ct);
         }
         else
@@ -121,7 +121,7 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         {
             comprobante.EstadoEnvio = "AUTORIZADO";
             comprobante.XmlAutorizado = xmlAutorizado;
-            comprobante.FechaAutorizacion = DateTime.Now;
+            comprobante.FechaAutorizacion = DateTime.UtcNow;
             await _comprobanteRepo.UpdateAsync(comprobante, ct);
         }
         else

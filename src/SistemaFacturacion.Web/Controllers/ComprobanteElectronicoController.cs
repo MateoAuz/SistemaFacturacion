@@ -123,7 +123,7 @@ public async Task<IActionResult> ValidarXml(int idFactura, CancellationToken ct)
             return BadRequest(new { success = false, message = "El comprobante no tiene XML generado" });
         
         // Validar contra XSD del SRI
-        var xsdPath = "Resources/XSD/factura.xsd";
+        var xsdPath = "Resources/XSD/factura_V2.1.0.xsd";
         var (esValido, mensajes) = await _xmlValidationService.ValidarXmlContraXsdAsync(
             comprobante.XmlGenerado, 
             xsdPath, 

@@ -10,7 +10,7 @@ public class SriApiService : ISriApiService
 {
     private readonly HttpClient _httpClient;
     private readonly SriConfiguracion _config;
-    
+
     private const string URL_RECEPCION_PRUEBAS = "https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline";
     private const string URL_AUTORIZACION_PRUEBAS = "https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline";
 
@@ -22,35 +22,40 @@ public class SriApiService : ISriApiService
     }
 
     public async Task<(bool Success, string Message)> EnviarComprobanteAsync(
-        string xmlFirmado, 
-        string claveAcceso, 
+        string xmlFirmado,
+        string claveAcceso,
         CancellationToken ct = default)
     {
         try
         {
 
             // ✅ Limpiar el XML firmado
-        xmlFirmado = xmlFirmado.Trim();
-        
-        // ✅ Remover el atributo standalone="no" que puede causar problemas
-        //xmlFirmado = xmlFirmado.Replace(" standalone=\"no\"", "");
-        
-        // ✅ Normalizar espacios en blanco
-        xmlFirmado = System.Text.RegularExpressions.Regex.Replace(xmlFirmado, @">\s+<", "><");
-            // Construir el SOAP Envelope
+            //xmlFirmado = xmlFirmado.Trim();
+
+            // ✅ Remover el atributo standalone="no" que puede causar problemas
+            //xmlFirmado = xmlFirmado.Replace(" standalone=\"no\"", "");
+
+            // ✅ Normalizar espacios en blanco
+            //xmlFirmado = System.Text.RegularExpressions.Regex.Replace(xmlFirmado, @">\s+<", "><");
+
+            // --- Convertir el XML firmado a Base64 SIN MODIFICARLO ---
+            var xmlBytes = Encoding.UTF8.GetBytes(xmlFirmado); // asume utf-8; si recibes bytes, úsalos directamente
+            var xmlBase64 = Convert.ToBase64String(xmlBytes);
+
+            // Construir el SOAP Envelope con el base64 dentro de CDATA
             var soapEnvelope = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <soapenv:Envelope xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"" 
                   xmlns:ec=""http://ec.gob.sri.ws.recepcion"">
     <soapenv:Header/>
     <soapenv:Body>
         <ec:validarComprobante>
-            <xml><![CDATA[{xmlFirmado}]]></xml>
+            <xml><![CDATA[{xmlBase64}]]></xml>
         </ec:validarComprobante>
     </soapenv:Body>
 </soapenv:Envelope>";
 
             var content = new StringContent(soapEnvelope, Encoding.UTF8, "text/xml");
-            
+
             var response = await _httpClient.PostAsync(URL_RECEPCION_PRUEBAS, content, ct);
             var responseBody = await response.Content.ReadAsStringAsync(ct);
 
@@ -66,7 +71,7 @@ public class SriApiService : ISriApiService
 
             // Parsear la respuesta SOAP
             var doc = XDocument.Parse(responseBody);
-            
+
             // Buscar en todos los namespaces posibles
             var namespaces = new[]
             {
@@ -89,7 +94,7 @@ public class SriApiService : ISriApiService
                 if (estadoElement != null)
                 {
                     var estado = estadoElement.Value;
-                    
+
                     if (estado == "RECIBIDA")
                     {
                         return (true, "✅ Comprobante recibido exitosamente por el SRI");
@@ -98,20 +103,20 @@ public class SriApiService : ISriApiService
                     {
                         var mensajesElements = doc.Descendants().Where(e => e.Name.LocalName == "mensaje");
                         var errorList = mensajesElements.Select(m => m.Value).ToList();
-                        var errorMsg = "❌ El SRI devolvió el comprobante con errores:\n" + 
+                        var errorMsg = "❌ El SRI devolvió el comprobante con errores:\n" +
                                        string.Join("\n", errorList);
                         return (false, errorMsg);
                     }
-                    
+
                     return (false, $"⚠️ Estado del SRI: {estado}");
                 }
-                
+
                 return (false, $"❌ No se pudo parsear la respuesta del SRI. Revisa los logs de la consola.");
             }
 
             var ns2 = respuestaElement.Name.Namespace;
             var estado2 = respuestaElement.Element(ns2 + "estado")?.Value;
-            
+
             if (estado2 == "RECIBIDA")
             {
                 return (true, "✅ Comprobante recibido exitosamente por el SRI");
@@ -121,21 +126,22 @@ public class SriApiService : ISriApiService
                 var comprobantes = respuestaElement.Element(ns2 + "comprobantes");
                 var comprobante = comprobantes?.Element(ns2 + "comprobante");
                 var mensajes = comprobante?.Element(ns2 + "mensajes");
-                
+
                 var errorList = mensajes?.Elements(ns2 + "mensaje")
-                    .Select(m => {
+                    .Select(m =>
+                    {
                         var mensaje = m.Element(ns2 + "mensaje")?.Value;
                         var tipo = m.Element(ns2 + "tipo")?.Value;
                         return $"[{tipo}] {mensaje}";
                     })
                     .ToList() ?? new List<string>();
-                
-                var errorMsg = "❌ El SRI devolvió el comprobante con errores:\n" + 
+
+                var errorMsg = "❌ El SRI devolvió el comprobante con errores:\n" +
                                string.Join("\n", errorList);
-                
+
                 return (false, errorMsg);
             }
-            
+
             return (false, $"⚠️ Respuesta inesperada del SRI: {estado2 ?? "Sin estado"}");
         }
         catch (HttpRequestException ex)
@@ -149,7 +155,7 @@ public class SriApiService : ISriApiService
     }
 
     public async Task<(bool Success, string Message, string? XmlAutorizado)> ConsultarAutorizacionAsync(
-        string claveAcceso, 
+        string claveAcceso,
         CancellationToken ct = default)
     {
         try
@@ -166,7 +172,7 @@ public class SriApiService : ISriApiService
 </soapenv:Envelope>";
 
             var content = new StringContent(soapEnvelope, Encoding.UTF8, "text/xml");
-            
+
             var response = await _httpClient.PostAsync(URL_AUTORIZACION_PRUEBAS, content, ct);
             var responseBody = await response.Content.ReadAsStringAsync(ct);
 
@@ -181,10 +187,10 @@ public class SriApiService : ISriApiService
             }
 
             var doc = XDocument.Parse(responseBody);
-            
+
             // Buscar autorizacion sin importar el namespace
             var autorizacionElement = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "autorizacion");
-            
+
             if (autorizacionElement == null)
             {
                 return (false, "⚠️ No se encontró información de autorización para esta clave de acceso", null);
@@ -198,21 +204,22 @@ public class SriApiService : ISriApiService
 
             if (estado == "AUTORIZADO")
             {
-                return (true, 
-                       $"✅ Comprobante AUTORIZADO\n📋 Número: {numeroAutorizacion}\n📅 Fecha: {fechaAutorizacion}", 
+                return (true,
+                       $"✅ Comprobante AUTORIZADO\n📋 Número: {numeroAutorizacion}\n📅 Fecha: {fechaAutorizacion}",
                        comprobante);
             }
             else if (estado == "NO AUTORIZADO")
             {
                 var mensajes = autorizacionElement.Element(ns + "mensajes");
                 var errorList = mensajes?.Elements(ns + "mensaje")
-                    .Select(m => {
+                    .Select(m =>
+                    {
                         var mensaje = m.Element(ns + "mensaje")?.Value;
                         var tipo = m.Element(ns + "tipo")?.Value;
                         return $"[{tipo}] {mensaje}";
                     })
                     .ToList() ?? new List<string>();
-                
+
                 var errorMsg = "❌ Comprobante NO AUTORIZADO:\n" + string.Join("\n", errorList);
                 return (false, errorMsg, null);
             }

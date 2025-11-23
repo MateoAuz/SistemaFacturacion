@@ -2,7 +2,7 @@ namespace SistemaFacturacion.Domain.Configuration;
 
 public class SriConfiguracion
 {
-    public string RutaXsdFactura { get; set; } = "Resources/XSD/factura.xsd";
+    public string RutaXsdFactura { get; set; } = "Resources/XSD/factura_V2.1.0.xsd";
     public string Ambiente { get; set; } = "1"; // 1=Pruebas, 2=Producción
     
     // URLs para ambiente de pruebas (CELCER)
