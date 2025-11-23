@@ -85,11 +85,6 @@ else
                                     else if (factura.EstadoEnvio == "AUTORIZADO")
                                     {
                                         <span class="badge bg-success">Autorizado</span>
-                                        <button class="btn btn-sm btn-outline-danger"
-                                            @onclick="() => DescargarYEnviarRide(factura.IdFactura)" disabled="@procesando"
-                                            title="Generar PDF y enviar por email">
-                                            <i class="bi bi-file-pdf"></i> PDF + Email
-                                        </button>
                                     }
                                     else if (factura.EstadoEnvio == "RECHAZADO")
                                     {
@@ -140,6 +135,15 @@ else
                                                 @onclick="() => ConsultarAutorizacion(factura.IdFactura)" disabled="@procesando"
                                                 title="Consultar Autorización">
                                                 <i class="bi bi-search"></i> Consultar
+                                            </button>
+                                        }
+
+                                        @if (factura.EstadoEnvio == "AUTORIZADO")
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => DescargarYEnviarRide(factura.IdFactura)" disabled="@procesando"
+                                                title="Generar PDF y enviar por email">
+                                                <i class="bi bi-file-pdf"></i> PDF + Email
                                             </button>
                                         }
                                     </div>

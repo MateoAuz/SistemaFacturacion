@@ -1,5 +1,6 @@
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Application.DTOs;
+using Microsoft.Extensions.Logging;
 
 namespace SistemaFacturacion.Application.Services;
 
@@ -10,13 +11,15 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
     private readonly ISriApiService _sriApi;
     private readonly IRideGeneratorService _rideGenerator;
     private readonly IEmailService _emailService;
+    private readonly ILogger<FacturacionElectronicaService> _logger;
 
     public FacturacionElectronicaService(
         IFacturaRepository facturaRepo,
         IComprobanteElectronicoRepository comprobanteRepo,
         ISriApiService sriApi,
         IRideGeneratorService rideGenerator,      // ✅ AGREGAR
-        IEmailService emailService)            // ✅ AGREGAR
+        IEmailService emailService,
+        ILogger<FacturacionElectronicaService> logger)              // ✅ AGREGAR
 
     {
         _facturaRepo = facturaRepo;
@@ -24,6 +27,7 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         _sriApi = sriApi;
         _rideGenerator = rideGenerator;
         _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<List<FacturaElectronicaDto>> GetFacturasParaEnvioAsync(CancellationToken ct = default)
@@ -143,31 +147,63 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
     }
 
     public async Task<byte[]> GenerarYEnviarRideAsync(int idFactura, CancellationToken ct = default)
+{
+    // 1. Generar PDF (esto es lo más importante - no debe fallar)
+    var pdfBytes = await _rideGenerator.GenerarRidePdfAsync(idFactura, ct);
+
+    // 2. Obtener datos de la factura (Incluyendo Cliente)
+    var factura = await _facturaRepo.GetByIdAsync(idFactura, includeCliente: true, ct: ct);
+
+    if (factura == null)
+        throw new Exception("Factura no encontrada");
+
+    // 3. Intentar enviar por correo (en un bloque try-catch separado)
+    if (factura.Cliente != null && !string.IsNullOrEmpty(factura.Cliente.Correo))
     {
-        // 1. Generar PDF
-        var pdfBytes = await _rideGenerator.GenerarRidePdfAsync(idFactura, ct);
-
-        // 2. Obtener datos de la factura (Incluyendo Cliente)
-        var factura = await _facturaRepo.GetByIdAsync(idFactura, includeCliente: true, ct: ct);
-
-        if (factura == null)
-            throw new Exception("Factura no encontrada");
-
-        // 3. Enviar por correo si el cliente tiene email
-        // Verificamos null para evitar warnings
-        if (factura.Cliente != null && !string.IsNullOrEmpty(factura.Cliente.Correo))
+        try
         {
-            // Usar "Consumidor Final" si no tiene nombre
+            // Validación básica de formato de correo
+            if (!factura.Cliente.Correo.Contains("@") || !factura.Cliente.Correo.Contains("."))
+            {
+                // Si el formato es inválido, simplemente no enviamos el correo
+                // pero NO interrumpimos el flujo (el usuario sigue recibiendo su PDF)
+                // Aquí podrías agregar un log si quieres:
+                _logger.LogWarning($"Correo inválido para factura {idFactura}: {factura.Cliente.Correo}");
+                return pdfBytes; // Retornamos el PDF sin intentar enviar
+            }
+
+            // Nombre del cliente para personalizar el correo
             string nombreCliente = factura.Cliente.Nombres ?? "Cliente";
 
+            // Intentar enviar el correo
             await _emailService.EnviarFacturaAsync(
                 emailDestino: factura.Cliente.Correo,
                 nombreCliente: nombreCliente,
                 pdfBytes: pdfBytes,
                 numeroFactura: factura.NumeroFactura,
                 ct: ct);
-        }
 
-        return pdfBytes;
+            // Si llegamos aquí, el correo se envió correctamente
+            // Puedes agregar un log de éxito si quieres:
+            _logger.LogInformation($"Correo enviado exitosamente a {factura.Cliente.Correo} para factura {idFactura}");
+        }
+        catch (Exception ex)
+        {
+            // Si falla el envío del correo (servidor caído, correo no existe, etc.)
+            // capturamos el error pero NO lanzamos la excepción hacia arriba
+            // para que el usuario IGUAL reciba su PDF descargado.
+            
+            // Aquí deberías registrar el error en un log para revisarlo después:
+            _logger.LogError(ex, $"Error al enviar correo para factura {idFactura} a {factura.Cliente.Correo}");
+            
+            // El usuario no verá un error, simplemente su PDF se descargará
+            // sin que se haya enviado el correo.
+        }
     }
+    // Si no hay correo o el cliente es null, simplemente no enviamos correo
+
+    // 4. Retornar el PDF SIEMPRE (sin importar si el correo se envió o no)
+    return pdfBytes;
+}
+
 }
