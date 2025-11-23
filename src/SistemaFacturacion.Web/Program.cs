@@ -79,6 +79,10 @@ builder.Services.AddScoped<IXmlGeneratorService, XmlGeneratorService>();
 builder.Services.AddScoped<ISriApiService, SistemaFacturacion.Infrastructure.Services.SriApiService>();
 builder.Services.AddScoped<IFacturacionElectronicaService, FacturacionElectronicaService>();
 
+// ✅ AGREGAR ESTOS SERVICIOS
+builder.Services.AddScoped<IRideGeneratorService, RideGeneratorService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 // 🔧 CONFIGURACIÓN JSON
 builder.Services.ConfigureHttpJsonOptions(options =>
 {

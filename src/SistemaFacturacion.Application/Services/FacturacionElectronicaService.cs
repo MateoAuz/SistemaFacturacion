@@ -8,15 +8,22 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
     private readonly IFacturaRepository _facturaRepo;
     private readonly IComprobanteElectronicoRepository _comprobanteRepo;
     private readonly ISriApiService _sriApi;
+    private readonly IRideGeneratorService _rideGenerator;
+    private readonly IEmailService _emailService;
 
     public FacturacionElectronicaService(
         IFacturaRepository facturaRepo,
         IComprobanteElectronicoRepository comprobanteRepo,
-        ISriApiService sriApi)
+        ISriApiService sriApi,
+        IRideGeneratorService rideGenerator,      // ✅ AGREGAR
+        IEmailService emailService)            // ✅ AGREGAR
+
     {
         _facturaRepo = facturaRepo;
         _comprobanteRepo = comprobanteRepo;
         _sriApi = sriApi;
+        _rideGenerator = rideGenerator;
+        _emailService = emailService;
     }
 
     public async Task<List<FacturaElectronicaDto>> GetFacturasParaEnvioAsync(CancellationToken ct = default)
@@ -28,7 +35,7 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         foreach (var factura in facturas)
         {
             var comprobante = await _comprobanteRepo.GetByFacturaIdAsync(factura.IdFactura, ct);
-            
+
             // Solo mostrar facturas que tienen XML generado
             if (comprobante != null && !string.IsNullOrEmpty(comprobante.XmlGenerado))
             {
@@ -54,7 +61,7 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
     public async Task<bool> SubirXmlFirmadoAsync(int idFactura, string xmlFirmado, CancellationToken ct = default)
     {
         var comprobante = await _comprobanteRepo.GetByFacturaIdAsync(idFactura, ct);
-        
+
         if (comprobante == null)
         {
             throw new InvalidOperationException("No se encontró el comprobante electrónico");
@@ -71,7 +78,7 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
     public async Task<(bool Success, string Message)> EnviarAlSriAsync(int idFactura, CancellationToken ct = default)
     {
         var comprobante = await _comprobanteRepo.GetByFacturaIdAsync(idFactura, ct);
-        
+
         if (comprobante == null)
         {
             return (false, "No se encontró el comprobante electrónico");
@@ -84,8 +91,8 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
 
         // Enviar al SRI
         var (success, message) = await _sriApi.EnviarComprobanteAsync(
-            comprobante.XmlFirmado, 
-            comprobante.ClaveAcceso, 
+            comprobante.XmlFirmado,
+            comprobante.ClaveAcceso,
             ct);
 
         if (success)
@@ -107,14 +114,14 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
     public async Task<(bool Success, string Message)> ConsultarAutorizacionAsync(int idFactura, CancellationToken ct = default)
     {
         var comprobante = await _comprobanteRepo.GetByFacturaIdAsync(idFactura, ct);
-        
+
         if (comprobante == null)
         {
             return (false, "No se encontró el comprobante electrónico");
         }
 
         var (success, message, xmlAutorizado, numeroAutorizacion) = await _sriApi.ConsultarAutorizacionAsync(
-            comprobante.ClaveAcceso, 
+            comprobante.ClaveAcceso,
             ct);
 
         if (success && xmlAutorizado != null)
@@ -133,5 +140,34 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         }
 
         return (success, message);
+    }
+
+    public async Task<byte[]> GenerarYEnviarRideAsync(int idFactura, CancellationToken ct = default)
+    {
+        // 1. Generar PDF
+        var pdfBytes = await _rideGenerator.GenerarRidePdfAsync(idFactura, ct);
+
+        // 2. Obtener datos de la factura (Incluyendo Cliente)
+        var factura = await _facturaRepo.GetByIdAsync(idFactura, includeCliente: true, ct: ct);
+
+        if (factura == null)
+            throw new Exception("Factura no encontrada");
+
+        // 3. Enviar por correo si el cliente tiene email
+        // Verificamos null para evitar warnings
+        if (factura.Cliente != null && !string.IsNullOrEmpty(factura.Cliente.Correo))
+        {
+            // Usar "Consumidor Final" si no tiene nombre
+            string nombreCliente = factura.Cliente.Nombres ?? "Cliente";
+
+            await _emailService.EnviarFacturaAsync(
+                emailDestino: factura.Cliente.Correo,
+                nombreCliente: nombreCliente,
+                pdfBytes: pdfBytes,
+                numeroFactura: factura.NumeroFactura,
+                ct: ct);
+        }
+
+        return pdfBytes;
     }
 }

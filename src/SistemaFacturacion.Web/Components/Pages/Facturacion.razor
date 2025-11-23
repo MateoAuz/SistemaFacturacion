@@ -85,6 +85,11 @@ else
                                     else if (factura.EstadoEnvio == "AUTORIZADO")
                                     {
                                         <span class="badge bg-success">Autorizado</span>
+                                        <button class="btn btn-sm btn-outline-danger"
+                                            @onclick="() => DescargarYEnviarRide(factura.IdFactura)" disabled="@procesando"
+                                            title="Generar PDF y enviar por email">
+                                            <i class="bi bi-file-pdf"></i> PDF + Email
+                                        </button>
                                     }
                                     else if (factura.EstadoEnvio == "RECHAZADO")
                                     {
@@ -113,30 +118,27 @@ else
                                     <div class="d-flex justify-content-center gap-2 flex-wrap">
                                         @if (!factura.TieneXmlFirmado || factura.EstadoEnvio == "GENERADO")
                                         {
-                                            <button class="btn btn-sm btn-outline-primary" 
-                                                    @onclick="() => MostrarModalSubirXml(factura.IdFactura)"
-                                                    title="Subir XML Firmado">
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                @onclick="() => MostrarModalSubirXml(factura.IdFactura)" title="Subir XML Firmado">
                                                 <i class="bi bi-upload"></i> Subir XML
                                             </button>
                                         }
 
-                                        @if (factura.TieneXmlFirmado && 
-                                             (factura.EstadoEnvio == "FIRMADO" || factura.EstadoEnvio == "ERROR_ENVIO"))
+                                        @if (factura.TieneXmlFirmado &&
+                                                                    (factura.EstadoEnvio == "FIRMADO" || factura.EstadoEnvio == "ERROR_ENVIO"))
                                         {
-                                            <button class="btn btn-sm btn-outline-success" 
-                                                    @onclick="() => EnviarAlSri(factura.IdFactura)"
-                                                    disabled="@procesando"
-                                                    title="Enviar al SRI">
+                                            <button class="btn btn-sm btn-outline-success"
+                                                @onclick="() => EnviarAlSri(factura.IdFactura)" disabled="@procesando"
+                                                title="Enviar al SRI">
                                                 <i class="bi bi-send"></i> Enviar SRI
                                             </button>
                                         }
 
                                         @if (factura.EstadoEnvio == "ENVIADO")
                                         {
-                                            <button class="btn btn-sm btn-outline-info" 
-                                                    @onclick="() => ConsultarAutorizacion(factura.IdFactura)"
-                                                    disabled="@procesando"
-                                                    title="Consultar Autorización">
+                                            <button class="btn btn-sm btn-outline-info"
+                                                @onclick="() => ConsultarAutorizacion(factura.IdFactura)" disabled="@procesando"
+                                                title="Consultar Autorización">
                                                 <i class="bi bi-search"></i> Consultar
                                             </button>
                                         }
@@ -169,12 +171,10 @@ else
                         <i class="bi bi-info-circle"></i>
                         <strong>Instrucciones:</strong> Sube el archivo XML que ha sido firmado digitalmente con FirmaEc.
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Seleccionar archivo XML firmado:</label>
-                        <InputFile OnChange="HandleFileSelected" 
-                                   class="form-control" 
-                                   accept=".xml"/>
+                        <InputFile OnChange="HandleFileSelected" class="form-control" accept=".xml" />
                     </div>
 
                     @if (!string.IsNullOrEmpty(archivoSeleccionado))
@@ -188,10 +188,8 @@ else
                     <button type="button" class="btn btn-secondary" @onclick="CerrarModal">
                         Cancelar
                     </button>
-                    <button type="button" 
-                            class="btn btn-primary" 
-                            @onclick="SubirXmlFirmado"
-                            disabled="@(string.IsNullOrEmpty(xmlFirmadoContent) || procesando)">
+                    <button type="button" class="btn btn-primary" @onclick="SubirXmlFirmado"
+                        disabled="@(string.IsNullOrEmpty(xmlFirmadoContent) || procesando)">
                         <i class="bi bi-upload"></i> Subir XML
                     </button>
                 </div>
@@ -222,7 +220,7 @@ else
         {
             isLoading = true;
             StateHasChanged();
-            
+
             facturas = await FacturacionService.GetFacturasParaEnvioAsync();
         }
         catch (Exception ex)
@@ -290,7 +288,7 @@ else
             StateHasChanged();
 
             await FacturacionService.SubirXmlFirmadoAsync(facturaSeleccionadaId, xmlFirmadoContent);
-            
+
             MostrarMensaje("✅ XML firmado subido correctamente", true);
             CerrarModal();
             await CargarFacturas();
@@ -314,7 +312,7 @@ else
             StateHasChanged();
 
             var (success, message) = await FacturacionService.EnviarAlSriAsync(idFactura);
-            
+
             if (success)
             {
                 MostrarMensaje($"✅ {message}", true);
@@ -345,7 +343,7 @@ else
             StateHasChanged();
 
             var (success, message) = await FacturacionService.ConsultarAutorizacionAsync(idFactura);
-            
+
             if (success)
             {
                 MostrarMensaje($"✅ {message}", true);
@@ -368,6 +366,36 @@ else
         }
     }
 
+    private async Task DescargarYEnviarRide(int idFactura)
+    {
+        try
+        {
+            procesando = true;
+            StateHasChanged();
+
+            var pdfBytes = await FacturacionService.GenerarYEnviarRideAsync(idFactura);
+
+            // Descargar PDF en el navegador
+            var base64 = Convert.ToBase64String(pdfBytes);
+            await JS.InvokeVoidAsync("downloadFile",
+            $"Factura_{idFactura}.pdf",
+            "application/pdf",
+            base64);
+
+            MostrarMensaje("✅ PDF generado y enviado por correo electrónico", true);
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"❌ Error: {ex.Message}", false);
+        }
+        finally
+        {
+            procesando = false;
+            StateHasChanged();
+        }
+    }
+
+
     private void MostrarMensaje(string texto, bool esExito)
     {
         if (esExito)
@@ -380,7 +408,7 @@ else
             mensajeError = texto;
             mensajeExito = string.Empty;
         }
-        
+
         StateHasChanged();
 
         _ = Task.Run(async () =>
@@ -407,8 +435,15 @@ else
     }
 
     @@keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .alert-success-custom {
