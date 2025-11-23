@@ -79,6 +79,39 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         return true;
     }
 
+    // ✅ NUEVO MÉTODO: Para reemplazar XML cuando hubo rechazo
+    public async Task<(bool Success, string Message)> ReemplazarXmlFirmadoAsync(int idFactura, string nuevoXmlFirmado, CancellationToken ct = default)
+    {
+        var comprobante = await _comprobanteRepo.GetByFacturaIdAsync(idFactura, ct);
+        
+        if (comprobante == null)
+            return (false, "No se encontró el comprobante electrónico");
+        
+        // NO permitir reemplazar si ya está autorizado
+        if (comprobante.EstadoEnvio == "AUTORIZADO")
+            return (false, "El comprobante ya está autorizado, no se puede reemplazar");
+        
+        try
+        {
+            // Validar formato básico XML
+            var xmlDoc = System.Xml.Linq.XDocument.Parse(nuevoXmlFirmado);
+            
+            // Actualizar XML firmado
+            comprobante.XmlFirmado = nuevoXmlFirmado;
+            comprobante.EstadoEnvio = "FIRMADO";  // Reset a firmado para poder enviar
+            comprobante.FechaFirma = DateTime.UtcNow; // Limpiar errores previos
+            comprobante.MensajeRespuesta = null;
+            
+            await _comprobanteRepo.UpdateAsync(comprobante, ct);
+            
+            return (true, "XML firmado actualizado correctamente. Ahora puede reenviarlo.");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error al procesar XML: {ex.Message}");
+        }
+    }
+
     public async Task<(bool Success, string Message)> EnviarAlSriAsync(int idFactura, CancellationToken ct = default)
     {
         var comprobante = await _comprobanteRepo.GetByFacturaIdAsync(idFactura, ct);

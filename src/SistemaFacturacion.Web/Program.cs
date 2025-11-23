@@ -11,6 +11,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Polly;
 
 using System.Globalization;  // ← AGREGAR ESTA LÍNEA
 
@@ -31,7 +32,12 @@ builder.Services.AddHttpClient("SriSoap", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(60);
     client.DefaultRequestHeaders.Add("Accept", "text/xml");
-});
+})
+.AddTransientHttpErrorPolicy(builder => 
+    builder.WaitAndRetryAsync(
+        retryCount: 3, 
+        sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
+    ));
 
 // También agrega HttpClient genérico con BaseAddress
 builder.Services.AddScoped(sp =>
