@@ -218,25 +218,27 @@ else
     }
 
     private async Task DescargarXml(int idFactura)
+{
+    try
     {
-        try
-        {
-            var xmlContent = await XmlValidator.DescargarXmlFacturaAsync(idFactura);
-            var factura = facturas.FirstOrDefault(f => f.IdFactura == idFactura);
-            var fileName = $"FAC_{factura?.NumeroFactura?.Replace("-", "")}_{DateTime.Now:yyyyMMddHHmmss}.xml";
-            
-            var bytes = System.Text.Encoding.UTF8.GetBytes(xmlContent);
-            var base64 = Convert.ToBase64String(bytes);
-            
-            await JS.InvokeVoidAsync("downloadFile", fileName, base64);
-            
-            MostrarMensaje("✅ XML descargado correctamente", true);
-        }
-        catch (Exception ex)
-        {
-            MostrarMensaje($"❌ Error al descargar XML: {ex.Message}", false);
-        }
+        var xmlContent = await XmlValidator.DescargarXmlFacturaAsync(idFactura);
+        var factura = facturas.FirstOrDefault(f => f.IdFactura == idFactura);
+        var fileName = $"FAC_{factura?.NumeroFactura?.Replace("-", "")}_{DateTime.Now:yyyyMMddHHmmss}.xml";
+        
+        var bytes = System.Text.Encoding.UTF8.GetBytes(xmlContent);
+        var base64 = Convert.ToBase64String(bytes);
+        
+        // ✅ AGREGAR EL PARÁMETRO FALTANTE "application/xml"
+        await JS.InvokeVoidAsync("downloadFile", fileName, "application/xml", base64);
+        
+        MostrarMensaje("✅ XML descargado correctamente", true);
     }
+    catch (Exception ex)
+    {
+        MostrarMensaje($"❌ Error al descargar XML: {ex.Message}", false);
+    }
+}
+
 
     private async Task ValidarXml(int idFactura)
     {
