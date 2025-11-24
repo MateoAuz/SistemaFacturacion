@@ -1,4 +1,4 @@
-@page "/validacion"
+@page "/generacion"
 @rendermode InteractiveServer
 @using SistemaFacturacion.Application.Contracts
 @using SistemaFacturacion.Application.DTOs
@@ -11,7 +11,7 @@
 
 <!-- ENCABEZADO PRINCIPAL -->
 <div class="page-header">
-    <h1 class="mb-0"><i class="bi bi-shield-check"></i> Validación de Comprobantes Electrónicos</h1>
+    <h1 class="mb-0"><i class="bi bi-shield-check"></i> Generacion del XML de los Comprobantes Electrónicos</h1>
 </div>
 
 <!-- 🔔 NOTIFICACIONES -->
@@ -46,7 +46,6 @@ else
                         <th scope="col">N° Factura</th>
                         <th scope="col">Cliente</th>
                         <th scope="col">Fecha</th>
-                        <th scope="col">Total</th>
                         <th scope="col">Estado</th>
                         <th scope="col">XML</th>
                         <th scope="col" style="width:320px;">Acciones</th>
@@ -70,7 +69,6 @@ else
                                 <td class="fw-bold">@factura.NumeroFactura</td>
                                 <td>@factura.NombreCliente</td>
                                 <td>@factura.FechaEmision.ToString("dd/MM/yyyy")</td>
-                                <td class="text-end fw-bold">$@factura.Total.ToString("N2")</td>
                                 <td class="text-center">
                                     <span class="badge bg-success">@factura.Estado</span>
                                 </td>
@@ -86,24 +84,20 @@ else
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                        <button class="btn btn-sm btn-outline-success" 
-                                                @onclick="() => GenerarXml(factura.IdFactura)"
-                                                title="Generar XML">
+                                        <button class="btn btn-sm btn-outline-success"
+                                            @onclick="() => GenerarXml(factura.IdFactura)" title="Generar XML">
                                             <i class="bi bi-file-earmark-code"></i> Generar
                                         </button>
 
-                                        <button class="btn btn-sm btn-outline-primary" 
-                                                @onclick="() => DescargarXml(factura.IdFactura)"
-                                                disabled="@(!factura.TieneXmlGenerado)"
-                                                title="Descargar XML">
+                                        <button class="btn btn-sm btn-outline-primary"
+                                            @onclick="() => DescargarXml(factura.IdFactura)" disabled="@(!factura.TieneXmlGenerado)"
+                                            title="Descargar XML">
                                             <i class="bi bi-download"></i> Descargar
                                         </button>
 
-                                        <button class="btn btn-sm btn-outline-info" 
-                                                @onclick="() => ValidarXml(factura.IdFactura)"
-                                                disabled="@(!factura.TieneXmlGenerado)"
-                                                title="Validar Estructura">
-                                            <i class="bi bi-check-circle"></i> Validar
+                                        <button class="btn btn-sm btn-outline-info" @onclick="() => VerXml(factura.IdFactura)"
+                                            disabled="@(!factura.TieneXmlGenerado)" title="Ver XML">
+                                            <i class="bi bi-code-square"></i> Ver XML
                                         </button>
                                     </div>
                                 </td>
@@ -116,52 +110,46 @@ else
     </div>
 }
 
-<!-- Modal de Resultados de Validación -->
+<!-- Modal de Visualización de XML -->
 @if (mostrarModal)
 {
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">
-                        <i class="bi bi-shield-check"></i> Resultado de Validación XSD
+                        <i class="bi bi-file-earmark-code"></i> Visualización de XML - Factura @facturaSeleccionada?.NumeroFactura
                     </h5>
-                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
                 </div>
-                <div class="modal-body">
-                    @if (validacionExitosa)
+                <div class="modal-body" style="background-color: #f8f9fa;">
+                    @if (!string.IsNullOrEmpty(xmlContent))
                     {
-                        <div class="alert alert-success">
-                            <i class="bi bi-check-circle-fill fs-4"></i>
-                            <strong>¡Validación Exitosa!</strong>
-                            <p class="mb-0 mt-2">El XML cumple con la estructura XSD del SRI.</p>
+                        <div class="alert alert-info d-flex align-items-center">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <small>Este es el contenido XML generado para el comprobante electrónico.</small>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body p-0">
+                                <pre class="mb-0 p-3" style="background-color: #2d2d2d; color: #f8f8f2; border-radius: 8px; max-height: 500px; overflow-y: auto; font-size: 0.85rem; line-height: 1.4;"><code>@xmlContent</code></pre>
+                            </div>
                         </div>
                     }
-                    else if (erroresValidacion.Any())
+                    else
                     {
-                        <div class="alert alert-danger">
-                            <i class="bi bi-x-circle-fill fs-4"></i>
-                            <strong>Errores de Validación</strong>
-                        </div>
-                        <div class="card">
-                            <div class="card-body">
-                                <h6>Detalles de los errores:</h6>
-                                <ul class="list-unstyled">
-                                    @foreach (var error in erroresValidacion)
-                                    {
-                                        <li class="mb-2">
-                                            <i class="bi bi-arrow-right text-danger"></i> @error
-                                        </li>
-                                    }
-                                </ul>
-                            </div>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> No se pudo cargar el contenido del XML.
                         </div>
                     }
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CerrarModal">
-                        Cerrar
+                        <i class="bi bi-x-circle"></i> Cerrar
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="() => DescargarXml(facturaSeleccionada.IdFactura)">
+                        <i class="bi bi-download"></i> Descargar XML
                     </button>
                 </div>
             </div>
@@ -169,14 +157,17 @@ else
     </div>
 }
 
+
 @code {
     private List<FacturaValidacionDto> facturas = new();
     private bool isLoading = true;
     private string mensajeExito = string.Empty;
     private string mensajeError = string.Empty;
-    private bool validacionExitosa = false;
-    private List<string> erroresValidacion = new();
     private bool mostrarModal = false;
+    
+    // Variables para visualización de XML
+    private string xmlContent = string.Empty;
+    private FacturaValidacionDto? facturaSeleccionada;
 
     protected override async Task OnInitializedAsync()
     {
@@ -218,51 +209,47 @@ else
     }
 
     private async Task DescargarXml(int idFactura)
-{
-    try
-    {
-        var xmlContent = await XmlValidator.DescargarXmlFacturaAsync(idFactura);
-        var factura = facturas.FirstOrDefault(f => f.IdFactura == idFactura);
-        var fileName = $"FAC_{factura?.NumeroFactura?.Replace("-", "")}_{DateTime.Now:yyyyMMddHHmmss}.xml";
-        
-        var bytes = System.Text.Encoding.UTF8.GetBytes(xmlContent);
-        var base64 = Convert.ToBase64String(bytes);
-        
-        // ✅ AGREGAR EL PARÁMETRO FALTANTE "application/xml"
-        await JS.InvokeVoidAsync("downloadFile", fileName, "application/xml", base64);
-        
-        MostrarMensaje("✅ XML descargado correctamente", true);
-    }
-    catch (Exception ex)
-    {
-        MostrarMensaje($"❌ Error al descargar XML: {ex.Message}", false);
-    }
-}
-
-
-    private async Task ValidarXml(int idFactura)
     {
         try
         {
-            erroresValidacion.Clear();
+            var xmlContentToDownload = await XmlValidator.DescargarXmlFacturaAsync(idFactura);
+            var factura = facturas.FirstOrDefault(f => f.IdFactura == idFactura);
+            var fileName = $"FAC_{factura?.NumeroFactura?.Replace("-", "")}_{DateTime.Now:yyyyMMddHHmmss}.xml";
             
-            var (isValid, errors) = await ValidacionService.ValidarEstructuraXmlAsync(idFactura);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(xmlContentToDownload);
+            var base64 = Convert.ToBase64String(bytes);
             
-            validacionExitosa = isValid;
-            erroresValidacion = errors;
+            await JS.InvokeVoidAsync("downloadFile", fileName, "application/xml", base64);
+            
+            MostrarMensaje("✅ XML descargado correctamente", true);
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"❌ Error al descargar XML: {ex.Message}", false);
+        }
+    }
+
+    // ✅ NUEVO MÉTODO: Ver XML en Modal
+    private async Task VerXml(int idFactura)
+    {
+        try
+        {
+            facturaSeleccionada = facturas.FirstOrDefault(f => f.IdFactura == idFactura);
+            xmlContent = await XmlValidator.DescargarXmlFacturaAsync(idFactura);
             mostrarModal = true;
-            
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            MostrarMensaje($"❌ Error al validar XML: {ex.Message}", false);
+            MostrarMensaje($"❌ Error al cargar XML: {ex.Message}", false);
         }
     }
 
     private void CerrarModal()
     {
         mostrarModal = false;
+        xmlContent = string.Empty;
+        facturaSeleccionada = null;
         StateHasChanged();
     }
 
@@ -291,54 +278,3 @@ else
         });
     }
 }
-
-<style>
-    .page-header {
-        background: linear-gradient(135deg, #4a56e2 0%, #6a11cb 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-    }
-
-    .fade-in {
-        animation: fadeIn 0.5s ease-in;
-    }
-
-    @@keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .alert-success-custom {
-        background-color: #d4edda;
-        border-color: #c3e6cb;
-        color: #155724;
-    }
-
-    .alert-error-custom {
-        background-color: #f8d7da;
-        border-color: #f5c6cb;
-        color: #721c24;
-    }
-
-    .table th {
-        border: none;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.35rem 0.65rem;
-    }
-
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-    }
-
-    .modal-backdrop {
-        background-color: rgba(0, 0, 0, 0.5);
-    }
-</style>
