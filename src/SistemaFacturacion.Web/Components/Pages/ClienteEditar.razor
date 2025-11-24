@@ -7,21 +7,23 @@
 
 <div class="page-header">
     <h1 class="mb-0">
-        <i class="bi @(IdCliente == 0 ? "bi-person-plus" : "bi-pencil-square")"></i> 
+        <i class="bi @(IdCliente == 0 ? "bi-person-plus" : "bi-pencil-square")"></i>
         @(IdCliente == 0 ? "Nuevo Cliente" : "Editar Cliente")
     </h1>
 </div>
 
 @if (cargando)
 {
-    <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+    </div>
 }
 else
 {
     <div class="card-modern p-4">
         <EditForm Model="cliente" OnValidSubmit="Guardar">
             <DataAnnotationsValidator />
-            
+
             @if (!string.IsNullOrEmpty(mensajeError))
             {
                 <div class="alert alert-error-custom mb-3">
@@ -35,43 +37,46 @@ else
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Tipo de Documento *</label>
-                            <InputSelect class="form-select" @bind-Value="cliente.TipoIdentificacion">
+
+                            <InputSelect class="form-select" @bind-Value="cliente.TipoIdentificacion"
+                                @bind-Value:after="ValidarYVerificarExistencia">
                                 <option value="CEDUL">Cédula</option>
                                 <option value="RUC">RUC</option>
                                 <option value="PASAP">Pasaporte (Extranjero)</option>
                             </InputSelect>
+
                             <ValidationMessage For="@(() => cliente.TipoIdentificacion)" />
                         </div>
-                        
+
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Número de Identificación *</label>
                             <div class="input-group">
-                                <InputText class="form-control" 
-                                           @bind-Value="cliente.Identificacion" 
-                                           @onfocusout="ValidarYVerificarExistencia"
-                                           placeholder="@(cliente.TipoIdentificacion == "PASAP" ? "Pasaporte" : "Solo números")" />
-                                
+                                <InputText class="form-control" @bind-Value="cliente.Identificacion"
+                                    @onfocusout="ValidarYVerificarExistencia"
+                                    placeholder="@(cliente.TipoIdentificacion == "PASAP" ? "Pasaporte" : "Solo números")" />
+
                                 <span class="input-group-text">
-                                    @if(validandoIdentificacion)
+                                    @if (validandoIdentificacion)
                                     {
                                         <div class="spinner-border spinner-border-sm text-secondary"></div>
                                     }
-                                    else if(identificacionEsValida) 
-                                    { 
-                                        <i class="bi bi-check-circle-fill text-success" title="Identificación válida y disponible"></i> 
+                                    else if (identificacionEsValida)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success"
+                                            title="Identificación válida y disponible"></i>
                                     }
-                                    else if(!string.IsNullOrEmpty(mensajeValidacion)) 
-                                    { 
-                                        <i class="bi bi-x-circle-fill text-danger" title="Inválida o Duplicada"></i> 
+                                    else if (!string.IsNullOrEmpty(mensajeValidacion))
+                                    {
+                                        <i class="bi bi-x-circle-fill text-danger" title="Inválida o Duplicada"></i>
                                     }
-                                    else 
-                                    { 
-                                        <i class="bi bi-hash"></i> 
+                                    else
+                                    {
+                                        <i class="bi bi-hash"></i>
                                     }
                                 </span>
                             </div>
-                            
-                            @if(!string.IsNullOrEmpty(mensajeValidacion))
+
+                            @if (!string.IsNullOrEmpty(mensajeValidacion))
                             {
                                 <div class="text-danger small mt-1 fw-bold">
                                     <i class="bi bi-exclamation-circle"></i> @mensajeValidacion
@@ -110,7 +115,10 @@ else
             <div class="mt-4 d-flex gap-2 justify-content-end">
                 <button type="button" class="btn btn-secondary" @onclick="Volver">Cancelar</button>
                 <button type="submit" class="btn btn-success btn-modern" disabled="@(guardando || !identificacionEsValida)">
-                    @if(guardando) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                    @if (guardando)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
                     <i class="bi bi-save me-2"></i> Guardar
                 </button>
             </div>
@@ -120,16 +128,15 @@ else
 
 @code {
     [Parameter] public int IdCliente { get; set; }
-    
+
     private Cliente cliente = new();
-    private string identificacionOriginal = ""; 
+    private string identificacionOriginal = "";
     private bool cargando = true;
     private bool guardando = false;
-    
-    // Variables para validación en tiempo real
+
     private string? mensajeError;
     private string? mensajeValidacion;
-    private bool identificacionEsValida = false; // Controla si el botón Guardar se activa
+    private bool identificacionEsValida = false;
     private bool validandoIdentificacion = false;
 
     protected override async Task OnInitializedAsync()
@@ -137,22 +144,52 @@ else
         var http = HttpClientFactory.CreateClient("LocalApi");
         if (IdCliente != 0)
         {
-            cliente = await http.GetFromJsonAsync<Cliente>($"api/clientes/{IdCliente}") ?? new();
-            identificacionOriginal = cliente.Identificacion; 
-            identificacionEsValida = true; // Asumimos válido si ya existe
+            try
+            {
+                cliente = await http.GetFromJsonAsync<Cliente>($"api/clientes/{IdCliente}") ?? new();
+
+                // === CORRECCIÓN AQUÍ ===
+                // Limpiamos espacios en blanco (Trim) para evitar falsos errores
+                cliente.Identificacion = cliente.Identificacion?.Trim() ?? "";
+                cliente.TipoIdentificacion = cliente.TipoIdentificacion?.Trim() ?? "CEDUL";
+                cliente.Nombres = cliente.Nombres?.Trim() ?? "";
+                cliente.Apellidos = cliente.Apellidos?.Trim() ?? "";
+
+                // Guardamos el original YA LIMPIO
+                identificacionOriginal = cliente.Identificacion;
+
+                // Si ya existe, asumimos que es válida de inicio
+                identificacionEsValida = true;
+            }
+            catch (Exception ex)
+            {
+                mensajeError = $"Error cargando cliente: {ex.Message}";
+            }
         }
         else
         {
+            // Cliente Nuevo
             cliente = new Cliente { TipoIdentificacion = "CEDUL", Estado = true };
-            identificacionEsValida = false; // Nuevo cliente empieza inválido hasta que escriba
+            identificacionEsValida = false;
         }
         cargando = false;
     }
 
-    // 🚀 ESTA ES LA FUNCIÓN CLAVE QUE PEDISTE
     private async Task ValidarYVerificarExistencia()
     {
-        // 1. Resetear estados
+        // Limpiar espacios antes de validar
+        if (!string.IsNullOrEmpty(cliente.Identificacion))
+            cliente.Identificacion = cliente.Identificacion.Trim();
+
+        // Si no ha cambiado la identificación respecto a la original (en edición),
+        // NO hacemos nada y asumimos que es válida.
+        if (IdCliente != 0 && cliente.Identificacion == identificacionOriginal)
+        {
+            identificacionEsValida = true;
+            mensajeValidacion = null;
+            return;
+        }
+
         mensajeValidacion = null;
         identificacionEsValida = false;
 
@@ -161,7 +198,7 @@ else
         validandoIdentificacion = true;
         StateHasChanged();
 
-        // 2. Validar Formato (Algoritmo Cédula/RUC o Pasaporte)
+        // 1. Validar Formato
         var errorFormato = cliente.ValidarIdentificacion();
         if (errorFormato != null)
         {
@@ -170,30 +207,24 @@ else
             return;
         }
 
-        // 3. Validar Duplicado en BD (API)
-        // Solo verificamos si es un cliente NUEVO o si CAMBIÓ su identificación
-        if (IdCliente == 0 || cliente.Identificacion != identificacionOriginal)
+        // 2. Validar Duplicado en BD (Solo si cambió)
+        try
         {
-            try
+            var http = HttpClientFactory.CreateClient("LocalApi");
+            var existe = await http.GetFromJsonAsync<bool>($"api/clientes/existe/{cliente.Identificacion}");
+
+            if (existe)
             {
-                var http = HttpClientFactory.CreateClient("LocalApi");
-                var existe = await http.GetFromJsonAsync<bool>($"api/clientes/existe/{cliente.Identificacion}");
-                
-                if (existe)
-                {
-                    mensajeValidacion = "⚠️ Esta identificación ya está registrada en el sistema.";
-                    validandoIdentificacion = false;
-                    return;
-                }
-            }
-            catch (Exception)
-            {
-                // Si falla la API, permitimos continuar con advertencia pero no bloqueamos (opcional)
-                // mensajeValidacion = "Error verificando duplicados.";
+                mensajeValidacion = "⚠️ Esta identificación ya está registrada.";
+                validandoIdentificacion = false;
+                return;
             }
         }
+        catch
+        {
+            // Si falla la red, permitimos continuar con precaución
+        }
 
-        // Si pasó todo:
         identificacionEsValida = true;
         validandoIdentificacion = false;
         StateHasChanged();
@@ -201,13 +232,17 @@ else
 
     private async Task Guardar()
     {
-        // Doble chequeo antes de enviar
-        await ValidarYVerificarExistencia();
-        if (!identificacionEsValida) return;
+        // Solo validamos duplicados si la ID cambió.
+        // Si es la misma ID original, nos saltamos la validación de existencia para no bloquear.
+        if (IdCliente == 0 || cliente.Identificacion != identificacionOriginal)
+        {
+            await ValidarYVerificarExistencia();
+            if (!identificacionEsValida) return;
+        }
 
         guardando = true;
         mensajeError = null;
-        
+
         var http = HttpClientFactory.CreateClient("LocalApi");
 
         try
@@ -224,13 +259,12 @@ else
             }
             else
             {
-                var content = await resp.Content.ReadAsStringAsync();
-                mensajeError = $"No se pudo guardar: {content}";
+                mensajeError = await resp.Content.ReadAsStringAsync();
             }
         }
         catch (Exception ex)
         {
-            mensajeError = $"Error de conexión: {ex.Message}";
+            mensajeError = $"Error: {ex.Message}";
         }
         finally
         {

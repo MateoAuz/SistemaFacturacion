@@ -14,7 +14,7 @@ public class Cliente
     public string TipoIdentificacion { get; set; } = "CEDUL";
 
     [Required(ErrorMessage = "La identificación es obligatoria")]
-    [StringLength(12, MinimumLength = 5, ErrorMessage = "La identificación debe tener entre 5 y 12 caracteres")]
+    [StringLength(20, MinimumLength = 5, ErrorMessage = "La identificación debe tener entre 5 y 12 caracteres")]
     // ✅ CAMBIO: Quitamos el Regex de solo números aquí para permitir pasaportes (lo validamos en el método)
     public string Identificacion { get; set; } = string.Empty;
 
@@ -43,32 +43,36 @@ public class Cliente
     // --- LÓGICA DE VALIDACIÓN ---
     public string? ValidarIdentificacion()
     {
-        // 1. Cédula Ecuatoriana
+        // Limpiar espacios antes de validar
+        var id = Identificacion?.Trim();
+        if (string.IsNullOrEmpty(id)) return "La identificación es obligatoria.";
+
+        // 1. Cédula Ecuatoriana (10 dígitos, solo números)
         if (TipoIdentificacion == "CEDUL")
         {
-            if (Identificacion.Length != 10 || !long.TryParse(Identificacion, out _))
-                return "La cédula debe tener 10 dígitos numéricos.";
+            if (id.Length != 10 || !long.TryParse(id, out _))
+                return "La cédula debe tener exactamente 10 dígitos numéricos.";
             
-            if (!ValidarCedulaEcuatoriana(Identificacion))
-                return "El número de cédula es incorrecto (no pasa validación SRI).";
+            if (!ValidarCedulaEcuatoriana(id))
+                return "El número de cédula es inválido.";
         }
-        // 2. RUC Ecuatoriano
+        // 2. RUC Ecuatoriano (13 dígitos, solo números)
         else if (TipoIdentificacion == "RUC")
         {
-            if (Identificacion.Length != 13 || !long.TryParse(Identificacion, out _))
-                return "El RUC debe tener 13 dígitos numéricos.";
+            if (id.Length != 13 || !long.TryParse(id, out _))
+                return "El RUC debe tener exactamente 13 dígitos numéricos.";
             
-            if (!Identificacion.EndsWith("001"))
+            if (!id.EndsWith("001"))
                 return "El RUC debe terminar en 001.";
         }
-        // 3. Pasaporte (Extranjeros)
+        // 3. Pasaporte (5 a 20 caracteres, letras y números)
         else if (TipoIdentificacion == "PASAP")
         {
-            if (Identificacion.Length < 5)
-                return "El pasaporte es muy corto (mínimo 5 caracteres).";
+            if (id.Length < 5 || id.Length > 20)
+                return "El pasaporte debe tener entre 5 y 20 caracteres.";
             
-            // Permite letras y números, evita caracteres especiales raros
-            if (!Regex.IsMatch(Identificacion, @"^[a-zA-Z0-9]+$"))
+            // Regex: Solo letras (mayúsculas/minúsculas) y números
+            if (!Regex.IsMatch(id, @"^[a-zA-Z0-9]+$"))
                  return "El pasaporte solo puede contener letras y números.";
         }
 

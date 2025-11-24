@@ -14,7 +14,7 @@
                 <p class="text-white-50 mb-0">Resumen general del negocio</p>
             </div>
             <div class="text-white text-end d-none d-md-block">
-                <h5 class="mb-0">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</h5>
+                <h5 class="mb-0 fecha">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</h5>
             </div>
         </div>
     </div>
@@ -207,6 +207,8 @@
         box-shadow: 0 4px 20px rgba(74, 86, 226, 0.2);
     }
     .card-modern { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+    /* Fecha en header: asegurar buen contraste sobre el degradado */
+    .page-header .fecha { color: #ffffff !important; opacity: 0.95; text-shadow: 0 1px 2px rgba(0,0,0,0.25); }
 </style>
 
 @code {
