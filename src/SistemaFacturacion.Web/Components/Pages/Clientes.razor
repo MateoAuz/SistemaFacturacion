@@ -1,7 +1,7 @@
 @page "/clientes"
 @rendermode InteractiveServer
 @using SistemaFacturacion.Domain.Entities
-@using System.ComponentModel.DataAnnotations 
+@using System.ComponentModel.DataAnnotations
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -39,112 +39,13 @@ else
         </ul>
     </div>
 
-    <div class="mb-4">
-        @if (tabActiva == "activos")
-        {
-            <button class="btn btn-primary btn-modern" @onclick="ToggleForm">
-                <i class="bi bi-@(mostrandoForm ? "x-circle" : "plus-circle")"></i>
-                @(mostrandoForm ? "Cancelar" : "Nuevo Cliente")
-            </button>
-        }
-    </div>
-
-    @if (mostrandoForm)
+    @if (tabActiva == "activos")
     {
-        <div class="card-modern">
-            <h5 class="mb-3"><i class="bi bi-person-plus"></i> Nuevo Cliente</h5>
-            
-            <EditForm Model="nuevoCliente" OnValidSubmit="Guardar" Context="formContext">
-                <DataAnnotationsValidator />
-                
-                @if (!string.IsNullOrEmpty(mensajeError))
-                {
-                    <div class="alert alert-danger alert-modern">
-                        <i class="bi bi-exclamation-triangle"></i> @mensajeError
-                    </div>
-                }
-
-                <div class="row g-3">
-                    <!-- Tipo Identificación -->
-                    <div class="col-md-2">
-                        <label class="form-label">Tipo ID *</label>
-                        <InputSelect class="form-select" @bind-Value="nuevoCliente.TipoIdentificacion">
-                            <option value="">Seleccione...</option>
-                            <option value="CEDUL">Cédula</option>
-                            <option value="RUC">RUC</option>
-                        </InputSelect>
-                        <ValidationMessage For="@(() => nuevoCliente.TipoIdentificacion)" class="text-danger small" />
-                    </div>
-
-                    <!-- Identificación -->
-                    <div class="col-md-4">
-                        <label class="form-label">Identificación *</label>
-                        <InputText class="form-control" @bind-Value="nuevoCliente.Identificacion" 
-                                  placeholder="0123456789" maxlength="13" />
-                        <ValidationMessage For="@(() => nuevoCliente.Identificacion)" class="text-danger small" />
-                        @if (!string.IsNullOrEmpty(mensajeValidacionCedula))
-                        {
-                            <div class="text-danger small">@mensajeValidacionCedula</div>
-                        }
-                    </div>
-
-                    <!-- Nombres -->
-                    <div class="col-md-3">
-                        <label class="form-label">Nombres *</label>
-                        <InputText class="form-control" @bind-Value="nuevoCliente.Nombres" 
-                                  placeholder="Juan Carlos" maxlength="60" />
-                        <ValidationMessage For="@(() => nuevoCliente.Nombres)" class="text-danger small" />
-                    </div>
-
-                    <!-- Apellidos -->
-                    <div class="col-md-3">
-                        <label class="form-label">Apellidos</label>
-                        <InputText class="form-control" @bind-Value="nuevoCliente.Apellidos" 
-                                  placeholder="Pérez López" maxlength="60" />
-                        <ValidationMessage For="@(() => nuevoCliente.Apellidos)" class="text-danger small" />
-                    </div>
-
-                    <!-- Correo -->
-                    <div class="col-md-5">
-                        <label class="form-label">Correo</label>
-                        <InputText class="form-control" @bind-Value="nuevoCliente.Correo" 
-                                  placeholder="ejemplo@correo.com" type="email" maxlength="80" />
-                        <ValidationMessage For="@(() => nuevoCliente.Correo)" class="text-danger small" />
-                    </div>
-
-                    <!-- Teléfono -->
-                    <div class="col-md-3">
-                        <label class="form-label">Teléfono</label>
-                        <InputText class="form-control" @bind-Value="nuevoCliente.Telefono" 
-                                  placeholder="0999999999" maxlength="15" />
-                        <ValidationMessage For="@(() => nuevoCliente.Telefono)" class="text-danger small" />
-                    </div>
-
-                    <!-- Dirección -->
-                    <div class="col-md-4">
-                        <label class="form-label">Dirección</label>
-                        <InputText class="form-control" @bind-Value="nuevoCliente.Direccion"
-                                placeholder="Calle 123 y Av. Principal" maxlength="120" />
-                        <ValidationMessage For="@(() => nuevoCliente.Direccion)" class="text-danger small" />
-                    </div>
-                </div>
-
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-success btn-modern" disabled="@guardando">
-                        <i class="bi bi-check-circle"></i> 
-                        @(guardando ? "Guardando..." : "Guardar Cliente")
-                    </button>
-                </div>
-            </EditForm>
-
-            @if (!string.IsNullOrEmpty(mensaje))
-            {
-                <div class="alert alert-info alert-modern mt-3">
-                    <i class="bi bi-info-circle"></i> @mensaje
-                </div>
-            }
-        </div>
+        <button class="btn btn-primary btn-modern" @onclick='() => Nav.NavigateTo("/editar-cliente/0")'>
+            <i class="bi bi-plus-circle"></i> Nuevo Cliente
+        </button>
     }
+
 
     <!-- El resto del código de la tabla permanece igual -->
     <div class="table-modern">
@@ -283,7 +184,7 @@ else
             // Validar si la identificación ya existe
             var urlVerificar = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/existe/{nuevoCliente.Identificacion}";
             var responseVerificar = await Http.GetAsync(urlVerificar);
-            
+
             if (responseVerificar.IsSuccessStatusCode)
             {
                 var existe = await responseVerificar.Content.ReadFromJsonAsync<bool>();

@@ -2,26 +2,22 @@
 @rendermode InteractiveServer
 @using System.Net.Http.Json
 @using SistemaFacturacion.Domain.Entities
-@using Microsoft.AspNetCore.Components.Forms
 @inject IHttpClientFactory HttpFactory
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
 
-<!-- ENCABEZADO PRINCIPAL -->
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-box-seam"></i> Gestión de Productos</h1>
 </div>
 
-<!-- 🔔 NOTIFICACIONES -->
 @if (mostrarMensaje)
 {
-    <div class="alert alert-@tipoMensaje-custom text-center fade-in">
+    <div class="alert alert-@tipoMensaje-custom text-center fade-in mb-4">
         @mensaje
     </div>
 }
 
-<!-- TABS ACTIVOS / INACTIVOS -->
-<div class="tabs-container d-flex align-items-center mb-3">
+<div class="tabs-container d-flex align-items-center mb-4">
     <button class="tab-btn @(mostrarActivos ? "active" : "") me-2" @onclick="() => CambiarVista(true)">
         <i class="bi bi-boxes"></i> Productos Activos
         <span class="badge-count">@productosActivos.Count</span>
@@ -33,271 +29,178 @@
     </button>
 </div>
 
-<!-- BOTÓN NUEVO -->
-@if (mostrarActivos)
-{
-    <button class="btn btn-primary btn-new mb-3" @onclick="Nuevo">
-        <i class="bi bi-plus-circle"></i> Nuevo Producto
-    </button>
-}
-
-@if (mostrarForm)
-{
-    <div class="card mt-4 border-0 shadow-sm">
-        <div class="card-header text-white fw-bold"
-            style="background-color:#4a56e2; border-top-left-radius:12px; border-top-right-radius:12px;">
-            <i class="bi bi-journal-plus me-2"></i>
-            @(editando ? "Editar Producto" : "Nuevo Producto")
+<div class="card-modern mb-4 p-3">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+            <label class="form-label text-muted small">Buscar</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-primary"></i></span>
+                <input type="text" class="form-control" 
+                       @bind="busquedaQuery" 
+                       @bind:event="oninput"
+                       placeholder="Buscar por código o nombre..." />
+            </div>
         </div>
 
-        <div class="card-body">
-            <EditForm EditContext="@EditContext" OnValidSubmit="@Guardar">
-                <DataAnnotationsValidator />
+        <div class="col-md-3">
+            <label class="form-label text-muted small">Categoría</label>
+            <select class="form-select" @bind="filtroCategoria">
+                <option value="">Todas</option>
+                @foreach (var cat in categoriasDisponibles)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            </select>
+        </div>
 
-                <div class="row g-3">
-                    <!-- CÓDIGO -->
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-upc-scan me-1 text-primary"></i> Código *
-                        </label>
-                        @if (editando)
-                        {
-                            <InputText class="form-control" 
-                                    @bind-Value="form.Codigo" 
-                                    disabled
-                                    placeholder="Ej. PUR001" />
-                            <small class="text-muted">
-                                <i class="bi bi-info-circle"></i> El código no se puede modificar en edición
-                            </small>
-                        }
-                        else
-                        {
-                            <InputText class="form-control" 
-                                    @bind-Value="form.Codigo" 
-                                    @oninput="async () => await ValidarCodigoUnico()"
-                                    placeholder="Ej. PUR001" />
-                            <ValidationMessage For="@(() => form.Codigo)" />
-                            @if (codigoDuplicado)
-                            {
-                                <div class="text-danger small mt-1">
-                                    <i class="bi bi-exclamation-triangle"></i> Este código ya existe
-                                </div>
-                            }
-                        }
-                    </div>
-
-                    <!-- NOMBRE -->
-                    <div class="col-md-5">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-box-seam me-1 text-primary"></i> Nombre *
-                        </label>
-                        <InputText class="form-control" @bind-Value="form.Nombre"
-                            placeholder="Ej. Purina Pro Plan Adulto" />
-                        <ValidationMessage For="@(() => form.Nombre)" />
-                    </div>
-
-                    <!-- CATEGORÍA -->
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-tags me-1 text-primary"></i> Categoría
-                        </label>
-                        <InputSelect class="form-select" @bind-Value="form.Categoria">
-                            <option value="">Seleccione una categoría</option>
-                            @foreach (var categoria in categorias)
-                            {
-                                <option value="@categoria">@categoria</option>
-                            }
-                        </InputSelect>
-                        <small class="text-muted">Seleccione una categoría de la lista</small>
-                    </div>
-
-                    <!-- PRECIO VENTA -->
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">
-                            <i class="bi bi-cart-check me-1 text-primary"></i> Precio Venta *
-                        </label>
-                        <InputNumber class="form-control" @bind-Value="form.PrecioVenta" 
-                                placeholder="0.00" />
-                        <ValidationMessage For="@(() => form.PrecioVenta)" />
-                        <small class="text-muted">Precio de venta al cliente</small>
-                    </div>
-
-                    <!-- INFORMACIÓN STOCK -->
-                    <div class="col-md-6">
-                        <div class="alert alert-info mt-2">
-                            <i class="bi bi-info-circle"></i>
-                            <strong>Gestión por lotes:</strong> El stock se manejará mediante lotes. 
-                            Después de guardar el producto, podrá agregar lotes con fechas de expiración y precios de compra.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- BOTONES -->
-                <div class="mt-4 d-flex gap-2 flex-wrap">
-                    <button type="submit" class="btn btn-success px-3" disabled="@(codigoDuplicado && !editando)">
-                        <i class="bi bi-check-circle"></i>
-                        @(editando ? "Guardar Cambios" : "Guardar Producto")
-                    </button>
-                    <button type="button" class="btn btn-secondary px-3" @onclick="Cancelar">
-                        <i class="bi bi-x-circle"></i> Cancelar
-                    </button>
-                    
-                    <!-- BOTÓN PARA GESTIONAR LOTES EN EDICIÓN -->
-                    @if (editando && form.IdProducto > 0)
-                    {
-                        <button type="button" class="btn btn-outline-primary px-3" 
-                                @onclick="() => GestionarLotes(form.IdProducto)">
-                            <i class="bi bi-layers"></i> Gestionar Lotes
-                        </button>
-                    }
-                </div>
-            </EditForm>
+        <div class="col-md-4 text-end">
+            @if (mostrarActivos)
+            {
+                <button class="btn btn-primary btn-modern w-100" @onclick='() => NavigationManager.NavigateTo("/editar-producto/0")'>
+                    <i class="bi bi-plus-circle me-2"></i> Nuevo Producto
+                </button>
+            }
         </div>
     </div>
-}
+</div>
 
-<!-- Tabla de productos -->
 @if (cargando)
 {
-    <div class="text-center py-4">
+    <div class="text-center py-5">
         <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">Cargando productos...</p>
+        <p class="mt-2 text-muted">Cargando inventario...</p>
     </div>
 }
 else
 {
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
-            <table class="table table-striped mb-0 align-middle">
-                <thead class="text-white" style="background-color:#4a56e2;">
-                    <tr class="text-center">
-                        <th scope="col">Código</th>
-                        <th scope="col">Nombre</th>
-                        <th scope="col">Categoría</th>
-                        <th scope="col">Precio Venta</th>
-                        <th scope="col">Stock Total</th>
-                        <th scope="col">Lotes Activos</th>
-                        <th scope="col" style="width:280px;">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (!productosMostrados.Any())
-                    {
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-3">
-                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
-                                No hay productos para mostrar.
-                            </td>
+            <div class="table-responsive">
+                <table class="table table-striped mb-0 align-middle">
+                    <thead class="text-white" style="background-color:#4a56e2;">
+                        <tr class="text-center">
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Precio Venta</th>
+                            <th>Stock Total</th>
+                            <th>Lotes</th>
+                            <th>Acciones</th>
                         </tr>
-                    }
-                    else
-                    {
-                        @foreach (var p in productosMostrados)
+                    </thead>
+                    <tbody>
+                        @if (!ProductosFiltrados.Any())
                         {
-                            var lotesActivos = p.Lotes?.Count(l => l.CantidadActual > 0) ?? 0;
-                            var lotesProximosVencer = p.Lotes?.Count(l => l.EstaProximoAVencer) ?? 0;
-                            var lotesVencidos = p.Lotes?.Count(l => l.EstaVencido) ?? 0;
-                            
                             <tr>
-                                <td class="fw-bold">@p.Codigo</td>
-                                <td>@p.Nombre</td>
-                                <td>
-                                    <span class="badge bg-secondary">@p.Categoria</span>
-                                </td>
-                                <td class="text-end fw-bold">@p.PrecioVenta.ToString("C2")</td>
-                                <td class="text-center">
-                                    <span class="badge @(p.StockTotal <= 5 ? "bg-warning" : "bg-success")">
-                                        @p.StockTotal
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <div class="d-flex flex-column gap-1">
-                                        <span class="badge bg-info">@lotesActivos Activos</span>
-                                        @if (lotesProximosVencer > 0)
-                                        {
-                                            <span class="badge bg-warning small">@lotesProximosVencer Por vencer</span>
-                                        }
-                                        @if (lotesVencidos > 0)
-                                        {
-                                            <span class="badge bg-danger small">@lotesVencidos Vencidos</span>
-                                        }
-                                    </div>
-                                </td>
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                        @if (p.Estado)
-                                        {
-                                            <button class="btn btn-sm btn-outline-primary" 
-                                                    @onclick="() => Editar(p)"
-                                                    title="Editar Producto">
-                                                <i class="bi bi-pencil"></i> Editar
-                                            </button>
-
-                                            <button class="btn btn-sm btn-outline-info" 
-                                                    @onclick="() => GestionarLotes(p.IdProducto)"
-                                                    title="Gestionar Lotes">
-                                                <i class="bi bi-layers"></i> Lotes
-                                            </button>
-
-                                            <button class="btn btn-sm btn-outline-warning" 
-                                                    @onclick="() => CambiarEstado(p, false)"
-                                                    title="Desactivar Producto">
-                                                <i class="bi bi-person-dash"></i> Desactivar
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <button class="btn btn-sm btn-outline-success" 
-                                                    @onclick="() => CambiarEstado(p, true)"
-                                                    title="Reactivar Producto">
-                                                <i class="bi bi-person-check"></i> Reactivar
-                                            </button>
-                                        }
-                                    </div>
+                                <td colspan="7" class="text-center text-muted py-5">
+                                    <i class="bi bi-search display-6 d-block mb-2 opacity-50"></i>
+                                    No se encontraron productos.
                                 </td>
                             </tr>
                         }
-                    }
-                </tbody>
-            </table>
+                        else
+                        {
+                            @foreach (var p in ProductosFiltrados)
+                            {
+                                var lotesActivos = p.Lotes?.Count(l => l.CantidadActual > 0) ?? 0;
+                                var lotesPorVencer = p.Lotes?.Count(l => l.EstaProximoAVencer) ?? 0;
+
+                                <tr>
+                                    <td class="fw-bold text-primary">@p.Codigo</td>
+                                    <td>@p.Nombre</td>
+                                    <td><span class="badge bg-light text-dark border">@p.Categoria</span></td>
+                                    <td class="text-end fw-bold">@p.PrecioVenta.ToString("C2")</td>
+                                    <td class="text-center">
+                                        <span class="badge @(p.StockTotal == 0 ? "bg-secondary" : p.StockTotal < 10 ? "bg-warning text-dark" : "bg-success")">
+                                            @p.StockTotal
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (lotesActivos > 0)
+                                        {
+                                            <span class="badge bg-info text-dark">@lotesActivos Activos</span>
+                                        }
+                                        @if (lotesPorVencer > 0)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1" title="Lotes por vencer">
+                                                <i class="bi bi-exclamation-triangle"></i> @lotesPorVencer
+                                            </span>
+                                        }
+                                        @if(lotesActivos == 0) { <span class="text-muted small">-</span> }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-2">
+                                            @if (p.Estado)
+                                            {
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        @onclick='() => NavigationManager.NavigateTo($"/editar-producto/{p.IdProducto}")' 
+                                                        title="Editar">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+
+                                                <button class="btn btn-sm btn-outline-info" @onclick="() => GestionarLotes(p.IdProducto)" title="Lotes">
+                                                    <i class="bi bi-layers"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" @onclick="() => CambiarEstado(p, false)" title="Desactivar">
+                                                    <i class="bi bi-archive"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-outline-success" @onclick="() => CambiarEstado(p, true)" title="Reactivar">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 }
 
 @code {
     private HttpClient _http => HttpFactory.CreateClient("LocalApi");
-
+    
     private List<Producto> productos = new();
     private List<Producto> productosActivos => productos.Where(p => p.Estado).ToList();
     private List<Producto> productosInactivos => productos.Where(p => !p.Estado).ToList();
-    private IEnumerable<Producto> productosMostrados => mostrarActivos ? productosActivos : productosInactivos;
+    
+    private string busquedaQuery = "";
+    private string filtroCategoria = "";
+    private List<string> categoriasDisponibles = new();
 
-    // Lista de categorías predefinidas
-    private List<string> categorias = new()
+    private IEnumerable<Producto> ProductosFiltrados
     {
-        "Alimento",
-        "Medicamento",
-        "Juguete",
-        "Accesorio",
-        "Higiene",
-        "Ropa",
-        "Transportadora",
-        "Suplemento",
-        "Otros"
-    };
+        get
+        {
+            var baseList = mostrarActivos ? productosActivos : productosInactivos;
+
+            if (!string.IsNullOrEmpty(filtroCategoria))
+                baseList = baseList.Where(p => p.Categoria == filtroCategoria).ToList();
+
+            if (!string.IsNullOrWhiteSpace(busquedaQuery))
+            {
+                var q = busquedaQuery.ToLower();
+                baseList = baseList.Where(p => 
+                    p.Nombre.ToLower().Contains(q) || 
+                    p.Codigo.ToLower().Contains(q)
+                ).ToList();
+            }
+
+            return baseList;
+        }
+    }
 
     private bool mostrarActivos = true;
     private bool cargando = true;
-    private bool mostrarForm = false;
-    private bool editando = false;
-    private bool codigoDuplicado = false;
-
     private string? mensaje;
     private string tipoMensaje = "success";
     private bool mostrarMensaje;
-
-    private Producto form = new();
-    private EditContext EditContext = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -307,180 +210,48 @@ else
     private async Task Cargar()
     {
         cargando = true;
-        StateHasChanged();
-        
         try
         {
-            // Incluir los lotes en la carga de productos
             var data = await _http.GetFromJsonAsync<List<Producto>>("api/productos?includeLotes=true");
             productos = data ?? new List<Producto>();
+            
+            categoriasDisponibles = productos
+                .Where(p => !string.IsNullOrWhiteSpace(p.Categoria))
+                .Select(p => p.Categoria!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
         }
         catch (Exception ex)
         {
-            MostrarMensaje($"❌ Error al cargar productos: {ex.Message}", "error");
-            productos = new List<Producto>();
+            MostrarMensaje($"Error: {ex.Message}", "error");
         }
-        finally
-        {
-            cargando = false;
-            StateHasChanged();
-        }
+        finally { cargando = false; StateHasChanged(); }
     }
 
     private void CambiarVista(bool activos)
     {
         mostrarActivos = activos;
-        mostrarForm = false;
-        codigoDuplicado = false;
-        StateHasChanged();
-    }
-
-    private void Nuevo()
-    {
-        form = new Producto { 
-            Estado = true,
-            PrecioVenta = 0
-        };
-        EditContext = new EditContext(form);
-        editando = false;
-        mostrarForm = true;
-        codigoDuplicado = false;
-        StateHasChanged();
-    }
-
-    private void Editar(Producto p)
-    {
-        form = new Producto
-        {
-            IdProducto = p.IdProducto,
-            Codigo = p.Codigo,
-            Nombre = p.Nombre,
-            Categoria = p.Categoria,
-            PrecioVenta = p.PrecioVenta,
-            Estado = p.Estado
-        };
-        EditContext = new EditContext(form);
-        editando = true;
-        mostrarForm = true;
-        codigoDuplicado = false;
-        StateHasChanged();
-    }
-
-    private async Task Guardar()
-    {
-        try
-        {
-            // Validar código único para nuevos productos
-            if (!editando && codigoDuplicado)
-            {
-                MostrarMensaje("❌ El código ya existe. Por favor, use un código diferente.", "error");
-                return;
-            }
-
-            // Validar precio de venta
-            if (form.PrecioVenta <= 0)
-            {
-                MostrarMensaje("❌ El precio de venta debe ser mayor a cero.", "error");
-                return;
-            }
-
-            HttpResponseMessage resp;
-            
-            if (editando)
-            {
-                resp = await _http.PutAsJsonAsync($"api/productos/{form.IdProducto}", form);
-            }
-            else
-            {
-                resp = await _http.PostAsJsonAsync("api/productos", form);
-            }
-
-            if (resp.IsSuccessStatusCode)
-            {
-                await Cargar();
-                mostrarForm = false;
-                MostrarMensaje(editando 
-                    ? "✅ Producto actualizado correctamente" 
-                    : "🎉 Producto registrado exitosamente", 
-                    "success");
-            }
-            else
-            {
-                var errorContent = await resp.Content.ReadAsStringAsync();
-                MostrarMensaje($"❌ Error al guardar: {errorContent}", "error");
-            }
-        }
-        catch (Exception ex)
-        {
-            MostrarMensaje($"❌ Error: {ex.Message}", "error");
-        }
-    }
-
-    private void Cancelar()
-    {
-        mostrarForm = false;
-        editando = false;
-        codigoDuplicado = false;
-        StateHasChanged();
+        busquedaQuery = ""; 
+        filtroCategoria = "";
     }
 
     private async Task CambiarEstado(Producto p, bool activar)
     {
         try
         {
-            var endpoint = activar
-                ? $"api/productos/{p.IdProducto}/activar"
-                : $"api/productos/{p.IdProducto}/desactivar";
-
+            var endpoint = activar ? $"api/productos/{p.IdProducto}/activar" : $"api/productos/{p.IdProducto}/desactivar";
             var resp = await _http.PatchAsync(endpoint, null);
-
             if (resp.IsSuccessStatusCode)
             {
                 await Cargar();
-                MostrarMensaje(activar 
-                    ? "✅ Producto reactivado correctamente" 
-                    : "⚠️ Producto desactivado correctamente", 
-                    "info");
-            }
-            else
-            {
-                var mensajeError = await resp.Content.ReadAsStringAsync();
-                MostrarMensaje($"❌ Error al cambiar estado: {mensajeError}", "error");
+                MostrarMensaje(activar ? "Producto reactivado" : "Producto desactivado", "info");
             }
         }
-        catch (Exception ex)
-        {
-            MostrarMensaje($"❌ Error: {ex.Message}", "error");
-        }
+        catch (Exception ex) { MostrarMensaje($"Error: {ex.Message}", "error"); }
     }
 
-    private async Task ValidarCodigoUnico()
-    {
-        if (!string.IsNullOrWhiteSpace(form.Codigo) && !editando)
-        {
-            try
-            {
-                var productoExistente = await _http.GetFromJsonAsync<Producto>($"api/productos/by-codigo/{form.Codigo}");
-                codigoDuplicado = productoExistente != null;
-            }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                // Código no existe - está bien
-                codigoDuplicado = false;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error validando código: {ex.Message}");
-                codigoDuplicado = false;
-            }
-            StateHasChanged();
-        }
-    }
-
-    private void GestionarLotes(int productoId)
-    {
-        NavigationManager.NavigateTo($"/lotes/{productoId}");
-    }
+    private void GestionarLotes(int id) => NavigationManager.NavigateTo($"/lotes/{id}");
 
     private void MostrarMensaje(string texto, string tipo = "success")
     {
@@ -488,118 +259,6 @@ else
         tipoMensaje = tipo;
         mostrarMensaje = true;
         StateHasChanged();
-
-        // Ocultar mensaje después de 4 segundos
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(4000);
-            mostrarMensaje = false;
-            await InvokeAsync(StateHasChanged);
-        });
+        _ = Task.Run(async () => { await Task.Delay(4000); mostrarMensaje = false; await InvokeAsync(StateHasChanged); });
     }
 }
-
-<style>
-    .page-header {
-        background: linear-gradient(135deg, #4a56e2 0%, #6a11cb 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-    }
-
-    .tabs-container {
-        border-bottom: 2px solid #e9ecef;
-        padding-bottom: 0.5rem;
-    }
-
-    .tab-btn {
-        background: none;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        transition: all 0.3s ease;
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .tab-btn.active {
-        background-color: #4a56e2;
-        color: white;
-    }
-
-    .tab-btn:not(.active):hover {
-        background-color: #f8f9fa;
-    }
-
-    .badge-count {
-        background-color: #6c757d;
-        color: white;
-        border-radius: 10px;
-        padding: 0.15rem 0.5rem;
-        font-size: 0.75rem;
-        margin-left: 0.25rem;
-    }
-
-    .btn-new {
-        background-color: #4a56e2;
-        border: none;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
-    }
-
-    .btn-new:hover {
-        background-color: #3a46d2;
-        transform: translateY(-1px);
-    }
-
-    .fade-in {
-        animation: fadeIn 0.5s ease-in;
-    }
-
-    @@keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .alert-success-custom {
-        background-color: #d4edda;
-        border-color: #c3e6cb;
-        color: #155724;
-    }
-
-    .alert-error-custom {
-        background-color: #f8d7da;
-        border-color: #f5c6cb;
-        color: #721c24;
-    }
-
-    .alert-info-custom {
-        background-color: #d1ecf1;
-        border-color: #bee5eb;
-        color: #0c5460;
-    }
-
-    .table th {
-        border: none;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.35rem 0.65rem;
-    }
-
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-    }
-
-    .small {
-        font-size: 0.7rem;
-    }
-</style>

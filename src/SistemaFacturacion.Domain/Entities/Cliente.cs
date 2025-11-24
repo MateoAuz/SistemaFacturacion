@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace SistemaFacturacion.Domain.Entities;
 
@@ -8,32 +9,30 @@ public class Cliente
     public int IdCliente { get; set; }
 
     [Required(ErrorMessage = "El tipo de identificación es obligatorio")]
-    [RegularExpression("^(CEDUL|RUC)$", ErrorMessage = "El tipo de identificación debe ser CEDUL o RUC")]
+    // ✅ CAMBIO: Agregamos PASAP al Regex
+    [RegularExpression("^(CEDUL|RUC|PASAP)$", ErrorMessage = "El tipo debe ser Cédula, RUC o Pasaporte")]
     public string TipoIdentificacion { get; set; } = "CEDUL";
 
     [Required(ErrorMessage = "La identificación es obligatoria")]
-    [StringLength(13, MinimumLength = 10, ErrorMessage = "La identificación debe tener entre 10 y 13 dígitos")]
-    [RegularExpression(@"^\d+$", ErrorMessage = "La identificación solo puede contener números")]
+    [StringLength(12, MinimumLength = 5, ErrorMessage = "La identificación debe tener entre 5 y 12 caracteres")]
+    // ✅ CAMBIO: Quitamos el Regex de solo números aquí para permitir pasaportes (lo validamos en el método)
     public string Identificacion { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Los nombres son obligatorios")]
     [StringLength(60, ErrorMessage = "Los nombres no pueden exceder 60 caracteres")]
-    [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "Los nombres solo pueden contener letras y espacios")]
     public string Nombres { get; set; } = string.Empty;
 
-    [StringLength(60, ErrorMessage = "Los apellidos no pueden exceder 60 caracteres")]
-    [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$", ErrorMessage = "Los apellidos solo pueden contener letras y espacios")]
+    [StringLength(60)]
     public string? Apellidos { get; set; }
 
-    [StringLength(120, ErrorMessage = "La dirección no puede exceder 120 caracteres")]
+    [StringLength(120)]
     public string? Direccion { get; set; }
 
-    [StringLength(15, ErrorMessage = "El teléfono no puede exceder 15 caracteres")]
-    [RegularExpression(@"^[\d\s\+\-\(\)]*$", ErrorMessage = "El teléfono solo puede contener números, espacios y los caracteres + - ( )")]
+    [StringLength(15)]
     public string? Telefono { get; set; }
 
-    [EmailAddress(ErrorMessage = "El formato del correo electrónico no es válido")]
-    [StringLength(80, ErrorMessage = "El correo no puede exceder 80 caracteres")]
+    [EmailAddress(ErrorMessage = "El formato del correo no es válido")]
+    [StringLength(80)]
     public string? Correo { get; set; }
 
     public bool Estado { get; set; } = true;
@@ -41,43 +40,66 @@ public class Cliente
     [JsonIgnore]
     public ICollection<Factura>? Facturas { get; set; }
 
-    // Método para validación personalizada de cédula/RUC - VERSIÓN CORREGIDA
+    // --- LÓGICA DE VALIDACIÓN ---
     public string? ValidarIdentificacion()
     {
-        if (TipoIdentificacion == "CEDUL" && Identificacion.Length != 10)
-            return "La cédula debe tener exactamente 10 dígitos";
-        
-        if (TipoIdentificacion == "RUC" && Identificacion.Length != 13)
-            return "El RUC debe tener exactamente 13 dígitos";
-        
-        // Validar cédula ecuatoriana
-        if (TipoIdentificacion == "CEDUL" && !ValidarCedulaEcuatoriana(Identificacion))
-            return "El número de cédula no es válido";
+        // 1. Cédula Ecuatoriana
+        if (TipoIdentificacion == "CEDUL")
+        {
+            if (Identificacion.Length != 10 || !long.TryParse(Identificacion, out _))
+                return "La cédula debe tener 10 dígitos numéricos.";
             
-        return null; // null significa que no hay error
+            if (!ValidarCedulaEcuatoriana(Identificacion))
+                return "El número de cédula es incorrecto (no pasa validación SRI).";
+        }
+        // 2. RUC Ecuatoriano
+        else if (TipoIdentificacion == "RUC")
+        {
+            if (Identificacion.Length != 13 || !long.TryParse(Identificacion, out _))
+                return "El RUC debe tener 13 dígitos numéricos.";
+            
+            if (!Identificacion.EndsWith("001"))
+                return "El RUC debe terminar en 001.";
+        }
+        // 3. Pasaporte (Extranjeros)
+        else if (TipoIdentificacion == "PASAP")
+        {
+            if (Identificacion.Length < 5)
+                return "El pasaporte es muy corto (mínimo 5 caracteres).";
+            
+            // Permite letras y números, evita caracteres especiales raros
+            if (!Regex.IsMatch(Identificacion, @"^[a-zA-Z0-9]+$"))
+                 return "El pasaporte solo puede contener letras y números.";
+        }
+
+        return null; // Todo correcto
     }
 
     private bool ValidarCedulaEcuatoriana(string cedula)
     {
-        if (cedula.Length != 10 || !cedula.All(char.IsDigit))
-            return false;
-
-        // Verificar que los primeros dos dígitos sean válidos (provincia)
-        int provincia = int.Parse(cedula.Substring(0, 2));
-        if (provincia < 1 || provincia > 24)
-            return false;
-
-        // Algoritmo de validación de cédula ecuatoriana
-        int[] coeficientes = { 2, 1, 2, 1, 2, 1, 2, 1, 2 };
-        int total = 0;
-
-        for (int i = 0; i < 9; i++)
+        try 
         {
-            int valor = int.Parse(cedula[i].ToString()) * coeficientes[i];
-            total += valor > 9 ? valor - 9 : valor;
-        }
+            int provincia = int.Parse(cedula.Substring(0, 2));
+            if (provincia < 1 || provincia > 24) return false;
 
-        int digitoVerificador = (10 - (total % 10)) % 10;
-        return digitoVerificador == int.Parse(cedula[9].ToString());
+            int tercerDigito = int.Parse(cedula.Substring(2, 1));
+            if (tercerDigito >= 6) return false; 
+
+            int[] coeficientes = { 2, 1, 2, 1, 2, 1, 2, 1, 2 };
+            int total = 0;
+
+            for (int i = 0; i < 9; i++)
+            {
+                int valor = int.Parse(cedula[i].ToString()) * coeficientes[i];
+                total += valor > 9 ? valor - 9 : valor;
+            }
+
+            int digitoVerificador = (10 - (total % 10)) % 10;
+            return digitoVerificador == int.Parse(cedula[9].ToString());
+        }
+        catch 
+        {
+            return false;
+        }
     }
 }
