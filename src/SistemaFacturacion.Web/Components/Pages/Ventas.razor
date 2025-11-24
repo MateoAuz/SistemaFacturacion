@@ -146,7 +146,7 @@
                         <small class="text-muted">@p.Categoria</small>
                     </div>
                     <div class="text-end">
-                        <div class="fw-bold text-primary fs-5">@p.PrecioVenta.ToString("C2")</div>
+                        <div class="fw-bold text-primary fs-5">$@p.PrecioVenta.ToString("N2")</div>
                         <small>
                             Stock: 
                             @if(sinStock) { <span class="badge bg-danger">Agotado</span> }
@@ -222,17 +222,17 @@
             <tfoot class="bg-light">
                 <tr>
                     <td colspan="4" class="text-end">SUBTOTAL:</td>
-                    <td class="text-end fw-bold">@factura.Subtotal.ToString("C2")</td>
+                    <td class="text-end fw-bold">$@factura.Subtotal.ToString("N2")</td>
                     <td></td>
                 </tr>
                 <tr>
                     <td colspan="4" class="text-end">IVA (15%):</td>
-                    <td class="text-end fw-bold">@factura.Iva.ToString("C2")</td>
+                    <td class="text-end fw-bold">$@factura.Iva.ToString("N2")</td>
                     <td></td>
                 </tr>
                 <tr class="border-top border-2 border-secondary">
                     <td colspan="4" class="text-end fs-5"><strong>TOTAL A PAGAR:</strong></td>
-                    <td class="text-end fs-4 text-success fw-bold">@factura.Total.ToString("C2")</td>
+                    <td class="text-end fs-4 text-success fw-bold">$@factura.Total.ToString("N2")</td>
                     <td></td>
                 </tr>
             </tfoot>
