@@ -16,7 +16,9 @@
     </div>
 
     <div class="card-body">
-        <div class="tabs-container d-flex flex-wrap align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+        <!-- Filtros de estado (izquierda) -->
+        <div class="tabs-container d-flex flex-wrap align-items-center">
             @foreach (var estado in FacturaEstados)
             {
                 <button class="tab-btn @(filtroEstado == estado.Key ? "active" : "") me-2 mb-1" 
@@ -27,66 +29,96 @@
             }
         </div>
 
-        @if (cargando)
-        {
-            <div class="alert-info-custom fade-in">
-                <i class="bi bi-arrow-clockwise"></i> Cargando facturas...
+        <!-- Buscador (derecha) -->
+        <div class="search-container">
+            <div class="input-group" style="width: 300px;">
+                <span class="input-group-text bg-white">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="Buscar por N° factura o cliente..."
+                       @bind-value="terminoBusqueda"
+                       @bind-value:event="oninput" />
+                @if (!string.IsNullOrEmpty(terminoBusqueda))
+                {
+                    <button class="btn btn-outline-secondary" @onclick="LimpiarBusqueda" type="button">
+                        <i class="bi bi-x"></i>
+                    </button>
+                }
             </div>
-        }
-        else if (!facturasFiltradas.Any())
-        {
-            <div class="alert-info-custom fade-in">
-                <i class="bi bi-inbox"></i> No hay facturas registradas @(filtroEstado != "TODAS" ? $"con estado '{FacturaEstados.GetValueOrDefault(filtroEstado).Label}'." : ".")
-            </div>
-        }
-        else
-        {
-            <div class="table-responsive fade-in">
-                <table class="table table-striped table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>N° Factura</th>
-                            <th>Cliente</th>
-                            <th>Fecha</th>
-                            <th class="text-end">Total</th>
-                            <th class="text-center">Estado</th>
-                            <th class="text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var f in facturasFiltradas)
-                        {
-                            <tr>
-                                <td>@f.NumeroFactura</td>
-                                <td>@($"{f.Cliente?.Nombres} {f.Cliente?.Apellidos}")</td>
-                                <td>@f.FechaEmision.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td class="text-end fw-bold text-primary">$@f.Total.ToString("N2")</td> 
-                                <td class="text-center">
-                                    <span class="badge @GetEstadoBadgeClass(f.Estado)">
-                                        @FacturaEstados.GetValueOrDefault(f.Estado).Label
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <button class="btn btn-sm btn-info" @onclick="() => VerFactura(f)">
-                                            <i class="bi bi-eye"></i> Ver Detalle
-                                        </button>
-                                        @if (f.Estado == "PENDIENTE" && f.SaldoPendiente > 0)
-                                        {
-                                            <button class="btn btn-sm btn-success" @onclick="() => AbrirModalPago(f)">
-                                                <i class="bi bi-cash-coin"></i> Pagar
-                                            </button>
-                                        }
-                                        
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
+        </div>
     </div>
+
+    @if (cargando)
+    {
+        <div class="alert-info-custom fade-in">
+            <i class="bi bi-arrow-clockwise"></i> Cargando facturas...
+        </div>
+    }
+    else if (!facturasFiltradas.Any())
+    {
+        <div class="alert-info-custom fade-in">
+            <i class="bi bi-inbox"></i> No hay facturas registradas @(filtroEstado != "TODAS" ? $"con estado '{FacturaEstados.GetValueOrDefault(filtroEstado).Label}'." : ".")
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive fade-in">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>N° Factura</th>
+                        <th>Cliente</th>
+                        <th>Fecha</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in facturasPaginadas)
+                    {
+                        <tr>
+                            <td>@f.NumeroFactura</td>
+                            <td>@($"{f.Cliente?.Nombres} {f.Cliente?.Apellidos}")</td>
+                            <td>@f.FechaEmision.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="text-end fw-bold text-primary">$@f.Total.ToString("N2")</td> 
+                            <td class="text-center">
+                                <span class="badge @GetEstadoBadgeClass(f.Estado)">
+                                    @FacturaEstados.GetValueOrDefault(f.Estado).Label
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button class="btn btn-sm btn-info" @onclick="() => VerFactura(f)">
+                                        <i class="bi bi-eye"></i> Ver Detalle
+                                    </button>
+                                    @if (f.Estado == "PENDIENTE" && f.SaldoPendiente > 0)
+                                    {
+                                        <button class="btn btn-sm btn-success" @onclick="() => AbrirModalPago(f)">
+                                            <i class="bi bi-cash-coin"></i> Pagar
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            
+            <!-- Paginador -->
+            @if (facturasFiltradas.Any())
+            {
+                <Paginador TItem="FacturaDto" 
+                           TodosLosItems="facturasFiltradas" 
+                           ItemsPorPagina="8"
+                           OnCambioPagina="ActualizarFacturasPaginadas" />
+            }
+        </div>
+    }
+</div>
+
 </div>
 
 @* Modal de Detalle de Factura *@
@@ -251,9 +283,35 @@
     private bool cargando = true;
     private string filtroEstado = "TODAS";
     private List<FacturaDto> facturas = new();
-    private List<FacturaDto> facturasFiltradas => filtroEstado == "TODAS"
-        ? facturas
-        : facturas.Where(f => f.Estado == filtroEstado).ToList();
+    private List<FacturaDto> facturasPaginadas = new();
+    private string terminoBusqueda = string.Empty;
+    // ✅ ACTUALIZADA: Incluye lógica de búsqueda
+    private List<FacturaDto> facturasFiltradas
+    {
+        get
+        {
+            var resultado = facturas.AsEnumerable();
+
+            // Aplicar filtro de estado
+            if (filtroEstado != "TODAS")
+            {
+                resultado = resultado.Where(f => f.Estado == filtroEstado);
+            }
+
+            // ✅ NUEVO: Aplicar búsqueda
+            if (!string.IsNullOrWhiteSpace(terminoBusqueda))
+            {
+                var busqueda = terminoBusqueda.Trim().ToLower();
+                resultado = resultado.Where(f =>
+                    (f.NumeroFactura != null && f.NumeroFactura.ToLower().Contains(busqueda)) ||
+                    (f.Cliente?.Nombres != null && f.Cliente.Nombres.ToLower().Contains(busqueda)) ||
+                    (f.Cliente?.Apellidos != null && f.Cliente.Apellidos.ToLower().Contains(busqueda))
+                );
+            }
+
+            return resultado.ToList();
+        }
+    }
 
     // Factura Detail Modal
     private FacturaDto? facturaSeleccionada;
@@ -303,6 +361,20 @@
         }
     }
 
+    // ✅ NUEVO: Método para limpiar búsqueda
+    private void LimpiarBusqueda()
+    {
+        terminoBusqueda = string.Empty;
+        StateHasChanged();
+    }
+
+    private Task ActualizarFacturasPaginadas(List<FacturaDto> items)
+    {
+        facturasPaginadas = items;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
     private async Task CargarPagos(int idFactura)
     {
         try
@@ -328,10 +400,13 @@
     }
     
     private void AplicarFiltro(string estado)
-    {
-        filtroEstado = estado;
-        StateHasChanged();
-    }
+{
+    filtroEstado = estado;
+    // ✅ Limpiar la paginación al cambiar filtro (el paginador se reiniciará automáticamente)
+    facturasPaginadas = new();
+    StateHasChanged();
+}
+
 
     private int GetFacturaCountByState(string estado)
     {

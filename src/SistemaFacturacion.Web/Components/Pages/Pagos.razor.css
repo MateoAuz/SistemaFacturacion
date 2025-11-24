@@ -210,3 +210,27 @@
     font-size: 0.9rem;
     color: #444;
 }
+
+.search-container .input-group-text {
+        border-right: none;
+        color: #6c757d;
+    }
+
+    .search-container .form-control {
+        border-left: none;
+        border-right: none;
+    }
+
+    .search-container .form-control:focus {
+        box-shadow: none;
+        border-color: #dee2e6;
+    }
+
+    .search-container .input-group:focus-within .input-group-text,
+    .search-container .input-group:focus-within .form-control {
+        border-color: #4a56e2;
+    }
+
+    .search-container .btn-outline-secondary {
+        border-left: 1px solid #dee2e6;
+    }

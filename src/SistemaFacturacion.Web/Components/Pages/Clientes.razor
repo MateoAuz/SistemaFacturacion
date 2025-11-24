@@ -6,9 +6,11 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
+
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-people-fill"></i> Gestión de Clientes</h1>
 </div>
+
 
 @if (isLoading)
 {
@@ -39,15 +41,25 @@ else
         </ul>
     </div>
 
+
     @if (tabActiva == "activos")
     {
-        <button class="btn btn-primary btn-modern" @onclick='() => Nav.NavigateTo("/editar-cliente/0")'>
+        <button class="btn btn-primary btn-modern mb-3" @onclick='() => Nav.NavigateTo("/editar-cliente/0")'>
             <i class="bi bi-plus-circle"></i> Nuevo Cliente
         </button>
     }
 
+    <!-- Mensajes -->
+    @if (!string.IsNullOrEmpty(mensaje))
+    {
+        <div class="alert alert-success">@mensaje</div>
+    }
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert alert-danger">@mensajeError</div>
+    }
 
-    <!-- El resto del código de la tabla permanece igual -->
+    <!-- Tabla -->
     <div class="table-modern">
         <table class="table table-hover mb-0">
             <thead>
@@ -74,7 +86,7 @@ else
                 }
                 else
                 {
-                    foreach (var c in clientesActuales)
+                    @foreach (var c in clientesPaginados)
                     {
                         <tr>
                             <td><span class="badge bg-primary badge-custom">@c.TipoIdentificacion</span></td>
@@ -108,8 +120,16 @@ else
                 }
             </tbody>
         </table>
+
+        <!-- ✅ COMPONENTE DE PAGINACIÓN -->
+        @if (clientesActuales.Count > 0)
+        {
+            <Paginador TItem="Cliente" TodosLosItems="clientesActuales" ItemsPorPagina="8"
+                OnCambioPagina="ActualizarClientesPaginados" />
+        }
     </div>
 }
+
 
 @code {
     private bool isLoading = true;
@@ -118,6 +138,10 @@ else
     private string tabActiva = "activos";
     private List<Cliente> clientesActivos = new();
     private List<Cliente> clientesInactivos = new();
+
+    // ✅ NUEVA VARIABLE: Para almacenar los clientes de la página actual
+    private List<Cliente> clientesPaginados = new();
+
     private Cliente nuevoCliente = new();
     private string? mensaje;
     private string? mensajeError;
@@ -131,28 +155,52 @@ else
     }
 
     private async Task CargarClientes()
+{
+    isLoading = true;
+    mensaje = null;
+    mensajeError = null;
+    try
     {
-        isLoading = true;
-        mensaje = null;
-        mensajeError = null;
-        try
-        {
-            // Cargar clientes activos
-            var urlActivos = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes";
-            clientesActivos = await Http.GetFromJsonAsync<List<Cliente>>(urlActivos) ?? new();
+        var urlActivos = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes";
+        clientesActivos = await Http.GetFromJsonAsync<List<Cliente>>(urlActivos) ?? new();
 
-            // Cargar clientes inactivos
-            var urlInactivos = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/inactivos";
-            clientesInactivos = await Http.GetFromJsonAsync<List<Cliente>>(urlInactivos) ?? new();
-        }
-        catch (Exception ex)
+        var urlInactivos = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/inactivos";
+        clientesInactivos = await Http.GetFromJsonAsync<List<Cliente>>(urlInactivos) ?? new();
+        
+        // ✅ NO LLAMAR NADA MÁS - El paginador se encarga
+    }
+    catch (Exception ex)
+    {
+        mensajeError = $"Error al cargar clientes: {ex.Message}";
+    }
+    finally
+    {
+        isLoading = false;
+    }
+}
+
+
+    // ✅ NUEVO MÉTODO: Inicializar la paginación con los primeros 8
+    private void InicializarPaginacion()
+    {
+        if (clientesActuales.Any())
         {
-            mensajeError = $"Error al cargar clientes: {ex.Message}";
+            // Mostrar las últimas 8 primero (orden inverso)
+            clientesPaginados = clientesActuales.AsEnumerable().Reverse().Take(8).ToList();
         }
-        finally
+        else
         {
-            isLoading = false;
+            clientesPaginados = new();
         }
+    }
+
+
+    // ✅ NUEVO MÉTODO: Callback para actualizar los clientes mostrados
+    private Task ActualizarClientesPaginados(List<Cliente> items)
+    {
+        clientesPaginados = items;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private void ToggleForm()
@@ -230,11 +278,14 @@ else
     }
 
     private void CambiarTab(string tab)
-    {
-        tabActiva = tab;
-        mostrandoForm = false;
-        LimpiarMensajes();
-    }
+{
+    tabActiva = tab;
+    mostrandoForm = false;
+    LimpiarMensajes();
+    // ✅ El paginador detectará el cambio automáticamente
+}
+
+
 
     private async Task Desactivar(int id)
     {

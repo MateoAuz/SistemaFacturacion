@@ -1,0 +1,170 @@
+@typeparam TItem
+
+<div class="d-flex justify-content-between align-items-center mt-3 pagination-container">
+    <div class="text-muted">
+        Mostrando <strong>@ItemsEnPaginaActual</strong> de <strong>@TotalItems</strong> registros
+    </div>
+    
+    <nav aria-label="Paginación">
+        <ul class="pagination mb-0">
+            <li class="page-item @(PaginaActual == 1 ? "disabled" : "")">
+                <button class="page-link" @onclick="IrAPrimeraPagina" disabled="@(PaginaActual == 1)">
+                    <i class="bi bi-chevron-double-left"></i>
+                </button>
+            </li>
+            <li class="page-item @(PaginaActual == 1 ? "disabled" : "")">
+                <button class="page-link" @onclick="IrAPaginaAnterior" disabled="@(PaginaActual == 1)">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </button>
+            </li>
+            
+            <li class="page-item active">
+                <span class="page-link">
+                    Página @PaginaActual de @TotalPaginas
+                </span>
+            </li>
+            
+            <li class="page-item @(PaginaActual == TotalPaginas ? "disabled" : "")">
+                <button class="page-link" @onclick="IrAPaginaSiguiente" disabled="@(PaginaActual == TotalPaginas)">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </button>
+            </li>
+            <li class="page-item @(PaginaActual == TotalPaginas ? "disabled" : "")">
+                <button class="page-link" @onclick="IrAUltimaPagina" disabled="@(PaginaActual == TotalPaginas)">
+                    <i class="bi bi-chevron-double-right"></i>
+                </button>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+@code {
+    [Parameter] public List<TItem> TodosLosItems { get; set; } = new();
+    [Parameter] public int ItemsPorPagina { get; set; } = 8;
+    [Parameter] public EventCallback<List<TItem>> OnCambioPagina { get; set; }
+
+    private int PaginaActual { get; set; } = 1;
+    private int _ultimoConteo = 0;
+
+    private int TotalPaginas => TodosLosItems.Count > 0 
+        ? (int)Math.Ceiling((double)TodosLosItems.Count / ItemsPorPagina) 
+        : 1;
+    
+    private int TotalItems => TodosLosItems.Count;
+    
+    private int ItemsEnPaginaActual => ItemsPaginados.Count;
+
+    private List<TItem> ItemsPaginados
+{
+    get
+    {
+        if (TodosLosItems == null || TodosLosItems.Count == 0)
+            return new List<TItem>();
+
+        var total = TodosLosItems.Count;
+        
+        // ✅ Mostrar los últimos N elementos primero
+        // Página 1: últimos 8 (o menos si hay menos de 8)
+        // Página 2: los 8 anteriores a esos
+        // Ejemplo con 20 items:
+        // Página 1: items 12-19 (los últimos 8)
+        // Página 2: items 4-11
+        // Página 3: items 0-3
+        
+        var itemsParaSaltar = Math.Max(0, total - (PaginaActual * ItemsPorPagina));
+        var itemsParaTomar = Math.Min(ItemsPorPagina, total - itemsParaSaltar);
+        
+        return TodosLosItems
+            .Skip(itemsParaSaltar)
+            .Take(itemsParaTomar)
+            .ToList();
+    }
+}
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Solo notificar si la lista cambió de tamaño
+        if (TodosLosItems.Count != _ultimoConteo)
+        {
+            _ultimoConteo = TodosLosItems.Count;
+            PaginaActual = 1;
+            await NotificarCambio();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && TodosLosItems.Count > 0)
+        {
+            await NotificarCambio();
+        }
+    }
+
+    private async Task IrAPaginaSiguiente()
+    {
+        if (PaginaActual < TotalPaginas)
+        {
+            PaginaActual++;
+            await NotificarCambio();
+        }
+    }
+
+    private async Task IrAPaginaAnterior()
+    {
+        if (PaginaActual > 1)
+        {
+            PaginaActual--;
+            await NotificarCambio();
+        }
+    }
+
+    private async Task IrAPrimeraPagina()
+    {
+        PaginaActual = 1;
+        await NotificarCambio();
+    }
+
+    private async Task IrAUltimaPagina()
+    {
+        PaginaActual = TotalPaginas;
+        await NotificarCambio();
+    }
+
+    private async Task NotificarCambio()
+    {
+        await OnCambioPagina.InvokeAsync(ItemsPaginados);
+    }
+}
+
+
+<style>
+    .pagination-container {
+        padding: 1rem 0;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .pagination .page-link {
+        color: #4a56e2;
+        border-radius: 6px;
+        margin: 0 2px;
+        border: 1px solid #dee2e6;
+        transition: all 0.2s ease;
+    }
+
+    .pagination .page-link:hover:not(:disabled) {
+        background-color: #f0f2ff;
+        border-color: #4a56e2;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #4a56e2;
+        border-color: #4a56e2;
+        color: white;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>

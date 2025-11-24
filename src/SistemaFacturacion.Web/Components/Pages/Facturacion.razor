@@ -27,26 +27,47 @@
     </div>
 }
 
-<!-- FILTROS DE ESTADO -->
+<!-- FILTROS DE ESTADO Y BUSCADOR -->
 @if (!isLoading)
 {
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body">
-            <div class="tabs-container d-flex flex-wrap align-items-center">
-                @foreach (var estado in EstadosSri)
-                {
-                    <button class="tab-btn @(filtroEstado == estado.Key ? "active" : "")" data-estado="@estado.Key"
-                        @onclick="() => AplicarFiltro(estado.Key)">
-                        <i class="bi @estado.Value.Icon"></i>
-                        <span>@estado.Value.Label</span>
-                        <span class="badge-count">@GetFacturaCountByState(estado.Key)</span>
-                    </button>
-                }
-            </div>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <!-- Filtros de estado (izquierda) -->
+                <div class="tabs-container d-flex flex-wrap align-items-center">
+                    @foreach (var estado in EstadosSri)
+                    {
+                        <button class="tab-btn @(filtroEstado == estado.Key ? "active" : "")" data-estado="@estado.Key"
+                            @onclick="() => AplicarFiltro(estado.Key)">
+                            <i class="bi @estado.Value.Icon"></i>
+                            <span>@estado.Value.Label</span>
+                            <span class="badge-count">@GetFacturaCountByState(estado.Key)</span>
+                        </button>
+                    }
+                </div>
 
+                <!-- Buscador (derecha) -->
+                <div class="search-container">
+                    <div class="input-group" style="width: 300px;">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control" placeholder="Buscar por N° factura o cliente..."
+                            @bind-value="terminoBusqueda" @bind-value:event="oninput" />
+                        @if (!string.IsNullOrEmpty(terminoBusqueda))
+                        {
+                            <button class="btn btn-outline-secondary" @onclick="LimpiarBusqueda" type="button">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 }
+
 
 @if (isLoading)
 {
@@ -77,14 +98,14 @@ else
                         <tr>
                             <td colspan="7" class="text-center text-muted py-3">
                                 <i class="bi bi-inbox display-6 d-block mb-2"></i>
-                                No hay facturas @(filtroEstado != "TODAS" ? $"con estado                   '{EstadosSri.GetValueOrDefault(filtroEstado).Label}'" : "disponibles para envío")
+                                No hay facturas @(filtroEstado != "TODAS" ? $"con estado                      '{EstadosSri.GetValueOrDefault(filtroEstado).Label}'" : "disponibles para envío")
                             </td>
 
                         </tr>
                     }
                     else
                     {
-                        @foreach (var factura in facturasFiltradas)
+                        @foreach (var factura in facturasPaginadas)
                         {
                             <tr>
                                 <td class="fw-bold">@factura.NumeroFactura</td>
@@ -189,6 +210,14 @@ else
                     }
                 </tbody>
             </table>
+
+            <!-- ✅ AGREGAR PAGINADOR AQUÍ -->
+            @if (facturasFiltradas.Any())
+            {
+                <Paginador TItem="FacturaElectronicaDto" TodosLosItems="facturasFiltradas" ItemsPorPagina="8"
+                    OnCambioPagina="ActualizarFacturasPaginadas" />
+            }
+
         </div>
     </div>
 }
@@ -257,6 +286,7 @@ else
 
 @code {
     private List<FacturaElectronicaDto> facturas = new();
+    private List<FacturaElectronicaDto> facturasPaginadas = new();
     private bool isLoading = true;
     private bool procesando = false;
     private string mensajeExito = string.Empty;
@@ -264,30 +294,50 @@ else
 
     // ✅ NUEVO: Variables de filtrado
     private string filtroEstado = "TODAS";
+
+    private string terminoBusqueda = string.Empty;
     private List<FacturaElectronicaDto> facturasFiltradas
     {
         get
         {
-            if (filtroEstado == "TODAS")
-                return facturas;
+            var resultado = facturas.AsEnumerable();
 
-            // ✅ RECHAZADO agrupa: RECHAZADO, ERROR_ENVIO, Rechazado/Error
-            if (filtroEstado == "RECHAZADO")
-                return facturas.Where(f =>
-                f.EstadoEnvio == "RECHAZADO" ||
-                f.EstadoEnvio == "ERROR_ENVIO" ||
-                f.EstadoEnvio == "Rechazado/Error"
-                ).ToList();
+            // Aplicar filtro de estado
+            if (filtroEstado != "TODAS")
+            {
+                if (filtroEstado == "RECHAZADO")
+                {
+                    resultado = resultado.Where(f =>
+                    f.EstadoEnvio == "RECHAZADO" ||
+                    f.EstadoEnvio == "ERROR_ENVIO" ||
+                    f.EstadoEnvio == "Rechazado/Error"
+                    );
+                }
+                else if (filtroEstado == "NO_ENVIADO")
+                {
+                    resultado = resultado.Where(f =>
+                    f.EstadoEnvio == "NO_ENVIADO" ||
+                    f.EstadoEnvio == "GENERADO" ||
+                    f.EstadoEnvio == "Sin Firmar"
+                    );
+                }
+                else
+                {
+                    resultado = resultado.Where(f => f.EstadoEnvio == filtroEstado);
+                }
+            }
 
-            // ✅ NO_ENVIADO agrupa: NO_ENVIADO, GENERADO, Sin Firmar
-            if (filtroEstado == "NO_ENVIADO")
-                return facturas.Where(f =>
-                f.EstadoEnvio == "NO_ENVIADO" ||
-                f.EstadoEnvio == "GENERADO" ||
-                f.EstadoEnvio == "Sin Firmar"
-                ).ToList();
+            // ✅ NUEVO: Aplicar búsqueda
+            if (!string.IsNullOrWhiteSpace(terminoBusqueda))
+            {
+                var busqueda = terminoBusqueda.Trim().ToLower();
+                resultado = resultado.Where(f =>
+                (f.NumeroFactura != null && f.NumeroFactura.ToLower().Contains(busqueda)) ||
+                (f.NombreCliente != null && f.NombreCliente.ToLower().Contains(busqueda))
+                );
+            }
 
-            return facturas.Where(f => f.EstadoEnvio == filtroEstado).ToList();
+            return resultado.ToList();
         }
     }
 
@@ -333,15 +383,27 @@ else
         }
     }
 
-    // ✅ NUEVO: Métodos de filtrado
+    // ✅ NUEVO MÉTODO: Callback para actualizar facturas paginadas
+    private Task ActualizarFacturasPaginadas(List<FacturaElectronicaDto> items)
+    {
+        facturasPaginadas = items;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    // ✅ ACTUALIZAR: Método de filtrado para limpiar paginación
     private void AplicarFiltro(string estado)
     {
         filtroEstado = estado;
+        // Limpiar paginación al cambiar filtro (se reiniciará automáticamente)
+        facturasPaginadas = new();
         StateHasChanged();
     }
 
     private int GetFacturaCountByState(string estado)
     {
+        if (estado == "TODAS")
+            return facturas.Count;
         // ✅ Contar rechazados (incluye todas las variantes)
         if (estado == "RECHAZADO")
             return facturas.Count(f =>
@@ -356,10 +418,10 @@ else
             f.EstadoEnvio == "NO_ENVIADO" ||
             f.EstadoEnvio == "GENERADO" ||
             f.EstadoEnvio == "Sin Firmar"
-            ); 
+            );
 
         return facturas.Count(f => f.EstadoEnvio == estado);
-    } 
+    }
 
 
     private void MostrarModalSubirXml(FacturaElectronicaDto factura)
@@ -379,6 +441,15 @@ else
         archivoSeleccionado = string.Empty;
         xmlFirmadoContent = string.Empty;
         esReemplazo = false;
+        StateHasChanged();
+    }
+
+
+
+    private void LimpiarBusqueda()
+    {
+        terminoBusqueda = string.Empty;
+        facturasPaginadas = new();
         StateHasChanged();
     }
 

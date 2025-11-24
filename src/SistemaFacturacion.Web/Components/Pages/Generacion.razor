@@ -40,6 +40,28 @@ else
 {
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
+            <!-- ✅ BUSCADOR -->
+            <div class="d-flex justify-content-end align-items-center p-3 border-bottom">
+                <div class="search-container">
+                    <div class="input-group" style="width: 350px;">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Buscar por N° factura o cliente..."
+                               @bind-value="terminoBusqueda"
+                               @bind-value:event="oninput" />
+                        @if (!string.IsNullOrEmpty(terminoBusqueda))
+                        {
+                            <button class="btn btn-outline-secondary" @onclick="LimpiarBusqueda" type="button">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
             <table class="table table-striped mb-0 align-middle">
                 <thead class="text-white" style="background-color:#4a56e2;">
                     <tr class="text-center">
@@ -52,18 +74,25 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    @if (facturas.Count == 0)
+                    @if (facturasFiltradas.Count == 0)
                     {
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-3">
+                            <td colspan="6" class="text-center text-muted py-3">
                                 <i class="bi bi-inbox display-6 d-block mb-2"></i>
-                                No hay facturas pagadas disponibles
+                                @if (!string.IsNullOrEmpty(terminoBusqueda))
+                                {
+                                    <span>No se encontraron facturas que coincidan con "@terminoBusqueda"</span>
+                                }
+                                else
+                                {
+                                    <span>No hay facturas pagadas disponibles</span>
+                                }
                             </td>
                         </tr>
                     }
                     else
                     {
-                        @foreach (var factura in facturas)
+                        @foreach (var factura in facturasPaginadas)
                         {
                             <tr>
                                 <td class="fw-bold">@factura.NumeroFactura</td>
@@ -106,9 +135,19 @@ else
                     }
                 </tbody>
             </table>
+
+            <!-- Paginador -->
+            @if (facturasFiltradas.Any())
+            {
+                <Paginador TItem="FacturaValidacionDto" 
+                           TodosLosItems="facturasFiltradas" 
+                           ItemsPorPagina="8"
+                           OnCambioPagina="ActualizarFacturasPaginadas" />
+            }
         </div>
     </div>
 }
+
 
 <!-- Modal de Visualización de XML -->
 @if (mostrarModal)
@@ -160,6 +199,27 @@ else
 
 @code {
     private List<FacturaValidacionDto> facturas = new();
+    private List<FacturaValidacionDto> facturasPaginadas = new();
+    
+    // ✅ NUEVA: Variable para búsqueda
+    private string terminoBusqueda = string.Empty;
+    
+    // ✅ NUEVA: Propiedad computada para filtrar
+    private List<FacturaValidacionDto> facturasFiltradas
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(terminoBusqueda))
+                return facturas;
+
+            var busqueda = terminoBusqueda.Trim().ToLower();
+            return facturas.Where(f =>
+                (f.NumeroFactura != null && f.NumeroFactura.ToLower().Contains(busqueda)) ||
+                (f.NombreCliente != null && f.NombreCliente.ToLower().Contains(busqueda))
+            ).ToList();
+        }
+    }
+    
     private bool isLoading = true;
     private string mensajeExito = string.Empty;
     private string mensajeError = string.Empty;
@@ -192,6 +252,20 @@ else
             isLoading = false;
             StateHasChanged();
         }
+    }
+
+    // ✅ NUEVO: Método para limpiar búsqueda
+    private void LimpiarBusqueda()
+    {
+        terminoBusqueda = string.Empty;
+        StateHasChanged();
+    }
+
+    private Task ActualizarFacturasPaginadas(List<FacturaValidacionDto> items)
+    {
+        facturasPaginadas = items;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task GenerarXml(int idFactura)
@@ -229,7 +303,6 @@ else
         }
     }
 
-    // ✅ NUEVO MÉTODO: Ver XML en Modal
     private async Task VerXml(int idFactura)
     {
         try
@@ -268,7 +341,6 @@ else
         
         StateHasChanged();
 
-        // Ocultar mensaje después de 4 segundos
         _ = Task.Run(async () =>
         {
             await Task.Delay(4000);
@@ -278,3 +350,4 @@ else
         });
     }
 }
+

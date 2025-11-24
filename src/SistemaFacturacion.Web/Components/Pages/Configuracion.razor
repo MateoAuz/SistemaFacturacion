@@ -25,85 +25,101 @@ else
 
             @if (!string.IsNullOrEmpty(mensajeExito))
             {
-                <div class="alert alert-success alert-modern">@mensajeExito</div>
+                <div class="alert alert-success alert-modern fade-in">
+                    <i class="bi bi-check-circle-fill"></i> @mensajeExito
+                </div>
             }
             @if (!string.IsNullOrEmpty(mensajeError))
             {
-                <div class="alert alert-danger alert-modern">@mensajeError</div>
+                <div class="alert alert-danger alert-modern fade-in">
+                    <i class="bi bi-exclamation-triangle-fill"></i> @mensajeError
+                </div>
             }
 
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Razón Social *</label>
-                    <InputText class="form-control" @bind-Value="config.RazonSocial" />
-                    <ValidationMessage For="@(() => config.RazonSocial)" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Nombre Comercial</label>
-                    <InputText class="form-control" @bind-Value="config.NombreComercial" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">RUC *</label>
-                    <InputText class="form-control" @bind-Value="config.Ruc" />
-                    <ValidationMessage For="@(() => config.Ruc)" />
-                </div>
-                <div class="col-md-8">
-                    <label class="form-label">Dirección Matriz *</label>
-                    <InputText class="form-control" @bind-Value="config.DireccionMatriz" />
-                    <ValidationMessage For="@(() => config.DireccionMatriz)" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Punto de Emisión</label>
-                    <InputText class="form-control" @bind-Value="config.PuntoEmision" placeholder="Ej. 001" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Ambiente SRI</label>
-                    <InputSelect class="form-select" @bind-Value="config.Ambiente">
-                        <option value="1">1 - Pruebas</option>
-                        <option value="2">2 - Producción</option>
-                    </InputSelect>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Correo Empresa</label>
-                    <InputText type="email" class="form-control" @bind-Value="config.CorreoEmpresa" />
-                    <ValidationMessage For="@(() => config.CorreoEmpresa)" />
-                </div>
-                
-                <!-- Sección oculta para Sprint 2 -->
-                <div class="col-12 mt-4">
-                    <div class="border-start border-3 border-warning ps-3">
-                        <h6 class="text-warning mb-2">
-                            <i class="bi bi-clock-history"></i> Configuración para Sprint 2
-                        </h6>
-                        <p class="text-muted small mb-3">
-                            Los siguientes campos se habilitarán en la siguiente fase del proyecto
-                        </p>
+            <!-- ===== SECCIÓN 1: DATOS DE LA EMPRESA ===== -->
+            <div class="mb-4">
+                <h5 class="border-bottom pb-2 mb-3">
+                    <i class="bi bi-building"></i> Información de la Empresa
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Razón Social *</label>
+                        <InputText class="form-control" @bind-Value="config.RazonSocial"
+                            placeholder="Ej. MI EMPRESA S.A." />
+                        <ValidationMessage For="@(() => config.RazonSocial)" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Nombre Comercial</label>
+                        <InputText class="form-control" @bind-Value="config.NombreComercial" placeholder="Ej. Mi Empresa" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">RUC *</label>
+                        <InputText class="form-control" @bind-Value="config.Ruc" placeholder="1234567890001"
+                            maxlength="13" />
+                        <ValidationMessage For="@(() => config.Ruc)" />
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold">Dirección Matriz *</label>
+                        <InputText class="form-control" @bind-Value="config.DireccionMatriz"
+                            placeholder="Av. Principal y Calle Secundaria" />
+                        <ValidationMessage For="@(() => config.DireccionMatriz)" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Correo Empresa</label>
+                        <InputText type="email" class="form-control" @bind-Value="config.CorreoEmpresa"
+                            placeholder="facturacion@miempresa.com" />
+                        <small class="text-muted">Usado para enviar facturas a clientes</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Obligado a Llevar Contabilidad</label>
+                        <InputSelect class="form-select" @bind-Value="config.ObligadoContabilidad">
+                            <option value="SI">Sí</option>
+                            <option value="NO">No</option>
+                        </InputSelect>
                     </div>
                 </div>
-                
-                <!--
-                <div class="col-md-6">
-                    <label class="form-label">Ruta Certificado (.p12)</label>
-                    <InputText class="form-control" @bind-Value="config.RutaCertificado" placeholder="Ej. C:\cert\mi_certificado.p12" disabled />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Clave Certificado Digital</label>
-                    <InputText type="password" class="form-control" @bind-Value="config.ClaveCertificado" disabled />
-                </div>
-                -->
             </div>
 
-            <div class="mt-4">
-                <button class="btn btn-success btn-modern" type="submit" disabled="@guardando">
+            <!-- ===== SECCIÓN 2: CONFIGURACIÓN SRI ===== -->
+            <div class="mb-4">
+                <h5 class="border-bottom pb-2 mb-3">
+                    <i class="bi bi-file-earmark-text"></i> Configuración del SRI
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Establecimiento</label>
+                        <InputText class="form-control" @bind-Value="config.Establecimiento" placeholder="001"
+                            maxlength="3" />
+                        <small class="text-muted">3 dígitos (Ej. 001)</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Punto de Emisión</label>
+                        <InputText class="form-control" @bind-Value="config.PuntoEmision" placeholder="001" maxlength="3" />
+                        <small class="text-muted">3 dígitos (Ej. 001)</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Ambiente SRI *</label>
+                        <InputSelect class="form-select" @bind-Value="config.Ambiente">
+                            <option value="1">1 - Pruebas</option>
+                            <option value="2">2 - Producción</option>
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== BOTÓN GUARDAR ===== -->
+            <div class="mt-4 text-end">
+                <button class="btn btn-success btn-lg px-5" type="submit" disabled="@guardando">
                     @if (guardando)
                     {
                         <span class="spinner-border spinner-border-sm me-2"></span>
                     }
-                    <i class="bi bi-save"></i> 
+                    <i class="bi bi-save"></i>
                     @(guardando ? "Guardando..." : "Guardar Configuración")
                 </button>
             </div>
         </EditForm>
+
     </div>
 }
 
