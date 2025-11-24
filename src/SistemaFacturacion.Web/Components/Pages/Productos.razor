@@ -109,7 +109,7 @@ else
                                     <td class="fw-bold text-primary">@p.Codigo</td>
                                     <td>@p.Nombre</td>
                                     <td><span class="badge bg-light text-dark border">@p.Categoria</span></td>
-                                    <td class="text-end fw-bold">@p.PrecioVenta.ToString("C2")</td>
+                                    <td class="text-end fw-bold">$@p.PrecioVenta.ToString("N2")</td>
                                     <td class="text-center">
                                         <span class="badge @(p.StockTotal == 0 ? "bg-secondary" : p.StockTotal < 10 ? "bg-warning text-dark" : "bg-success")">
                                             @p.StockTotal

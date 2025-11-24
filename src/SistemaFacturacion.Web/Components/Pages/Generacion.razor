@@ -1,0 +1,353 @@
+@page "/generacion"
+@rendermode InteractiveServer
+@using SistemaFacturacion.Application.Contracts
+@using SistemaFacturacion.Application.DTOs
+@inject IHttpClientFactory HttpFactory
+@inject IValidacionFacturaService ValidacionService
+@inject IXmlValidationService XmlValidator
+@inject IJSRuntime JS
+
+<PageTitle>Validación de Comprobantes</PageTitle>
+
+<!-- ENCABEZADO PRINCIPAL -->
+<div class="page-header">
+    <h1 class="mb-0"><i class="bi bi-shield-check"></i> Generacion del XML de los Comprobantes Electrónicos</h1>
+</div>
+
+<!-- 🔔 NOTIFICACIONES -->
+@if (!string.IsNullOrEmpty(mensajeExito))
+{
+    <div class="alert alert-success-custom text-center fade-in">
+        @mensajeExito
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(mensajeError))
+{
+    <div class="alert alert-error-custom text-center fade-in">
+        @mensajeError
+    </div>
+}
+
+@if (isLoading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Cargando facturas...</p>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <!-- ✅ BUSCADOR -->
+            <div class="d-flex justify-content-end align-items-center p-3 border-bottom">
+                <div class="search-container">
+                    <div class="input-group" style="width: 350px;">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Buscar por N° factura o cliente..."
+                               @bind-value="terminoBusqueda"
+                               @bind-value:event="oninput" />
+                        @if (!string.IsNullOrEmpty(terminoBusqueda))
+                        {
+                            <button class="btn btn-outline-secondary" @onclick="LimpiarBusqueda" type="button">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <table class="table table-striped mb-0 align-middle">
+                <thead class="text-white" style="background-color:#4a56e2;">
+                    <tr class="text-center">
+                        <th scope="col">N° Factura</th>
+                        <th scope="col">Cliente</th>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">XML</th>
+                        <th scope="col" style="width:320px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (facturasFiltradas.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">
+                                <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                @if (!string.IsNullOrEmpty(terminoBusqueda))
+                                {
+                                    <span>No se encontraron facturas que coincidan con "@terminoBusqueda"</span>
+                                }
+                                else
+                                {
+                                    <span>No hay facturas pagadas disponibles</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var factura in facturasPaginadas)
+                        {
+                            <tr>
+                                <td class="fw-bold">@factura.NumeroFactura</td>
+                                <td>@factura.NombreCliente</td>
+                                <td>@factura.FechaEmision.ToString("dd/MM/yyyy")</td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">@factura.Estado</span>
+                                </td>
+                                <td class="text-center">
+                                    @if (factura.TieneXmlGenerado)
+                                    {
+                                        <span class="badge bg-info">Generado</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Sin generar</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                        <button class="btn btn-sm btn-outline-success"
+                                            @onclick="() => GenerarXml(factura.IdFactura)" title="Generar XML">
+                                            <i class="bi bi-file-earmark-code"></i> Generar
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-primary"
+                                            @onclick="() => DescargarXml(factura.IdFactura)" disabled="@(!factura.TieneXmlGenerado)"
+                                            title="Descargar XML">
+                                            <i class="bi bi-download"></i> Descargar
+                                        </button>
+
+                                        <button class="btn btn-sm btn-outline-info" @onclick="() => VerXml(factura.IdFactura)"
+                                            disabled="@(!factura.TieneXmlGenerado)" title="Ver XML">
+                                            <i class="bi bi-code-square"></i> Ver XML
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+
+            <!-- Paginador -->
+            @if (facturasFiltradas.Any())
+            {
+                <Paginador TItem="FacturaValidacionDto" 
+                           TodosLosItems="facturasFiltradas" 
+                           ItemsPorPagina="8"
+                           OnCambioPagina="ActualizarFacturasPaginadas" />
+            }
+        </div>
+    </div>
+}
+
+
+<!-- Modal de Visualización de XML -->
+@if (mostrarModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-code"></i> Visualización de XML - Factura @facturaSeleccionada?.NumeroFactura
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body" style="background-color: #f8f9fa;">
+                    @if (!string.IsNullOrEmpty(xmlContent))
+                    {
+                        <div class="alert alert-info d-flex align-items-center">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <small>Este es el contenido XML generado para el comprobante electrónico.</small>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-body p-0">
+                                <pre class="mb-0 p-3" style="background-color: #2d2d2d; color: #f8f8f2; border-radius: 8px; max-height: 500px; overflow-y: auto; font-size: 0.85rem; line-height: 1.4;"><code>@xmlContent</code></pre>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> No se pudo cargar el contenido del XML.
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModal">
+                        <i class="bi bi-x-circle"></i> Cerrar
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="() => DescargarXml(facturaSeleccionada.IdFactura)">
+                        <i class="bi bi-download"></i> Descargar XML
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+    private List<FacturaValidacionDto> facturas = new();
+    private List<FacturaValidacionDto> facturasPaginadas = new();
+    
+    // ✅ NUEVA: Variable para búsqueda
+    private string terminoBusqueda = string.Empty;
+    
+    // ✅ NUEVA: Propiedad computada para filtrar
+    private List<FacturaValidacionDto> facturasFiltradas
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(terminoBusqueda))
+                return facturas;
+
+            var busqueda = terminoBusqueda.Trim().ToLower();
+            return facturas.Where(f =>
+                (f.NumeroFactura != null && f.NumeroFactura.ToLower().Contains(busqueda)) ||
+                (f.NombreCliente != null && f.NombreCliente.ToLower().Contains(busqueda))
+            ).ToList();
+        }
+    }
+    
+    private bool isLoading = true;
+    private string mensajeExito = string.Empty;
+    private string mensajeError = string.Empty;
+    private bool mostrarModal = false;
+    
+    // Variables para visualización de XML
+    private string xmlContent = string.Empty;
+    private FacturaValidacionDto? facturaSeleccionada;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarFacturas();
+    }
+
+    private async Task CargarFacturas()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+            
+            facturas = await ValidacionService.GetFacturasPagadasParaValidacionAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"❌ Error al cargar facturas: {ex.Message}", false);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // ✅ NUEVO: Método para limpiar búsqueda
+    private void LimpiarBusqueda()
+    {
+        terminoBusqueda = string.Empty;
+        StateHasChanged();
+    }
+
+    private Task ActualizarFacturasPaginadas(List<FacturaValidacionDto> items)
+    {
+        facturasPaginadas = items;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task GenerarXml(int idFactura)
+    {
+        try
+        {
+            await ValidacionService.GenerarXmlFacturaAsync(idFactura);
+            MostrarMensaje("✅ XML generado exitosamente", true);
+            await CargarFacturas();
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"❌ Error al generar XML: {ex.Message}", false);
+        }
+    }
+
+    private async Task DescargarXml(int idFactura)
+    {
+        try
+        {
+            var xmlContentToDownload = await XmlValidator.DescargarXmlFacturaAsync(idFactura);
+            var factura = facturas.FirstOrDefault(f => f.IdFactura == idFactura);
+            var fileName = $"FAC_{factura?.NumeroFactura?.Replace("-", "")}_{DateTime.Now:yyyyMMddHHmmss}.xml";
+            
+            var bytes = System.Text.Encoding.UTF8.GetBytes(xmlContentToDownload);
+            var base64 = Convert.ToBase64String(bytes);
+            
+            await JS.InvokeVoidAsync("downloadFile", fileName, "application/xml", base64);
+            
+            MostrarMensaje("✅ XML descargado correctamente", true);
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"❌ Error al descargar XML: {ex.Message}", false);
+        }
+    }
+
+    private async Task VerXml(int idFactura)
+    {
+        try
+        {
+            facturaSeleccionada = facturas.FirstOrDefault(f => f.IdFactura == idFactura);
+            xmlContent = await XmlValidator.DescargarXmlFacturaAsync(idFactura);
+            mostrarModal = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"❌ Error al cargar XML: {ex.Message}", false);
+        }
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+        xmlContent = string.Empty;
+        facturaSeleccionada = null;
+        StateHasChanged();
+    }
+
+    private void MostrarMensaje(string texto, bool esExito)
+    {
+        if (esExito)
+        {
+            mensajeExito = texto;
+            mensajeError = string.Empty;
+        }
+        else
+        {
+            mensajeError = texto;
+            mensajeExito = string.Empty;
+        }
+        
+        StateHasChanged();
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(4000);
+            mensajeExito = string.Empty;
+            mensajeError = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+}
+

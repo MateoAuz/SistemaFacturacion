@@ -27,6 +27,48 @@
     </div>
 }
 
+<!-- FILTROS DE ESTADO Y BUSCADOR -->
+@if (!isLoading)
+{
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <!-- Filtros de estado (izquierda) -->
+                <div class="tabs-container d-flex flex-wrap align-items-center">
+                    @foreach (var estado in EstadosSri)
+                    {
+                        <button class="tab-btn @(filtroEstado == estado.Key ? "active" : "")" data-estado="@estado.Key"
+                            @onclick="() => AplicarFiltro(estado.Key)">
+                            <i class="bi @estado.Value.Icon"></i>
+                            <span>@estado.Value.Label</span>
+                            <span class="badge-count">@GetFacturaCountByState(estado.Key)</span>
+                        </button>
+                    }
+                </div>
+
+                <!-- Buscador (derecha) -->
+                <div class="search-container">
+                    <div class="input-group" style="width: 300px;">
+                        <span class="input-group-text bg-white">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control" placeholder="Buscar por N° factura o cliente..."
+                            @bind-value="terminoBusqueda" @bind-value:event="oninput" />
+                        @if (!string.IsNullOrEmpty(terminoBusqueda))
+                        {
+                            <button class="btn btn-outline-secondary" @onclick="LimpiarBusqueda" type="button">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+
 @if (isLoading)
 {
     <div class="text-center py-4">
@@ -51,18 +93,19 @@ else
                     </tr>
                 </thead>
                 <tbody>
-                    @if (facturas.Count == 0)
+                    @if (facturasFiltradas.Count == 0)
                     {
                         <tr>
                             <td colspan="7" class="text-center text-muted py-3">
                                 <i class="bi bi-inbox display-6 d-block mb-2"></i>
-                                No hay facturas disponibles para envío
+                                No hay facturas @(filtroEstado != "TODAS" ? $"con estado                      '{EstadosSri.GetValueOrDefault(filtroEstado).Label}'" : "disponibles para envío")
                             </td>
+
                         </tr>
                     }
                     else
                     {
-                        @foreach (var factura in facturas)
+                        @foreach (var factura in facturasPaginadas)
                         {
                             <tr>
                                 <td class="fw-bold">@factura.NumeroFactura</td>
@@ -111,7 +154,7 @@ else
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                        
+
                                         @* 1. Subir XML (primera vez) *@
                                         @if (!factura.TieneXmlFirmado || factura.EstadoEnvio == "GENERADO")
                                         {
@@ -131,7 +174,8 @@ else
                                         }
 
                                         @* 3. Enviar al SRI *@
-                                        @if (factura.TieneXmlFirmado && (factura.EstadoEnvio == "FIRMADO" || factura.EstadoEnvio == "ERROR_ENVIO"))
+                                        @if (factura.TieneXmlFirmado && (factura.EstadoEnvio == "FIRMADO" || factura.EstadoEnvio ==
+                                                                    "ERROR_ENVIO"))
                                         {
                                             <button class="btn btn-sm btn-outline-success"
                                                 @onclick="() => EnviarAlSri(factura.IdFactura)" disabled="@procesando"
@@ -166,6 +210,14 @@ else
                     }
                 </tbody>
             </table>
+
+            <!-- ✅ AGREGAR PAGINADOR AQUÍ -->
+            @if (facturasFiltradas.Any())
+            {
+                <Paginador TItem="FacturaElectronicaDto" TodosLosItems="facturasFiltradas" ItemsPorPagina="8"
+                    OnCambioPagina="ActualizarFacturasPaginadas" />
+            }
+
         </div>
     </div>
 }
@@ -179,7 +231,7 @@ else
             <div class="modal-content">
                 <div class="modal-header" style="background-color: @(esReemplazo ? "#ff9800" : "#4a56e2"); color: white;">
                     <h5 class="modal-title">
-                        <i class="bi @(esReemplazo ? "bi-arrow-repeat" : "bi-file-earmark-arrow-up")"></i> 
+                        <i class="bi @(esReemplazo ? "bi-arrow-repeat" : "bi-file-earmark-arrow-up")"></i>
                         @(esReemplazo ? "Reemplazar XML (Corregido)" : "Subir XML Firmado")
                     </h5>
                     <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
@@ -189,7 +241,8 @@ else
                     {
                         <div class="alert alert-warning">
                             <i class="bi bi-exclamation-triangle"></i>
-                            <strong>Atención:</strong> Este documento fue rechazado. Corrige los errores, firma el nuevo XML, y súbelo aquí.
+                            <strong>Atención:</strong> Este documento fue rechazado. Corrige los errores, firma el nuevo XML, y
+                            súbelo aquí.
                         </div>
                     }
                     else
@@ -216,14 +269,13 @@ else
                     <button type="button" class="btn btn-secondary" @onclick="CerrarModal">
                         Cancelar
                     </button>
-                    <button type="button" class="btn @(esReemplazo ? "btn-warning" : "btn-primary")" 
-                            @onclick="SubirXmlFirmado"
-                            disabled="@(string.IsNullOrEmpty(xmlFirmadoContent) || procesando)">
+                    <button type="button" class="btn @(esReemplazo ? "btn-warning" : "btn-primary")"
+                        @onclick="SubirXmlFirmado" disabled="@(string.IsNullOrEmpty(xmlFirmadoContent) || procesando)">
                         @if (procesando)
                         {
                             <span class="spinner-border spinner-border-sm"></span>
                         }
-                        <i class="bi @(esReemplazo ? "bi-arrow-repeat" : "bi-upload")"></i> 
+                        <i class="bi @(esReemplazo ? "bi-arrow-repeat" : "bi-upload")"></i>
                         @(esReemplazo ? "Reemplazar" : "Subir XML")
                     </button>
                 </div>
@@ -234,17 +286,78 @@ else
 
 @code {
     private List<FacturaElectronicaDto> facturas = new();
+    private List<FacturaElectronicaDto> facturasPaginadas = new();
     private bool isLoading = true;
     private bool procesando = false;
     private string mensajeExito = string.Empty;
     private string mensajeError = string.Empty;
-    
-    // ✅ Variables para el modal
+
+    // ✅ NUEVO: Variables de filtrado
+    private string filtroEstado = "TODAS";
+
+    private string terminoBusqueda = string.Empty;
+    private List<FacturaElectronicaDto> facturasFiltradas
+    {
+        get
+        {
+            var resultado = facturas.AsEnumerable();
+
+            // Aplicar filtro de estado
+            if (filtroEstado != "TODAS")
+            {
+                if (filtroEstado == "RECHAZADO")
+                {
+                    resultado = resultado.Where(f =>
+                    f.EstadoEnvio == "RECHAZADO" ||
+                    f.EstadoEnvio == "ERROR_ENVIO" ||
+                    f.EstadoEnvio == "Rechazado/Error"
+                    );
+                }
+                else if (filtroEstado == "NO_ENVIADO")
+                {
+                    resultado = resultado.Where(f =>
+                    f.EstadoEnvio == "NO_ENVIADO" ||
+                    f.EstadoEnvio == "GENERADO" ||
+                    f.EstadoEnvio == "Sin Firmar"
+                    );
+                }
+                else
+                {
+                    resultado = resultado.Where(f => f.EstadoEnvio == filtroEstado);
+                }
+            }
+
+            // ✅ NUEVO: Aplicar búsqueda
+            if (!string.IsNullOrWhiteSpace(terminoBusqueda))
+            {
+                var busqueda = terminoBusqueda.Trim().ToLower();
+                resultado = resultado.Where(f =>
+                (f.NumeroFactura != null && f.NumeroFactura.ToLower().Contains(busqueda)) ||
+                (f.NombreCliente != null && f.NombreCliente.ToLower().Contains(busqueda))
+                );
+            }
+
+            return resultado.ToList();
+        }
+    }
+
+    // Variables para el modal
     private bool mostrarModal = false;
-    private bool esReemplazo = false; // Nueva: detecta si es reemplazo o subida inicial
+    private bool esReemplazo = false;
     private int facturaSeleccionadaId = 0;
     private string archivoSeleccionado = string.Empty;
     private string xmlFirmadoContent = string.Empty;
+
+    // ✅ NUEVO: Diccionario de estados con íconos
+    private Dictionary<string, (string Label, string Icon)> EstadosSri = new()
+{
+{"TODAS", ("Todas", "bi-journals")},
+{"NO_ENVIADO", ("No Enviado", "bi-file-earmark")},
+{"FIRMADO", ("Firmado", "bi-file-earmark-check")},
+{"ENVIADO", ("Enviado", "bi-send")},
+{"RECHAZADO", ("Rechazado", "bi-x-circle")},
+{"AUTORIZADO", ("Autorizado", "bi-check-circle")},
+};
 
     protected override async Task OnInitializedAsync()
     {
@@ -270,16 +383,53 @@ else
         }
     }
 
-    // ✅ Método actualizado: detecta si es reemplazo
+    // ✅ NUEVO MÉTODO: Callback para actualizar facturas paginadas
+    private Task ActualizarFacturasPaginadas(List<FacturaElectronicaDto> items)
+    {
+        facturasPaginadas = items;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    // ✅ ACTUALIZAR: Método de filtrado para limpiar paginación
+    private void AplicarFiltro(string estado)
+    {
+        filtroEstado = estado;
+        // Limpiar paginación al cambiar filtro (se reiniciará automáticamente)
+        facturasPaginadas = new();
+        StateHasChanged();
+    }
+
+    private int GetFacturaCountByState(string estado)
+    {
+        if (estado == "TODAS")
+            return facturas.Count;
+        // ✅ Contar rechazados (incluye todas las variantes)
+        if (estado == "RECHAZADO")
+            return facturas.Count(f =>
+            f.EstadoEnvio == "RECHAZADO" ||
+            f.EstadoEnvio == "ERROR_ENVIO" ||
+            f.EstadoEnvio == "Rechazado/Error"
+            );
+
+        // ✅ Contar no enviados (incluye todas las variantes)
+        if (estado == "NO_ENVIADO")
+            return facturas.Count(f =>
+            f.EstadoEnvio == "NO_ENVIADO" ||
+            f.EstadoEnvio == "GENERADO" ||
+            f.EstadoEnvio == "Sin Firmar"
+            );
+
+        return facturas.Count(f => f.EstadoEnvio == estado);
+    }
+
+
     private void MostrarModalSubirXml(FacturaElectronicaDto factura)
     {
         facturaSeleccionadaId = factura.IdFactura;
         archivoSeleccionado = string.Empty;
         xmlFirmadoContent = string.Empty;
-        
-        // Detectar si la factura está en estado de error (necesita reemplazo)
         esReemplazo = factura.EstadoEnvio == "RECHAZADO" || factura.EstadoEnvio == "ERROR_ENVIO";
-        
         mostrarModal = true;
         StateHasChanged();
     }
@@ -291,6 +441,15 @@ else
         archivoSeleccionado = string.Empty;
         xmlFirmadoContent = string.Empty;
         esReemplazo = false;
+        StateHasChanged();
+    }
+
+
+
+    private void LimpiarBusqueda()
+    {
+        terminoBusqueda = string.Empty;
+        facturasPaginadas = new();
         StateHasChanged();
     }
 
@@ -322,7 +481,6 @@ else
         }
     }
 
-    // ✅ Método actualizado: decide si subir o reemplazar
     private async Task SubirXmlFirmado()
     {
         try
@@ -332,9 +490,8 @@ else
 
             if (esReemplazo)
             {
-                // Llamar al método de reemplazo
                 var (success, message) = await FacturacionService.ReemplazarXmlFirmadoAsync(facturaSeleccionadaId, xmlFirmadoContent);
-                
+
                 if (success)
                 {
                     MostrarMensaje($"✅ {message}", true);
@@ -348,7 +505,6 @@ else
             }
             else
             {
-                // Llamar al método de subida normal
                 await FacturacionService.SubirXmlFirmadoAsync(facturaSeleccionadaId, xmlFirmadoContent);
                 MostrarMensaje("✅ XML firmado subido correctamente", true);
                 CerrarModal();
@@ -423,9 +579,9 @@ else
 
             var base64 = Convert.ToBase64String(pdfBytes);
             await JS.InvokeVoidAsync("downloadFile",
-                $"Factura_{idFactura}.pdf",
-                "application/pdf",
-                base64);
+            $"Factura_{idFactura}.pdf",
+            "application/pdf",
+            base64);
 
             MostrarMensaje("✅ PDF generado y enviado por correo electrónico", true);
         }
@@ -464,60 +620,3 @@ else
         });
     }
 }
-
-<style>
-    .page-header {
-        background: linear-gradient(135deg, #4a56e2 0%, #6a11cb 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-    }
-
-    .fade-in {
-        animation: fadeIn 0.5s ease-in;
-    }
-
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .alert-success-custom {
-        background-color: #d4edda;
-        border-color: #c3e6cb;
-        color: #155724;
-    }
-
-    .alert-error-custom {
-        background-color: #f8d7da;
-        border-color: #f5c6cb;
-        color: #721c24;
-    }
-
-    .table th {
-        border: none;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.35rem 0.65rem;
-    }
-
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-    }
-
-    .modal-backdrop {
-        background-color: rgba(0, 0, 0, 0.5);
-    }
-</style>

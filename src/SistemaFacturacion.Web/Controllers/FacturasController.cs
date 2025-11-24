@@ -54,7 +54,7 @@ public class FacturasController : ControllerBase
         
         // Generar número de factura secuencial
         var consecutivo = await _context.Facturas.CountAsync() + 1;
-        factura.NumeroFactura = $"001-001-{consecutivo:000000000}";
+        factura.NumeroFactura = $"001-002-{consecutivo:000000000}";
         factura.Estado = "PENDIENTE";
         factura.SaldoPendiente = factura.Total;
 

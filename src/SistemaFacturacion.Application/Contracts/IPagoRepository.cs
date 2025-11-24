@@ -13,5 +13,4 @@ public interface IPagoRepository
 public interface IPagoService
 {
     Task<Pago> RegistrarPagoAsync(int idFactura, decimal monto, string metodoPago, int idUsuario, CancellationToken ct = default);
-    Task<bool> AnularPagoAsync(int idPago, int idUsuarioAnulacion, CancellationToken ct = default);
 }
