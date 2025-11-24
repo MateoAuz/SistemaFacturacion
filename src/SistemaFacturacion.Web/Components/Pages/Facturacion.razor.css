@@ -1,0 +1,256 @@
+/* ==== ESTILO GENERAL DEL ENCABEZADO ==== */
+    .page-header {
+        background: linear-gradient(135deg, #4a56e2 0%, #6a11cb 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header h1 {
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 0;
+    }
+
+    /* ==== ESTILO DE LAS TABS ==== */
+    .tabs-container {
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .tab-btn {
+        background-color: transparent;
+        border: none;
+        color: #4a56e2;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .tab-btn:hover {
+        background-color: #f0f2ff;
+    }
+
+    .tab-btn.active {
+        background-color: #4a56e2;
+        color: white;
+    }
+
+    .badge-count {
+        background-color: #f0f0f0;
+        border-radius: 10px;
+        padding: 2px 8px;
+        font-size: 0.8rem;
+        color: #333;
+        font-weight: 600;
+    }
+
+    .tab-btn.active .badge-count {
+        background-color: rgba(255, 255, 255, 0.25);
+        color: white;
+    }
+
+    /* ==== CARD Y TABLA ==== */
+    .card {
+        border-radius: 12px !important;
+        border: none;
+    }
+
+    .card-body {
+        padding: 0;
+    }
+
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 0;
+    }
+
+    .table thead {
+        background-color: #4a56e2;
+        color: white;
+    }
+
+    .table th:first-child {
+        border-top-left-radius: 10px;
+    }
+
+    .table th:last-child {
+        border-top-right-radius: 10px;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f7f8ff;
+    }
+
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0,0,0,0.02);
+    }
+
+    /* ==== ALERTAS PERSONALIZADAS ==== */
+    .alert-success-custom {
+        background-color: #d4edda;
+        color: #155724;
+        border-radius: 8px;
+        padding: 12px 20px;
+        margin-bottom: 16px;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+
+    .alert-error-custom {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-radius: 8px;
+        padding: 12px 20px;
+        margin-bottom: 16px;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+
+    .fade-in {
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+    }
+
+    /* ==== MODAL ==== */
+    .modal-content {
+        animation: zoomIn 0.3s ease;
+        border-radius: 12px;
+    }
+
+    @keyframes zoomIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+    }
+
+    /* ==== ESTADOS/BADGES EN LA TABLA ==== */
+    .badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+
+    .bg-secondary {
+        background-color: #6c757d !important;
+    }
+
+    .bg-info {
+        background-color: #0dcaf0 !important;
+    }
+
+    .bg-warning {
+        background-color: #ffc107 !important;
+        color: #000 !important;
+    }
+
+    .bg-success {
+        background-color: #198754 !important;
+    }
+
+    .bg-danger {
+        background-color: #dc3545 !important;
+    }
+
+    /* ==== BOTONES DE ACCIONES ==== */
+    .btn-outline-primary {
+        color: #4a56e2;
+        border-color: #4a56e2;
+        background-color: white;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #4a56e2;
+        border-color: #4a56e2;
+        color: white;
+    }
+
+    .btn-outline-success {
+        color: #198754;
+        border-color: #198754;
+        background-color: white;
+    }
+
+    .btn-outline-success:hover {
+        background-color: #198754;
+        border-color: #198754;
+        color: white;
+    }
+
+    .btn-outline-info {
+        color: #0dcaf0;
+        border-color: #0dcaf0;
+        background-color: white;
+    }
+
+    .btn-outline-info:hover {
+        background-color: #0dcaf0;
+        border-color: #0dcaf0;
+        color: white;
+    }
+
+    .btn-outline-warning {
+        color: #856404;
+        border-color: #ffc107;
+        background-color: white;
+    }
+
+    .btn-outline-warning:hover {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: #000;
+    }
+
+    .btn-outline-danger {
+        color: #dc3545;
+        border-color: #dc3545;
+        background-color: white;
+    }
+
+    .btn-outline-danger:hover {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: white;
+    }
+
+    /* ==== SPINNER DE CARGA ==== */
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        border-width: 0.3rem;
+    }
