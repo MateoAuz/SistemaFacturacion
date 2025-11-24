@@ -172,7 +172,18 @@ else
     
     private string busquedaQuery = "";
     private string filtroCategoria = "";
-    private List<string> categoriasDisponibles = new();
+    private List<string> categoriasDisponibles = new()
+    {
+        "Alimento",
+        "Medicamento",
+        "Juguete",
+        "Accesorio",
+        "Higiene",
+        "Ropa",
+        "Transportadora",
+        "Suplemento",
+        "Otros"
+    };
 
     private IEnumerable<Producto> ProductosFiltrados
     {
@@ -214,13 +225,6 @@ else
         {
             var data = await _http.GetFromJsonAsync<List<Producto>>("api/productos?includeLotes=true");
             productos = data ?? new List<Producto>();
-            
-            categoriasDisponibles = productos
-                .Where(p => !string.IsNullOrWhiteSpace(p.Categoria))
-                .Select(p => p.Categoria!)
-                .Distinct()
-                .OrderBy(c => c)
-                .ToList();
         }
         catch (Exception ex)
         {

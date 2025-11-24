@@ -36,25 +36,38 @@ else
                 }
 
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Código *</label>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Categoría *</label>
                         @if (IdProducto != 0)
                         {
-                            <InputText class="form-control" @bind-Value="producto.Codigo" disabled />
+                            <InputSelect class="form-select" @bind-Value="producto.Categoria" disabled>
+                                <option value="">Seleccione una categoría</option>
+                                @foreach (var cat in categoriasDisponibles)
+                                {
+                                    <option value="@cat">@cat</option>
+                                }
+                            </InputSelect>
                             <small class="text-muted"><i class="bi bi-lock"></i> No modificable</small>
                         }
                         else
                         {
-                            <InputText class="form-control" @bind-Value="producto.Codigo" 
-                                      @onfocusout="ValidarCodigoUnico"
-                                      placeholder="Ej. PUR001" />
-                            <ValidationMessage For="@(() => producto.Codigo)" />
-                            @if (codigoDuplicado)
-                            {
-                                <div class="text-danger small mt-1 fw-bold">
-                                    <i class="bi bi-exclamation-circle"></i> Este código ya existe
-                                </div>
-                            }
+                            <select class="form-select" @onchange="ManejoCambioCategoria">
+                                <option value="">Seleccione una categoría</option>
+                                @foreach (var cat in categoriasDisponibles)
+                                {
+                                    <option value="@cat" selected="@(producto.Categoria == cat)">@cat</option>
+                                }
+                            </select>
+                            <small class="text-muted">
+                                @if (string.IsNullOrEmpty(producto.Categoria))
+                                {
+                                    <span>Seleccione una categoría para generar el código</span>
+                                }
+                                else
+                                {
+                                    <span>Prefijo generado: <strong>@prefijoCodigo</strong></span>
+                                }
+                            </small>
                         }
                     </div>
 
@@ -64,15 +77,30 @@ else
                         <ValidationMessage For="@(() => producto.Nombre)" />
                     </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Categoría</label>
-                        <InputText class="form-control" @bind-Value="producto.Categoria" list="datalistOptions" placeholder="Seleccione o escriba..." />
-                        <datalist id="datalistOptions">
-                            @foreach (var cat in categoriasDisponibles)
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Código *</label>
+                        @if (IdProducto != 0)
+                        {
+                            <InputText class="form-control" @bind-Value="producto.Codigo" disabled />
+                            <small class="text-muted"><i class="bi bi-lock"></i> No modificable</small>
+                        }
+                        else
+                        {
+                            <div class="input-group">
+                                <span class="input-group-text fw-bold" style="min-width: 60px;">@prefijoCodigo</span>
+                                <InputText class="form-control" @bind-Value="sufijoCodigo" 
+                                          @onfocusout="ActualizarCodigoCompleto"
+                                          placeholder="001" 
+                                          maxlength="6" />
+                            </div>
+                            <small class="text-muted">Ingrese solo números (ej: 001, 002)</small>
+                            @if (codigoDuplicado)
                             {
-                                <option value="@cat"></option>
+                                <div class="text-danger small mt-1 fw-bold">
+                                    <i class="bi bi-exclamation-circle"></i> Este código ya existe
+                                </div>
                             }
-                        </datalist>
+                        }
                     </div>
 
                     <div class="col-md-4">
@@ -131,27 +159,50 @@ else
     [Parameter] public int IdProducto { get; set; }
 
     private Producto producto = new();
-    private List<string> categoriasDisponibles = new();
+    private List<string> categoriasDisponibles = new()
+    {
+        "Alimento",
+        "Medicamento",
+        "Juguete",
+        "Accesorio",
+        "Higiene",
+        "Ropa",
+        "Transportadora",
+        "Suplemento",
+        "Otros"
+    };
     private bool cargando = true;
     private bool guardando = false;
     private bool codigoDuplicado = false;
     private string? mensajeError;
+    private string prefijoCodigo = "---";
+    private string sufijoCodigo = "";
+
+    private void GenerarPrefijo()
+    {
+        if (!string.IsNullOrEmpty(producto.Categoria))
+        {
+            prefijoCodigo = producto.Categoria.Substring(0, Math.Min(3, producto.Categoria.Length)).ToUpper();
+            sufijoCodigo = "";
+            producto.Codigo = "";
+            codigoDuplicado = false;
+            StateHasChanged();
+        }
+        else
+        {
+            prefijoCodigo = "---";
+            sufijoCodigo = "";
+            producto.Codigo = "";
+            StateHasChanged();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         var http = HttpFactory.CreateClient("LocalApi");
         try
         {
-            // 1. Cargar Categorías para el datalist (siempre necesario)
-            var todosProductos = await http.GetFromJsonAsync<List<Producto>>("api/productos") ?? new();
-            categoriasDisponibles = todosProductos
-                .Where(p => !string.IsNullOrEmpty(p.Categoria))
-                .Select(p => p.Categoria!)
-                .Distinct()
-                .OrderBy(c => c)
-                .ToList();
-
-            // 2. Cargar Producto si es edición
+            // Cargar Producto si es edición
             if (IdProducto != 0)
             {
                 producto = await http.GetFromJsonAsync<Producto>($"api/productos/{IdProducto}") ?? new();
@@ -169,7 +220,14 @@ else
         finally
         {
             cargando = false;
+            GenerarPrefijo();
         }
+    }
+
+    private void ManejoCambioCategoria(ChangeEventArgs e)
+    {
+        producto.Categoria = e.Value?.ToString() ?? "";
+        GenerarPrefijo();
     }
 
     private async Task Guardar()
@@ -214,6 +272,25 @@ else
         finally
         {
             guardando = false;
+        }
+    }
+
+    private void AlCambiarCategoria()
+    {
+        GenerarPrefijo();
+    }
+
+    private async Task ActualizarCodigoCompleto()
+    {
+        if (!string.IsNullOrEmpty(prefijoCodigo) && prefijoCodigo != "---" && !string.IsNullOrEmpty(sufijoCodigo))
+        {
+            producto.Codigo = $"{prefijoCodigo}{sufijoCodigo}";
+            await ValidarCodigoUnico();
+        }
+        else
+        {
+            producto.Codigo = "";
+            codigoDuplicado = false;
         }
     }
 
