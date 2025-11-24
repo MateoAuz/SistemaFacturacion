@@ -62,43 +62,4 @@ public class PagoService : IPagoService
         return pagoRegistrado;
     }
     
-    public async Task<bool> AnularPagoAsync(int idPago, int idUsuarioAnulacion, CancellationToken ct = default)
-    {
-        using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
-        
-        var pago = await _pagoRepo.GetByIdAsync(idPago, ct);
-        if (pago is null || pago.Estado == "ANULADO") 
-            throw new InvalidOperationException("Pago no encontrado o ya anulado.");
-        
-        var factura = await _facturaRepo.GetByIdAsync(pago.IdFactura, ct: ct);
-        if (factura is null) 
-            throw new InvalidOperationException("Factura asociada al pago no encontrada.");
-
-        var anulado = await _pagoRepo.UpdateEstadoAsync(pago.IdPago, "ANULADO", ct);
-        if (!anulado) return false;
-        
-        var nuevoSaldo = factura.SaldoPendiente + pago.Monto;
-        
-        string nuevoEstado;
-
-        if (nuevoSaldo >= factura.Total)
-        {
-            nuevoEstado = "PENDIENTE";
-            nuevoSaldo = factura.Total; 
-        }
-        else if (nuevoSaldo <= 0)
-        {
-            nuevoEstado = "PAGADA";
-            nuevoSaldo = 0;
-        }
-        else
-        {
-            nuevoEstado = "PENDIENTE"; 
-        }
-
-        await _facturaRepo.UpdateEstadoAndSaldoAsync(factura.IdFactura, nuevoEstado, nuevoSaldo, ct);
-
-        scope.Complete();
-        return true;
-    }
 }

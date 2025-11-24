@@ -1,4 +1,4 @@
-@page "/reportes"
+@page "/pagos"
 @rendermode InteractiveServer
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -7,7 +7,7 @@
 @using SistemaFacturacion.Domain.Entities
 
 <div class="page-header">
-    <h1 class="mb-0"><i class="bi bi-file-earmark-bar-graph"></i> Reporte de Facturas</h1>
+    <h1 class="mb-0"><i class="bi bi-file-earmark-bar-graph"></i> Pagos de Facturas</h1>
 </div>
 
 <div class="card card-modern">
@@ -49,7 +49,6 @@
                             <th>Cliente</th>
                             <th>Fecha</th>
                             <th class="text-end">Total</th>
-                            <th class="text-end">Saldo Pendiente</th> 
                             <th class="text-center">Estado</th>
                             <th class="text-center">Acciones</th>
                         </tr>
@@ -61,12 +60,7 @@
                                 <td>@f.NumeroFactura</td>
                                 <td>@($"{f.Cliente?.Nombres} {f.Cliente?.Apellidos}")</td>
                                 <td>@f.FechaEmision.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td class="text-end fw-bold text-primary">@f.Total.ToString("C2")</td>
-                                <td class="text-end fw-bold">
-                                    <span class="badge @GetBadgeClass(f.SaldoPendiente)">
-                                        @f.SaldoPendiente.ToString("C2")
-                                    </span>
-                                </td> 
+                                <td class="text-end fw-bold text-primary">$@f.Total.ToString("N2")</td> 
                                 <td class="text-center">
                                     <span class="badge @GetEstadoBadgeClass(f.Estado)">
                                         @FacturaEstados.GetValueOrDefault(f.Estado).Label
@@ -83,12 +77,7 @@
                                                 <i class="bi bi-cash-coin"></i> Pagar
                                             </button>
                                         }
-                                        else if (f.Estado == "PAGADA" || f.Pagos?.Any() == true)
-                                        {
-                                            <button class="btn btn-sm btn-secondary" @onclick="() => AbrirModalPagosAnulacion(f)">
-                                                <i class="bi bi-list-check"></i> Pagos
-                                            </button>
-                                        }
+                                        
                                     </div>
                                 </td>
                             </tr>
@@ -128,7 +117,7 @@
                             </span>
                             <p class="mt-2 mb-1 small text-muted"><strong>Emisión:</strong> @facturaSeleccionada.FechaEmision.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
                             <p class="fw-bold fs-5 mt-2 @GetSaldoClass(facturaSeleccionada.SaldoPendiente)">
-                                Saldo Pendiente: @facturaSeleccionada.SaldoPendiente.ToString("C2")
+                                Saldo Pendiente: $@facturaSeleccionada.SaldoPendiente.ToString("N2")
                             </p>
                         </div>
                     </div>
@@ -151,8 +140,8 @@
                                     <tr>
                                         <td>@d.NombreProducto</td>
                                         <td class="text-center">@d.Cantidad</td>
-                                        <td class="text-end">@d.PrecioUnitario.ToString("C2")</td>
-                                        <td class="text-end">@d.TotalLinea.ToString("C2")</td>
+                                        <td class="text-end">$@d.PrecioUnitario.ToString("N2")</td>
+                                        <td class="text-end">$@d.TotalLinea.ToString("N2")</td>
                                     </tr>
                                 }
                             }
@@ -166,15 +155,15 @@
                         <tfoot>
                             <tr>
                                 <td colspan="3" class="text-end fw-bold">SUBTOTAL:</td>
-                                <td class="text-end fw-bold">@facturaSeleccionada.Subtotal.ToString("C2")</td>
+                                <td class="text-end fw-bold">$@facturaSeleccionada.Subtotal.ToString("N2")</td>
                             </tr>
                             <tr>
                                 <td colspan="3" class="text-end fw-bold">IVA:</td>
-                                <td class="text-end fw-bold">@facturaSeleccionada.Iva.ToString("C2")</td>
+                                <td class="text-end fw-bold">$@facturaSeleccionada.Iva.ToString("N2")</td>
                             </tr>
                             <tr>
                                 <td colspan="3" class="text-end fw-bold fs-5">TOTAL:</td>
-                                <td class="text-end fw-bold fs-5 text-primary">@facturaSeleccionada.Total.ToString("C2")</td>
+                                <td class="text-end fw-bold fs-5 text-primary">$@facturaSeleccionada.Total.ToString("N2")</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -215,13 +204,16 @@
                         }
 
                         <p class="alert alert-info alert-modern fw-bold">
-                            Saldo Pendiente: @facturaParaPago?.SaldoPendiente.ToString("C2")
+                            Saldo Pendiente: $@facturaParaPago?.SaldoPendiente.ToString("N2")
                         </p>
 
                         <div class="mb-3">
                             <label class="form-label">Monto a Pagar *</label>
-                            <InputNumber class="form-control" @bind-Value="pagoForm.Monto" 
-                                         placeholder="@facturaParaPago?.SaldoPendiente.ToString("N2")" />
+                            <input type="text" class="form-control fw-bold fs-5 text-success" 
+                                value="$@facturaParaPago?.SaldoPendiente.ToString("N2")" 
+                                readonly 
+                                style="background-color: #e9ecef; cursor: not-allowed;" />
+                            <small class="text-muted">El pago debe ser por el monto total pendiente.</small>
                             <ValidationMessage For="@(() => pagoForm.Monto)" />
                         </div>
                         
@@ -254,78 +246,6 @@
     </div>
 }
 
-@* Modal de Historial de Pagos y Anulación (CA-06.6, CA-06.7) *@
-@if (mostrarModalHistorialPagos)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.4);">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content p-3" style="border-radius: 10px;">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title text-primary">
-                        <i class="bi bi-list-check"></i> Historial de Pagos - Factura N° @facturaParaPago?.NumeroFactura
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="CerrarModalHistorialPagos"></button>
-                </div>
-                <div class="modal-body">
-                    @if (!string.IsNullOrEmpty(mensajePagoError))
-                    {
-                        <div class="alert alert-danger alert-modern"><i class="bi bi-exclamation-triangle"></i> @mensajePagoError</div>
-                    }
-                    
-                    <p class="alert alert-info alert-modern fw-bold">
-                        Saldo Pendiente: @facturaParaPago?.SaldoPendiente.ToString("C2")
-                    </p>
-
-                    <h6 class="mb-3">Pagos Registrados (Activos)</h6>
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>ID Pago</th>
-                                <th class="text-end">Monto</th>
-                                <th>Método</th>
-                                <th>Registrado por</th>
-                                <th>Fecha</th>
-                                <th class="text-end">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (pagosFactura.Any())
-                            {
-                                @foreach (var pago in pagosFactura)
-                                {
-                                    <tr>
-                                        <td>@pago.IdPago</td>
-                                        <td class="text-end fw-bold text-success">@pago.Monto.ToString("C2")</td>
-                                        <td>@pago.MetodoPago</td>
-                                        <td>@pago.Usuario?.NombreUsuario</td>
-                                        <td>@pago.FechaPago.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-danger" @onclick="() => AnularPago(pago.IdPago)" 
-                                                    disabled="@guardandoPago" title="Anular Pago (CA-06.7)">
-                                                <i class="bi bi-trash"></i> Anular
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="6" class="text-center text-muted">No hay pagos activos registrados.</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="modal-footer border-0">
-                    <button class="btn btn-secondary" @onclick="CerrarModalHistorialPagos">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
-
 
 @code {
     private bool cargando = true;
@@ -341,21 +261,18 @@
 
     // Pago Modal
     private bool mostrarModalPago = false;
-    private bool mostrarModalHistorialPagos = false;
     private FacturaDto? facturaParaPago;
     private PagoRequestDto pagoForm = new();
     private bool guardandoPago = false;
     private string? mensajePagoError;
 
     // Constantes para UI
-    private List<string> MetodosPago = new() { "Efectivo", "Transferencia bancaria", "Tarjeta de crédito", "Tarjeta de débito", "Cheque" };
+    private List<string> MetodosPago = new() { "Efectivo", "Transferencia bancaria", "Tarjeta de débito" };
     private Dictionary<string, (string Label, string Icon)> FacturaEstados = new()
     {
         {"TODAS", ("Todas", "bi-journals")},
         {"PENDIENTE", ("Pendiente", "bi-clock")},
         {"PAGADA", ("Pagada", "bi-check-circle")},
-        {"ANULADA", ("Anulada", "bi-x-circle")},
-        {"RECHAZADA_SRI", ("Rechazada SRI", "bi-exclamation-triangle")},
     };
     
     protected override async Task OnInitializedAsync()
@@ -454,7 +371,7 @@
             }
             if (pagoForm.Monto > facturaParaPago?.SaldoPendiente)
             {
-                mensajePagoError = $"El pago excede el saldo pendiente ({facturaParaPago.SaldoPendiente:C2}).";
+                mensajePagoError = $"El pago excede el saldo pendiente ({facturaParaPago.SaldoPendiente:N2}).";
                 return;
             }
 
@@ -483,60 +400,6 @@
         }
     }
     
-    // --- Lógica de Historial y Anulación (CA-06.6, CA-06.7) ---
-    private async Task AbrirModalPagosAnulacion(FacturaDto factura)
-    {
-        facturaParaPago = factura;
-        await CargarPagos(factura.IdFactura);
-        mostrarModalHistorialPagos = true;
-        CerrarModal(); 
-        StateHasChanged();
-    }
-    
-    private void CerrarModalHistorialPagos()
-    {
-        mostrarModalHistorialPagos = false;
-        facturaParaPago = null;
-        mensajePagoError = null;
-    }
-    
-    private async Task AnularPago(int idPago)
-    {
-        var pagoAnular = pagosFactura.FirstOrDefault(p => p.IdPago == idPago);
-        if (pagoAnular == null) return;
-        
-        if (!await JS.InvokeAsync<bool>("confirm", $"Se anulará el pago de {pagoAnular.Monto:C2} registrado por {pagoAnular.Usuario?.NombreUsuario}. ¿Desea continuar?"))
-            return;
-            
-        guardandoPago = true;
-
-        try
-        {
-            var response = await Http.PatchAsync($"api/pagos/{idPago}/anular", null); 
-
-            if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NoContent)
-            {
-                await CargarFacturas();
-                await CargarPagos(facturaParaPago!.IdFactura);
-                // Forzar actualización del modelo de facturaParaPago
-                facturaParaPago = facturas.FirstOrDefault(f => f.IdFactura == facturaParaPago.IdFactura);
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadFromJsonAsync<ErrorResponse>() 
-                                   ?? new ErrorResponse { Message = "Error desconocido al anular el pago." };
-                mensajePagoError = errorContent.Message;
-            }
-        }
-        catch (Exception ex)
-        {
-            mensajePagoError = $"Error de conexión: {ex.Message}";
-        }
-        finally
-        {
-            guardandoPago = false;
-        }
-    }
     
     // --- Lógica de Estilos y Clases ---
     private string GetBadgeClass(decimal saldo)
@@ -552,7 +415,6 @@
         {
             "PAGADA" => "bg-success",
             "PENDIENTE" => "bg-warning",
-            "ANULADA" => "bg-danger",
             _ => "bg-secondary"
         };
     }
@@ -577,7 +439,7 @@
         public decimal SaldoPendiente { get; set; } 
         public ClienteDto? Cliente { get; set; }
         public List<DetalleDto>? Detalles { get; set; }
-        public List<PagoDto>? Pagos { get; set; } // <<-- AÑADIDO (necesario para el botón de 'Pagos')
+
     }
 
     public class ClienteDto

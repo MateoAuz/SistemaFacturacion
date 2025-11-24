@@ -63,24 +63,4 @@ public class PagosController : ControllerBase
         return Ok(pagos);
     }
     
-    // PATCH: api/pagos/5/anular (CA-06.7)
-    [HttpPatch("{idPago:int}/anular")]
-    public async Task<IActionResult> AnularPago(int idPago, CancellationToken ct)
-    {
-        int idUsuarioAnulacion = 1; 
-        
-        try
-        {
-            await _pagoService.AnularPagoAsync(idPago, idUsuarioAnulacion, ct);
-            return NoContent();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = $"Error interno: {ex.Message}" });
-        }
-    }
 }
