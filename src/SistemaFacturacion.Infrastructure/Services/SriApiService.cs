@@ -154,9 +154,8 @@ public class SriApiService : ISriApiService
         }
     }
 
-    public async Task<(bool Success, string Message, string? XmlAutorizado, string? NumeroAutorizacion)> ConsultarAutorizacionAsync(
-    string claveAcceso,
-    CancellationToken ct = default)
+    public async Task<(bool Success, string Message, string? XmlAutorizado, string? NumeroAutorizacion)> 
+    ConsultarAutorizacionAsync(string claveAcceso, CancellationToken ct = default)
 {
     try
     {
@@ -172,7 +171,6 @@ public class SriApiService : ISriApiService
 </soapenv:Envelope>";
 
         var content = new StringContent(soapEnvelope, Encoding.UTF8, "text/xml");
-
         var response = await _httpClient.PostAsync(URL_AUTORIZACION_PRUEBAS, content, ct);
         var responseBody = await response.Content.ReadAsStringAsync(ct);
 
@@ -200,12 +198,19 @@ public class SriApiService : ISriApiService
         var estado = autorizacionElement.Element(ns + "estado")?.Value;
         var numeroAutorizacion = autorizacionElement.Element(ns + "numeroAutorizacion")?.Value;
         var fechaAutorizacion = autorizacionElement.Element(ns + "fechaAutorizacion")?.Value;
-        var comprobante = autorizacionElement.Element(ns + "comprobante")?.Value;
+        
+        // ❌ ANTES (INCORRECTO): Extraía solo el contenido interior
+        // var comprobante = autorizacionElement.Element(ns + "comprobante")?.Value;
+
+        // ✅ AHORA (CORRECTO): Devolver TODO el nodo <autorizacion> completo
+        var xmlAutorizado = autorizacionElement.ToString();
 
         if (estado == "AUTORIZADO")
         {
             var msg = $"✅ Comprobante AUTORIZADO\n📋 Número: {numeroAutorizacion}\n📅 Fecha: {fechaAutorizacion}";
-            return (true, msg, comprobante, numeroAutorizacion);
+            
+            // ✅ Devolver el XML completo con <autorizacion>
+            return (true, msg, xmlAutorizado, numeroAutorizacion);
         }
         else if (estado == "NO AUTORIZADO" || estado == "DEVUELTA")
         {
@@ -231,5 +236,6 @@ public class SriApiService : ISriApiService
         return (false, $"❌ Error al consultar autorización: {ex.Message}", null, null);
     }
 }
+
 
 }
