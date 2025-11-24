@@ -86,9 +86,9 @@ else
                                     {
                                         <span class="badge bg-success">Autorizado</span>
                                     }
-                                    else if (factura.EstadoEnvio == "RECHAZADO")
+                                    else if (factura.EstadoEnvio == "RECHAZADO" || factura.EstadoEnvio == "ERROR_ENVIO")
                                     {
-                                        <span class="badge bg-danger">Rechazado</span>
+                                        <span class="badge bg-danger">Rechazado/Error</span>
                                     }
                                     else
                                     {
@@ -111,33 +111,52 @@ else
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                        
+                                        @* 1. Subir XML (primera vez) *@
                                         @if (!factura.TieneXmlFirmado || factura.EstadoEnvio == "GENERADO")
                                         {
-                                            <button class="btn btn-sm btn-outline-primary" 
-                                                    @onclick="() => MostrarModalSubirXml(factura.IdFactura)"
-                                                    title="Subir XML Firmado">
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                @onclick="() => MostrarModalSubirXml(factura)" title="Subir XML Firmado">
                                                 <i class="bi bi-upload"></i> Subir XML
                                             </button>
                                         }
 
-                                        @if (factura.TieneXmlFirmado && 
-                                             (factura.EstadoEnvio == "FIRMADO" || factura.EstadoEnvio == "ERROR_ENVIO"))
+                                        @* 2. Reemplazar XML (si fue rechazado) *@
+                                        @if (factura.EstadoEnvio == "RECHAZADO" || factura.EstadoEnvio == "ERROR_ENVIO")
                                         {
-                                            <button class="btn btn-sm btn-outline-success" 
-                                                    @onclick="() => EnviarAlSri(factura.IdFactura)"
-                                                    disabled="@procesando"
-                                                    title="Enviar al SRI">
+                                            <button class="btn btn-sm btn-outline-warning"
+                                                @onclick="() => MostrarModalSubirXml(factura)" title="Reemplazar XML Rechazado">
+                                                <i class="bi bi-arrow-repeat"></i> Corregir XML
+                                            </button>
+                                        }
+
+                                        @* 3. Enviar al SRI *@
+                                        @if (factura.TieneXmlFirmado && (factura.EstadoEnvio == "FIRMADO" || factura.EstadoEnvio == "ERROR_ENVIO"))
+                                        {
+                                            <button class="btn btn-sm btn-outline-success"
+                                                @onclick="() => EnviarAlSri(factura.IdFactura)" disabled="@procesando"
+                                                title="Enviar al SRI">
                                                 <i class="bi bi-send"></i> Enviar SRI
                                             </button>
                                         }
 
+                                        @* 4. Consultar Autorización *@
                                         @if (factura.EstadoEnvio == "ENVIADO")
                                         {
-                                            <button class="btn btn-sm btn-outline-info" 
-                                                    @onclick="() => ConsultarAutorizacion(factura.IdFactura)"
-                                                    disabled="@procesando"
-                                                    title="Consultar Autorización">
+                                            <button class="btn btn-sm btn-outline-info"
+                                                @onclick="() => ConsultarAutorizacion(factura.IdFactura)" disabled="@procesando"
+                                                title="Consultar Autorización">
                                                 <i class="bi bi-search"></i> Consultar
+                                            </button>
+                                        }
+
+                                        @* 5. Generar PDF y enviar correo *@
+                                        @if (factura.EstadoEnvio == "AUTORIZADO")
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="() => DescargarYEnviarRide(factura.IdFactura)" disabled="@procesando"
+                                                title="Generar PDF y enviar por email">
+                                                <i class="bi bi-file-pdf"></i> PDF + Email
                                             </button>
                                         }
                                     </div>
@@ -151,30 +170,39 @@ else
     </div>
 }
 
-<!-- Modal para subir XML firmado -->
+<!-- ✅ Modal para subir/reemplazar XML firmado -->
 @if (mostrarModal)
 {
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header" style="background-color: @(esReemplazo ? "#ff9800" : "#4a56e2"); color: white;">
                     <h5 class="modal-title">
-                        <i class="bi bi-file-earmark-arrow-up"></i> Subir XML Firmado
+                        <i class="bi @(esReemplazo ? "bi-arrow-repeat" : "bi-file-earmark-arrow-up")"></i> 
+                        @(esReemplazo ? "Reemplazar XML (Corregido)" : "Subir XML Firmado")
                     </h5>
-                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i>
-                        <strong>Instrucciones:</strong> Sube el archivo XML que ha sido firmado digitalmente con FirmaEc.
-                    </div>
-                    
+                    @if (esReemplazo)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Atención:</strong> Este documento fue rechazado. Corrige los errores, firma el nuevo XML, y súbelo aquí.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Instrucciones:</strong> Sube el archivo XML que ha sido firmado digitalmente con FirmaEc.
+                        </div>
+                    }
+
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Seleccionar archivo XML firmado:</label>
-                        <InputFile OnChange="HandleFileSelected" 
-                                   class="form-control" 
-                                   accept=".xml"/>
+                        <InputFile OnChange="HandleFileSelected" class="form-control" accept=".xml" />
                     </div>
 
                     @if (!string.IsNullOrEmpty(archivoSeleccionado))
@@ -188,11 +216,15 @@ else
                     <button type="button" class="btn btn-secondary" @onclick="CerrarModal">
                         Cancelar
                     </button>
-                    <button type="button" 
-                            class="btn btn-primary" 
+                    <button type="button" class="btn @(esReemplazo ? "btn-warning" : "btn-primary")" 
                             @onclick="SubirXmlFirmado"
                             disabled="@(string.IsNullOrEmpty(xmlFirmadoContent) || procesando)">
-                        <i class="bi bi-upload"></i> Subir XML
+                        @if (procesando)
+                        {
+                            <span class="spinner-border spinner-border-sm"></span>
+                        }
+                        <i class="bi @(esReemplazo ? "bi-arrow-repeat" : "bi-upload")"></i> 
+                        @(esReemplazo ? "Reemplazar" : "Subir XML")
                     </button>
                 </div>
             </div>
@@ -206,7 +238,10 @@ else
     private bool procesando = false;
     private string mensajeExito = string.Empty;
     private string mensajeError = string.Empty;
+    
+    // ✅ Variables para el modal
     private bool mostrarModal = false;
+    private bool esReemplazo = false; // Nueva: detecta si es reemplazo o subida inicial
     private int facturaSeleccionadaId = 0;
     private string archivoSeleccionado = string.Empty;
     private string xmlFirmadoContent = string.Empty;
@@ -222,7 +257,6 @@ else
         {
             isLoading = true;
             StateHasChanged();
-            
             facturas = await FacturacionService.GetFacturasParaEnvioAsync();
         }
         catch (Exception ex)
@@ -236,11 +270,16 @@ else
         }
     }
 
-    private void MostrarModalSubirXml(int idFactura)
+    // ✅ Método actualizado: detecta si es reemplazo
+    private void MostrarModalSubirXml(FacturaElectronicaDto factura)
     {
-        facturaSeleccionadaId = idFactura;
+        facturaSeleccionadaId = factura.IdFactura;
         archivoSeleccionado = string.Empty;
         xmlFirmadoContent = string.Empty;
+        
+        // Detectar si la factura está en estado de error (necesita reemplazo)
+        esReemplazo = factura.EstadoEnvio == "RECHAZADO" || factura.EstadoEnvio == "ERROR_ENVIO";
+        
         mostrarModal = true;
         StateHasChanged();
     }
@@ -251,6 +290,7 @@ else
         facturaSeleccionadaId = 0;
         archivoSeleccionado = string.Empty;
         xmlFirmadoContent = string.Empty;
+        esReemplazo = false;
         StateHasChanged();
     }
 
@@ -268,7 +308,7 @@ else
                 return;
             }
 
-            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB max
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
             using var reader = new StreamReader(stream);
             xmlFirmadoContent = await reader.ReadToEndAsync();
 
@@ -282,6 +322,7 @@ else
         }
     }
 
+    // ✅ Método actualizado: decide si subir o reemplazar
     private async Task SubirXmlFirmado()
     {
         try
@@ -289,15 +330,34 @@ else
             procesando = true;
             StateHasChanged();
 
-            await FacturacionService.SubirXmlFirmadoAsync(facturaSeleccionadaId, xmlFirmadoContent);
-            
-            MostrarMensaje("✅ XML firmado subido correctamente", true);
-            CerrarModal();
-            await CargarFacturas();
+            if (esReemplazo)
+            {
+                // Llamar al método de reemplazo
+                var (success, message) = await FacturacionService.ReemplazarXmlFirmadoAsync(facturaSeleccionadaId, xmlFirmadoContent);
+                
+                if (success)
+                {
+                    MostrarMensaje($"✅ {message}", true);
+                    CerrarModal();
+                    await CargarFacturas();
+                }
+                else
+                {
+                    MostrarMensaje($"❌ {message}", false);
+                }
+            }
+            else
+            {
+                // Llamar al método de subida normal
+                await FacturacionService.SubirXmlFirmadoAsync(facturaSeleccionadaId, xmlFirmadoContent);
+                MostrarMensaje("✅ XML firmado subido correctamente", true);
+                CerrarModal();
+                await CargarFacturas();
+            }
         }
         catch (Exception ex)
         {
-            MostrarMensaje($"❌ Error al subir XML: {ex.Message}", false);
+            MostrarMensaje($"❌ Error: {ex.Message}", false);
         }
         finally
         {
@@ -314,16 +374,8 @@ else
             StateHasChanged();
 
             var (success, message) = await FacturacionService.EnviarAlSriAsync(idFactura);
-            
-            if (success)
-            {
-                MostrarMensaje($"✅ {message}", true);
-            }
-            else
-            {
-                MostrarMensaje($"❌ {message}", false);
-            }
 
+            MostrarMensaje(success ? $"✅ {message}" : $"❌ {message}", success);
             await CargarFacturas();
         }
         catch (Exception ex)
@@ -345,17 +397,37 @@ else
             StateHasChanged();
 
             var (success, message) = await FacturacionService.ConsultarAutorizacionAsync(idFactura);
-            
-            if (success)
-            {
-                MostrarMensaje($"✅ {message}", true);
-            }
-            else
-            {
-                MostrarMensaje($"⚠️ {message}", false);
-            }
 
+            MostrarMensaje(success ? $"✅ {message}" : $"⚠️ {message}", success);
             await CargarFacturas();
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"❌ Error: {ex.Message}", false);
+        }
+        finally
+        {
+            procesando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DescargarYEnviarRide(int idFactura)
+    {
+        try
+        {
+            procesando = true;
+            StateHasChanged();
+
+            var pdfBytes = await FacturacionService.GenerarYEnviarRideAsync(idFactura);
+
+            var base64 = Convert.ToBase64String(pdfBytes);
+            await JS.InvokeVoidAsync("downloadFile",
+                $"Factura_{idFactura}.pdf",
+                "application/pdf",
+                base64);
+
+            MostrarMensaje("✅ PDF generado y enviado por correo electrónico", true);
         }
         catch (Exception ex)
         {
@@ -380,7 +452,7 @@ else
             mensajeError = texto;
             mensajeExito = string.Empty;
         }
-        
+
         StateHasChanged();
 
         _ = Task.Run(async () =>
@@ -407,8 +479,14 @@ else
     }
 
     @@keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .alert-success-custom {
