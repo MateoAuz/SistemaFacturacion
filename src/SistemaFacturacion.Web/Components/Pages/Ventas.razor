@@ -13,127 +13,226 @@
 
 @if (!string.IsNullOrEmpty(mensajeError))
 {
-    <div class="alert alert-danger alert-modern">@mensajeError</div>
+    <div class="alert alert-danger alert-modern fade-in">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @mensajeError
+    </div>
 }
 @if (!string.IsNullOrEmpty(mensajeExito))
 {
-    <div class="alert alert-success alert-modern">@mensajeExito</div>
+    <div class="alert alert-success alert-modern fade-in">
+        <i class="bi bi-check-circle-fill me-2"></i> @mensajeExito
+    </div>
 }
 
 <div class="card-modern">
-    <h5>1. Buscar Cliente</h5>
-    <div class="row">
-        <div class="col-md-5">
-            <label class="form-label">Buscar por Identificación (Cédula/RUC)</label>
-            <div class="input-group">
-                <input type="text" class="form-control" @bind="busquedaClienteId" placeholder="Escribe la identificación..." />
-                <button class="btn btn-primary" @onclick="BuscarCliente"><i class="bi bi-search"></i> Buscar</button>
+    <h5 class="mb-3 border-bottom pb-2 text-primary"><i class="bi bi-person-vcard"></i> Datos del Cliente</h5>
+    
+    @if (clienteSeleccionado == null)
+    {
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label class="form-label">Buscar Cliente</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search text-primary"></i></span>
+                    <input type="text" class="form-control" 
+                           @bind="busquedaClienteQuery" 
+                           @bind:event="oninput" 
+                           @onkeyup="FiltrarClientes"
+                           placeholder="Escribe el Nombre, Apellido o Número de Identificación..." />
+                </div>
+                
+                @if (clientesFiltrados.Any())
+                {
+                    <div class="list-group shadow-sm position-absolute w-75" style="z-index: 1000; margin-top: 5px;">
+                        @foreach (var c in clientesFiltrados)
+                        {
+                            <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
+                                    @onclick="() => SeleccionarCliente(c)">
+                                <div>
+                                    <strong class="text-primary">@c.Nombres @c.Apellidos</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="bi bi-card-heading"></i> @c.Identificacion 
+                                        @if(!string.IsNullOrEmpty(c.Correo)) { <span> | <i class="bi bi-envelope"></i> @c.Correo</span> }
+                                    </small>
+                                </div>
+                                <i class="bi bi-chevron-right text-muted"></i>
+                            </button>
+                        }
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(busquedaClienteQuery) && busquedaClienteQuery.Length > 2)
+                {
+                     <div class="alert alert-warning mt-2 mb-0 p-2 small">
+                        <i class="bi bi-info-circle"></i> No se encontraron clientes. ¿Desea <a href="/clientes" target="_blank">crear uno nuevo</a>?
+                    </div>
+                }
             </div>
         </div>
-        
-        @if (clienteSeleccionado != null)
-        {
-            <div class="col-md-7">
-                <label class="form-label">Cliente Seleccionado:</label>
-                <div class="alert alert-info alert-modern mb-0 p-3">
-                    <strong>@clienteSeleccionado.Nombres @clienteSeleccionado.Apellidos</strong><br/>
-                    <small>@clienteSeleccionado.Identificacion | @clienteSeleccionado.Correo</small>
+    }
+    else
+    {
+        <div class="alert alert-info alert-modern mb-0 p-3 fade-in">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white p-2 rounded-circle text-primary me-3 shadow-sm">
+                        <i class="bi bi-person-check-fill fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark">@clienteSeleccionado.Nombres @clienteSeleccionado.Apellidos</h5>
+                        <small class="text-muted">
+                            <strong>@clienteSeleccionado.TipoIdentificacion:</strong> @clienteSeleccionado.Identificacion
+                            @if(!string.IsNullOrEmpty(clienteSeleccionado.Telefono)) { <span> | <strong>Tel:</strong> @clienteSeleccionado.Telefono</span> }
+                            @if(!string.IsNullOrEmpty(clienteSeleccionado.Correo)) { <span> | <strong>Email:</strong> @clienteSeleccionado.Correo</span> }
+                        </small>
+                        <div class="small text-muted mt-1"><i class="bi bi-geo-alt"></i> @(clienteSeleccionado.Direccion ?? "Sin dirección registrada")</div>
+                    </div>
                 </div>
+                <button class="btn btn-outline-danger btn-sm bg-white" @onclick="LimpiarCliente" title="Cambiar cliente">
+                    <i class="bi bi-x-lg"></i> Cambiar
+                </button>
             </div>
-        }
-    </div>
+        </div>
+    }
 </div>
 
 <div class="card-modern">
-    <h5>2. Añadir Productos</h5>
-    <div class="row g-3 align-items-end">
-        <div class="col-md-5">
-            <label class="form-label">Buscar por Código o Nombre</label>
-            <input type="text" class="form-control" @bind="busquedaProductoQuery" @bind:event="oninput" @onkeyup="BuscarProductos" placeholder="Escribe el código o nombre..." />
-            
-            @if (productosEncontrados.Any())
+    <h5 class="mb-3 border-bottom pb-2 text-primary"><i class="bi bi-box-seam"></i> Productos</h5>
+    
+    <div class="row g-3 align-items-end mb-3">
+        <div class="col-md-3">
+            <label class="form-label"><i class="bi bi-funnel"></i> Categoría</label>
+            <select class="form-select" @bind="filtroCategoria">
+                <option value="">Todas</option>
+                @foreach (var cat in categoriasDisponibles)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            </select>
+        </div>
+        
+        <div class="col-md-6">
+            <label class="form-label">Buscar Producto</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" 
+                       @bind="busquedaProductoQuery" 
+                       @bind:event="oninput" 
+                       @onkeyup="FiltrarProductos" 
+                       placeholder="Código o nombre del producto..." 
+                       disabled="@(clienteSeleccionado == null)" /> </div>
+        </div>
+    </div>
+
+    @if (productosFiltrados.Any())
+    {
+        <div class="list-group shadow-sm mb-3 fade-in" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6;">
+            @foreach (var p in productosFiltrados)
             {
-                <ul class="list-group mt-2" style="max-height: 200px; overflow-y: auto;">
-                    @foreach (var p in productosEncontrados)
-                    {
-                        <li class="list-group-item list-group-item-action" @onclick="() => SeleccionarProducto(p)">
-                            <strong>@p.Codigo</strong> - @p.Nombre (Stock: @p.StockTotal, Precio: @p.PrecioVenta.ToString("C"))
-                        </li>
-                    }
-                </ul>
+                bool sinStock = p.StockTotal <= 0;
+                bool porVencer = p.LotesProximosAVencer.Any();
+
+                <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center @(sinStock ? "bg-light text-muted" : "")" 
+                        @onclick="() => SeleccionarProducto(p)" disabled="@sinStock">
+                    <div>
+                        <div class="fw-bold">
+                            @p.Nombre 
+                            <span class="badge bg-light text-dark border ms-2">@p.Codigo</span>
+                            @if(porVencer && !sinStock)
+                            {
+                                <span class="badge bg-warning text-dark ms-1"><i class="bi bi-exclamation-triangle"></i> Por Vencer</span>
+                            }
+                        </div>
+                        <small class="text-muted">@p.Categoria</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold text-primary fs-5">@p.PrecioVenta.ToString("C2")</div>
+                        <small>
+                            Stock: 
+                            @if(sinStock) { <span class="badge bg-danger">Agotado</span> }
+                            else if(p.StockTotal < 10) { <span class="badge bg-warning text-dark">@p.StockTotal (Bajo)</span> }
+                            else { <span class="badge bg-success">@p.StockTotal</span> }
+                        </small>
+                    </div>
+                </button>
             }
         </div>
+    }
 
+    <div class="row g-3 align-items-end p-3 bg-light rounded border">
+        <div class="col-md-5">
+            <label class="form-label text-muted small">Producto Seleccionado</label>
+            <input type="text" class="form-control fw-bold" disabled value="@(productoParaAnadir.Nombre ?? "Ninguno")" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label text-muted small">Stock</label>
+            <input type="text" class="form-control text-center" disabled value="@(productoParaAnadir.Producto?.StockTotal.ToString() ?? "-")" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw-bold">Cantidad</label>
+            <input type="number" class="form-control" @bind="productoParaAnadir.Cantidad" min="1" />
+        </div>
         <div class="col-md-3">
-            <label class="form-label">Producto</label>
-            <input type="text" class="form-control" disabled value="@productoParaAnadir.Nombre" />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Cantidad</label>
-            <input type="number" class="form-control" @bind="productoParaAnadir.Cantidad" />
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-success btn-modern w-100" @onclick="AnadirDetalle" disabled="@(productoParaAnadir.IdProducto == 0 || productoParaAnadir.Cantidad <= 0)">
-                <i class="bi bi-plus-circle"></i> Añadir
+            <button class="btn btn-success w-100 btn-modern" @onclick="AnadirDetalle" 
+                    disabled="@(productoParaAnadir.IdProducto == 0 || productoParaAnadir.Cantidad <= 0)">
+                <i class="bi bi-plus-lg"></i> Agregar
             </button>
         </div>
     </div>
 </div>
 
 <div class="card-modern">
-    <h5>3. Detalle de la Venta</h5>
-    <div class="table-modern">
-        <table class="table table-hover mb-0">
-            <thead>
+    <h5 class="mb-3 border-bottom pb-2 text-primary"><i class="bi bi-receipt"></i> Detalle</h5>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
                 <tr>
                     <th>Código</th>
                     <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>P. Unitario</th>
-                    <th>Total Línea</th>
-                    <th>Acción</th>
+                    <th class="text-center">Cant.</th>
+                    <th class="text-end">P. Unitario</th>
+                    <th class="text-end">Total</th>
+                    <th class="text-center"></th>
                 </tr>
             </thead>
             <tbody>
                 @if (!detallesFactura.Any())
                 {
                     <tr>
-                        <td colspan="6" class="text-center text-muted p-4">Aún no hay productos añadidos...</td>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="bi bi-cart3 display-6 opacity-25"></i>
+                            <p class="mt-2 mb-0 small">Carrito vacío</p>
+                        </td>
                     </tr>
                 }
                 @foreach (var det in detallesFactura)
                 {
                     <tr>
-                        <td>@det.Producto?.Codigo</td>
-                        <td>@det.Producto?.Nombre</td>
-                        <td class="text-center">@det.Cantidad</td>
+                        <td><small class="text-muted">@det.Codigo</small></td>
+                        <td>@det.Nombre</td>
+                        <td class="text-center fw-bold">@det.Cantidad</td>
                         <td class="text-end">@det.PrecioUnitario.ToString("N2")</td>
-                        <td class="text-end">@det.TotalLinea.ToString("N2")</td>
+                        <td class="text-end fw-bold">@det.TotalLinea.ToString("N2")</td>
                         <td class="text-center">
-                            <button class="btn btn-sm btn-danger btn-modern" @onclick="() => QuitarDetalle(det)">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            <button class="btn btn-sm text-danger" @onclick="() => QuitarDetalle(det)"><i class="bi bi-trash-fill"></i></button>
                         </td>
                     </tr>
                 }
             </tbody>
-            <tfoot>
-                <tr style="border-top: 2px solid #333;">
-                    <td colspan="3"></td>
-                    <td class="text-end"><strong>SUBTOTAL:</strong></td>
-                    <td class="text-end"><strong>@factura.Subtotal.ToString("N2")</strong></td>
+            <tfoot class="bg-light">
+                <tr>
+                    <td colspan="4" class="text-end">SUBTOTAL:</td>
+                    <td class="text-end fw-bold">@factura.Subtotal.ToString("C2")</td>
                     <td></td>
                 </tr>
                 <tr>
-                    <td colspan="3"></td>
-                    <td class="text-end"><strong>IVA (15%):</strong></td>
-                    <td class="text-end"><strong>@factura.Iva.ToString("N2")</strong></td>
+                    <td colspan="4" class="text-end">IVA (15%):</td>
+                    <td class="text-end fw-bold">@factura.Iva.ToString("C2")</td>
                     <td></td>
                 </tr>
-                <tr>
-                    <td colspan="3"></td>
-                    <td class="text-end fs-5"><strong>TOTAL:</strong></td>
-                    <td class="text-end fs-5"><strong>@factura.Total.ToString("N2")</strong></td>
+                <tr class="border-top border-2 border-secondary">
+                    <td colspan="4" class="text-end fs-5"><strong>TOTAL A PAGAR:</strong></td>
+                    <td class="text-end fs-4 text-success fw-bold">@factura.Total.ToString("C2")</td>
                     <td></td>
                 </tr>
             </tfoot>
@@ -141,31 +240,33 @@
     </div>
     
     <div class="text-end mt-4">
-        <button class="btn btn-success btn-lg btn-modern" @onclick="GuardarFactura" disabled="@(clienteSeleccionado == null || !detallesFactura.Any() || guardando)">
-            @if (guardando)
-            {
-                <span class="spinner-border spinner-border-sm me-2"></span>
-            }
-            <i class="bi bi-save"></i> Generar Factura
+        <button class="btn btn-secondary me-2" @onclick="LimpiarFormularioCompleto">Cancelar</button>
+        <button class="btn btn-success btn-lg btn-modern px-5" @onclick="GuardarFactura" 
+                disabled="@(clienteSeleccionado == null || !detallesFactura.Any() || guardando)">
+            @if (guardando) { <span class="spinner-border spinner-border-sm me-2"></span> }
+            <i class="bi bi-save"></i> Finalizar Venta
         </button>
     </div>
 </div>
 
-
 @code {
     private HttpClient _http => HttpFactory.CreateClient("LocalApi");
 
-    // Búsqueda Cliente
-    private string busquedaClienteId = "";
+    // CLIENTES
+    private string busquedaClienteQuery = "";
     private Cliente? clienteSeleccionado;
+    private List<Cliente> cacheClientes = new();
+    private List<Cliente> clientesFiltrados = new();
 
-    // Búsqueda Producto
+    // PRODUCTOS
     private string busquedaProductoQuery = "";
-    private List<Producto> productosEncontrados = new();
+    private string filtroCategoria = "";
     private List<Producto> cacheProductos = new();
+    private List<Producto> productosFiltrados = new();
+    private List<string> categoriasDisponibles = new();
     private DetalleFacturaVM productoParaAnadir = new();
 
-    // Factura
+    // FACTURA
     private Factura factura = new();
     private List<DetalleFacturaVM> detallesFactura = new();
     private bool guardando = false;
@@ -174,52 +275,83 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Cargar todos los productos en caché para búsqueda local
         try
         {
-            cacheProductos = await _http.GetFromJsonAsync<List<Producto>>("api/productos") ?? new();
+            // 1. Cargar Clientes en caché
+            var clientes = await _http.GetFromJsonAsync<List<Cliente>>("api/clientes");
+            cacheClientes = clientes ?? new List<Cliente>();
+
+            // 2. Cargar Productos en caché
+            cacheProductos = await _http.GetFromJsonAsync<List<Producto>>("api/productos?includeLotes=true") ?? new();
+            
+            // Extraer categorías
+            categoriasDisponibles = cacheProductos
+                .Where(p => !string.IsNullOrEmpty(p.Categoria))
+                .Select(p => p.Categoria!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
         }
         catch (Exception ex)
         {
-            mensajeError = $"No se pudieron cargar los productos: {ex.Message}";
+            mensajeError = $"Error cargando datos iniciales: {ex.Message}";
         }
     }
 
-    private async Task BuscarCliente()
+    // --- LÓGICA CLIENTES MEJORADA ---
+    private void FiltrarClientes()
     {
-        LimpiarMensajes();
-        if (string.IsNullOrWhiteSpace(busquedaClienteId)) return;
-        
-        try
+        if (string.IsNullOrWhiteSpace(busquedaClienteQuery))
         {
-            clienteSeleccionado = await _http.GetFromJsonAsync<Cliente>($"api/clientes/by-identificacion/{busquedaClienteId.Trim()}");
-            if(clienteSeleccionado == null)
-            {
-                mensajeError = "Cliente no encontrado.";
-            }
-        }
-        catch (Exception)
-        {
-            clienteSeleccionado = null;
-            mensajeError = "Cliente no encontrado o error al buscar.";
-        }
-    }
-
-    private void BuscarProductos()
-    {
-        if (string.IsNullOrWhiteSpace(busquedaProductoQuery) || busquedaProductoQuery.Length < 2)
-        {
-            productosEncontrados.Clear();
+            clientesFiltrados.Clear();
             return;
         }
 
-        var query = busquedaProductoQuery.ToLower();
-        productosEncontrados = cacheProductos
-            .Where(p => p.Estado && (
+        var query = busquedaClienteQuery.ToLower().Trim();
+
+        // Búsqueda por: Nombre, Apellido o Identificación
+        clientesFiltrados = cacheClientes
+            .Where(c => c.Estado && (
+                c.Nombres.ToLower().Contains(query) ||
+                (c.Apellidos != null && c.Apellidos.ToLower().Contains(query)) ||
+                c.Identificacion.Contains(query)
+            ))
+            .Take(5) // Mostrar máximo 5 sugerencias
+            .ToList();
+    }
+
+    private void SeleccionarCliente(Cliente c)
+    {
+        clienteSeleccionado = c;
+        busquedaClienteQuery = "";
+        clientesFiltrados.Clear();
+        mensajeError = null;
+    }
+
+    private void LimpiarCliente()
+    {
+        clienteSeleccionado = null;
+        busquedaClienteQuery = "";
+    }
+
+    // --- LÓGICA PRODUCTOS (Ya existente y mejorada) ---
+    private void FiltrarProductos()
+    {
+        if (string.IsNullOrWhiteSpace(busquedaProductoQuery) && string.IsNullOrWhiteSpace(filtroCategoria))
+        {
+            productosFiltrados.Clear();
+            return;
+        }
+
+        var query = busquedaProductoQuery.ToLower().Trim();
+
+        productosFiltrados = cacheProductos
+            .Where(p => p.Estado)
+            .Where(p => string.IsNullOrEmpty(filtroCategoria) || p.Categoria == filtroCategoria)
+            .Where(p => string.IsNullOrEmpty(query) || 
                         p.Codigo.ToLower().Contains(query) || 
                         p.Nombre.ToLower().Contains(query))
-                   )
-            .Take(5)
+            .Take(8)
             .ToList();
     }
 
@@ -232,28 +364,31 @@
             Codigo = p.Codigo,
             PrecioUnitario = p.PrecioVenta,
             Cantidad = 1,
-            Producto = p // Guardar referencia
+            Producto = p 
         };
-        busquedaProductoQuery = p.Nombre;
-        productosEncontrados.Clear();
+        
+        busquedaProductoQuery = "";
+        productosFiltrados.Clear();
     }
 
     private void AnadirDetalle()
     {
         LimpiarMensajes();
-        
-        // Validar stock
-        if (productoParaAnadir.Cantidad > (productoParaAnadir.Producto?.StockTotal ?? 0))
+        if (productoParaAnadir.Producto == null) return;
+
+        // Validar stock acumulado (por si agrega el mismo producto varias veces)
+        var existente = detallesFactura.FirstOrDefault(d => d.IdProducto == productoParaAnadir.IdProducto);
+        int cantidadTotal = productoParaAnadir.Cantidad + (existente?.Cantidad ?? 0);
+
+        if (cantidadTotal > productoParaAnadir.Producto.StockTotal)
         {
-            mensajeError = $"Stock insuficiente para {productoParaAnadir.Nombre}. Disponible: {productoParaAnadir.Producto?.StockTotal ?? 0}";
+            mensajeError = $"⚠️ Stock insuficiente. Disponible: {productoParaAnadir.Producto.StockTotal}, Intentas vender: {cantidadTotal}";
             return;
         }
 
-        // Evitar duplicados
-        var existente = detallesFactura.FirstOrDefault(d => d.IdProducto == productoParaAnadir.IdProducto);
         if (existente != null)
         {
-            existente.Cantidad += productoParaAnadir.Cantidad;
+            existente.Cantidad = (short)cantidadTotal;
             existente.TotalLinea = existente.Cantidad * existente.PrecioUnitario;
         }
         else
@@ -262,9 +397,7 @@
             detallesFactura.Add(productoParaAnadir);
         }
 
-        // Limpiar y recalcular
         productoParaAnadir = new();
-        busquedaProductoQuery = "";
         RecalcularTotales();
     }
 
@@ -278,7 +411,6 @@
     {
         var subtotal = detallesFactura.Sum(d => d.TotalLinea);
         var calculo = TaxCalculator.CalcularImpuestos(subtotal);
-        
         factura.Subtotal = calculo.Subtotal;
         factura.Iva = calculo.MontoIva;
         factura.Total = calculo.Total;
@@ -287,77 +419,52 @@
     private async Task GuardarFactura()
     {
         LimpiarMensajes();
-        if (clienteSeleccionado == null)
-        {
-            mensajeError = "Debe seleccionar un cliente.";
-            return;
-        }
-        if (!detallesFactura.Any())
-        {
-            mensajeError = "Debe añadir al menos un producto.";
-            return;
-        }
-
+        if (clienteSeleccionado == null) { mensajeError = "⚠️ Falta seleccionar cliente"; return; }
+        
         guardando = true;
-
-        // Mapear el VM a la entidad real
-        Factura facturaAGuardar = new Factura
+        Factura nuevaFactura = new Factura
         {
             IdCliente = clienteSeleccionado.IdCliente,
-            Detalles = detallesFactura.Select(d => new DetalleFactura
-            {
-                IdProducto = d.IdProducto,
-                Cantidad = d.Cantidad,
-                PrecioUnitario = d.PrecioUnitario,
-                // TotalLinea ya no se envía, la BD lo calcula
-                Producto = null 
+            Detalles = detallesFactura.Select(d => new DetalleFactura 
+            { 
+                IdProducto = d.IdProducto, 
+                Cantidad = (short)d.Cantidad, 
+                PrecioUnitario = d.PrecioUnitario 
             }).ToList()
         };
+
         try
         {
-            var response = await _http.PostAsJsonAsync("api/facturas", facturaAGuardar);
-
+            var response = await _http.PostAsJsonAsync("api/facturas", nuevaFactura);
             if (response.IsSuccessStatusCode)
             {
-                var facturaCreada = await response.Content.ReadFromJsonAsync<Factura>();
-                mensajeExito = $"¡Factura {facturaCreada?.NumeroFactura} guardada exitosamente! Total: {facturaCreada?.Total.ToString("C")}";
-                // Limpiar todo
-                LimpiarFormulario();
-                await OnInitializedAsync(); // Recargar productos (stock)
+                var creada = await response.Content.ReadFromJsonAsync<Factura>();
+                mensajeExito = $"✅ Venta registrada: {creada?.NumeroFactura}";
+                LimpiarFormularioCompleto();
+                // Recargar productos para actualizar stock en memoria
+                await OnInitializedAsync(); 
             }
             else
             {
-                var error = await response.Content.ReadFromJsonAsync<object>();
-                mensajeError = $"Error al guardar: {error}";
+                mensajeError = $"Error: {await response.Content.ReadAsStringAsync()}";
             }
         }
-        catch (Exception ex)
-        {
-            mensajeError = $"Error de conexión: {ex.Message}";
-        }
-        finally
-        {
-            guardando = false;
-        }
+        catch (Exception ex) { mensajeError = $"Error de red: {ex.Message}"; }
+        finally { guardando = false; }
     }
 
-    private void LimpiarMensajes()
-    {
-        mensajeError = null;
-        mensajeExito = null;
-    }
+    private void LimpiarMensajes() { mensajeError = null; mensajeExito = null; }
 
-    private void LimpiarFormulario()
+    private void LimpiarFormularioCompleto()
     {
-        busquedaClienteId = "";
-        clienteSeleccionado = null;
+        LimpiarCliente();
         busquedaProductoQuery = "";
+        filtroCategoria = "";
         productoParaAnadir = new();
         detallesFactura.Clear();
         RecalcularTotales();
     }
 
-    // Usamos una clase VM (ViewModel) para guardar la referencia al producto
     private class DetalleFacturaVM : DetalleFactura
     {
         public string? Nombre { get; set; }

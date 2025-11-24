@@ -1,0 +1,316 @@
+@page "/editar-producto/{IdProducto:int}"
+@rendermode InteractiveServer
+@using System.Net.Http.Json
+@using SistemaFacturacion.Domain.Entities
+@using Microsoft.AspNetCore.Components.Forms
+@inject IHttpClientFactory HttpFactory
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="page-header">
+    <h1 class="mb-0">
+        <i class="bi bi-@(IdProducto == 0 ? "plus-square" : "pencil-square")"></i> 
+        @(IdProducto == 0 ? "Nuevo Producto" : "Editar Producto")
+    </h1>
+</div>
+
+@if (cargando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Cargando información del producto...</p>
+    </div>
+}
+else
+{
+    <div class="card-modern fade-in">
+        <div class="card-body p-4">
+            <EditForm Model="producto" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
+
+                @if (!string.IsNullOrEmpty(mensajeError))
+                {
+                    <div class="alert alert-danger alert-modern mb-4">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> @mensajeError
+                    </div>
+                }
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Categoría *</label>
+                        @if (IdProducto != 0)
+                        {
+                            <InputSelect class="form-select" @bind-Value="producto.Categoria" disabled>
+                                <option value="">Seleccione una categoría</option>
+                                @foreach (var cat in categoriasDisponibles)
+                                {
+                                    <option value="@cat">@cat</option>
+                                }
+                            </InputSelect>
+                            <small class="text-muted"><i class="bi bi-lock"></i> No modificable</small>
+                        }
+                        else
+                        {
+                            <select class="form-select" @onchange="ManejoCambioCategoria">
+                                <option value="">Seleccione una categoría</option>
+                                @foreach (var cat in categoriasDisponibles)
+                                {
+                                    <option value="@cat" selected="@(producto.Categoria == cat)">@cat</option>
+                                }
+                            </select>
+                            <small class="text-muted">
+                                @if (string.IsNullOrEmpty(producto.Categoria))
+                                {
+                                    <span>Seleccione una categoría para generar el código</span>
+                                }
+                                else
+                                {
+                                    <span>Prefijo generado: <strong>@prefijoCodigo</strong></span>
+                                }
+                            </small>
+                        }
+                    </div>
+
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Nombre *</label>
+                        <InputText class="form-control" @bind-Value="producto.Nombre" placeholder="Ej. Purina Pro Plan Adulto" />
+                        <ValidationMessage For="@(() => producto.Nombre)" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Código *</label>
+                        @if (IdProducto != 0)
+                        {
+                            <InputText class="form-control" @bind-Value="producto.Codigo" disabled />
+                            <small class="text-muted"><i class="bi bi-lock"></i> No modificable</small>
+                        }
+                        else
+                        {
+                            <div class="input-group">
+                                <span class="input-group-text fw-bold" style="min-width: 60px;">@prefijoCodigo</span>
+                                <InputText class="form-control" @bind-Value="sufijoCodigo" 
+                                          @onfocusout="ActualizarCodigoCompleto"
+                                          placeholder="001" 
+                                          maxlength="6" />
+                            </div>
+                            <small class="text-muted">Ingrese solo números (ej: 001, 002)</small>
+                            @if (codigoDuplicado)
+                            {
+                                <div class="text-danger small mt-1 fw-bold">
+                                    <i class="bi bi-exclamation-circle"></i> Este código ya existe
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Precio Venta (PVP) *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <InputNumber class="form-control" @bind-Value="producto.PrecioVenta" placeholder="0.00" />
+                        </div>
+                        <ValidationMessage For="@(() => producto.PrecioVenta)" />
+                    </div>
+
+                    <div class="col-md-8">
+                        <div class="alert alert-info d-flex align-items-center mt-2 mb-0">
+                            <i class="bi bi-info-circle fs-4 me-3"></i>
+                            <div>
+                                <strong>Nota:</strong> El stock se gestiona mediante <strong>Lotes</strong>. 
+                                @if (IdProducto == 0)
+                                {
+                                    <span>Podrá ingresar lotes una vez guardado el producto.</span>
+                                }
+                                else
+                                {
+                                    <span>Puede gestionar los lotes desde el botón inferior o desde la lista.</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-5 d-flex gap-2 justify-content-end border-top pt-3">
+                    <button type="button" class="btn btn-secondary" @onclick="Volver">
+                        Cancelar
+                    </button>
+                    
+                    @if (IdProducto != 0)
+                    {
+                        <button type="button" class="btn btn-outline-info" @onclick="IrALotes">
+                            <i class="bi bi-layers"></i> Gestionar Lotes
+                        </button>
+                    }
+
+                    <button type="submit" class="btn btn-success btn-modern px-4" disabled="@(guardando || codigoDuplicado)">
+                        @if (guardando)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        <i class="bi bi-check-circle"></i> Guardar
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int IdProducto { get; set; }
+
+    private Producto producto = new();
+    private List<string> categoriasDisponibles = new()
+    {
+        "Alimento",
+        "Medicamento",
+        "Juguete",
+        "Accesorio",
+        "Higiene",
+        "Ropa",
+        "Transportadora",
+        "Suplemento",
+        "Otros"
+    };
+    private bool cargando = true;
+    private bool guardando = false;
+    private bool codigoDuplicado = false;
+    private string? mensajeError;
+    private string prefijoCodigo = "---";
+    private string sufijoCodigo = "";
+
+    private void GenerarPrefijo()
+    {
+        if (!string.IsNullOrEmpty(producto.Categoria))
+        {
+            prefijoCodigo = producto.Categoria.Substring(0, Math.Min(3, producto.Categoria.Length)).ToUpper();
+            sufijoCodigo = "";
+            producto.Codigo = "";
+            codigoDuplicado = false;
+            StateHasChanged();
+        }
+        else
+        {
+            prefijoCodigo = "---";
+            sufijoCodigo = "";
+            producto.Codigo = "";
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var http = HttpFactory.CreateClient("LocalApi");
+        try
+        {
+            // Cargar Producto si es edición
+            if (IdProducto != 0)
+            {
+                producto = await http.GetFromJsonAsync<Producto>($"api/productos/{IdProducto}") ?? new();
+            }
+            else
+            {
+                // Inicializar valores por defecto para nuevo
+                producto = new Producto { Estado = true, PrecioVenta = 0 };
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error cargando datos: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+            GenerarPrefijo();
+        }
+    }
+
+    private void ManejoCambioCategoria(ChangeEventArgs e)
+    {
+        producto.Categoria = e.Value?.ToString() ?? "";
+        GenerarPrefijo();
+    }
+
+    private async Task Guardar()
+    {
+        // Validaciones previas
+        if (IdProducto == 0 && codigoDuplicado) return;
+        if (producto.PrecioVenta <= 0)
+        {
+            mensajeError = "El precio de venta debe ser mayor a 0.";
+            return;
+        }
+
+        guardando = true;
+        mensajeError = null;
+        var http = HttpFactory.CreateClient("LocalApi");
+
+        try
+        {
+            HttpResponseMessage resp;
+            if (IdProducto == 0)
+            {
+                resp = await http.PostAsJsonAsync("api/productos", producto);
+            }
+            else
+            {
+                resp = await http.PutAsJsonAsync($"api/productos/{IdProducto}", producto);
+            }
+
+            if (resp.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo("/productos");
+            }
+            else
+            {
+                mensajeError = $"Error al guardar: {await resp.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error de conexión: {ex.Message}";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void AlCambiarCategoria()
+    {
+        GenerarPrefijo();
+    }
+
+    private async Task ActualizarCodigoCompleto()
+    {
+        if (!string.IsNullOrEmpty(prefijoCodigo) && prefijoCodigo != "---" && !string.IsNullOrEmpty(sufijoCodigo))
+        {
+            producto.Codigo = $"{prefijoCodigo}{sufijoCodigo}";
+            await ValidarCodigoUnico();
+        }
+        else
+        {
+            producto.Codigo = "";
+            codigoDuplicado = false;
+        }
+    }
+
+    private async Task ValidarCodigoUnico()
+    {
+        if (IdProducto == 0 && !string.IsNullOrWhiteSpace(producto.Codigo))
+        {
+            var http = HttpFactory.CreateClient("LocalApi");
+            try
+            {
+                var existente = await http.GetFromJsonAsync<Producto>($"api/productos/by-codigo/{producto.Codigo}");
+                codigoDuplicado = existente != null;
+            }
+            catch
+            {
+                codigoDuplicado = false; // Si da 404 es que no existe (bueno)
+            }
+        }
+    }
+
+    private void Volver() => Nav.NavigateTo("/productos");
+    private void IrALotes() => Nav.NavigateTo($"/lotes/{IdProducto}");
+}
