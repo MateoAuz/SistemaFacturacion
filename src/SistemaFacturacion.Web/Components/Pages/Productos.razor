@@ -35,10 +35,8 @@
             <label class="form-label text-muted small">Buscar</label>
             <div class="input-group">
                 <span class="input-group-text bg-white"><i class="bi bi-search text-primary"></i></span>
-                <input type="text" class="form-control" 
-                       @bind="busquedaQuery" 
-                       @bind:event="oninput"
-                       placeholder="Buscar por código o nombre..." />
+                <input type="text" class="form-control" @bind="busquedaQuery" @bind:event="oninput"
+                    placeholder="Buscar por código o nombre..." />
             </div>
         </div>
 
@@ -56,7 +54,8 @@
         <div class="col-md-4 text-end">
             @if (mostrarActivos)
             {
-                <button class="btn btn-primary btn-modern w-100" @onclick='() => NavigationManager.NavigateTo("/editar-producto/0")'>
+                <button class="btn btn-primary btn-modern w-100"
+                    @onclick='() => NavigationManager.NavigateTo("/editar-producto/0")'>
                     <i class="bi bi-plus-circle me-2"></i> Nuevo Producto
                 </button>
             }
@@ -100,7 +99,7 @@ else
                         }
                         else
                         {
-                            @foreach (var p in ProductosFiltrados)
+                            @foreach (var p in productosPaginados)
                             {
                                 var lotesActivos = p.Lotes?.Count(l => l.CantidadActual > 0) ?? 0;
                                 var lotesPorVencer = p.Lotes?.Count(l => l.EstaProximoAVencer) ?? 0;
@@ -111,7 +110,8 @@ else
                                     <td><span class="badge bg-light text-dark border">@p.Categoria</span></td>
                                     <td class="text-end fw-bold">$@p.PrecioVenta.ToString("N2")</td>
                                     <td class="text-center">
-                                        <span class="badge @(p.StockTotal == 0 ? "bg-secondary" : p.StockTotal < 10 ? "bg-warning text-dark" : "bg-success")">
+                                        <span
+                                            class="badge @(p.StockTotal == 0 ? "bg-secondary" : p.StockTotal < 10 ? "bg-warning text-dark" : "bg-success")">
                                             @p.StockTotal
                                         </span>
                                     </td>
@@ -126,28 +126,34 @@ else
                                                 <i class="bi bi-exclamation-triangle"></i> @lotesPorVencer
                                             </span>
                                         }
-                                        @if(lotesActivos == 0) { <span class="text-muted small">-</span> }
+                                        @if (lotesActivos == 0)
+                                        {
+                                            <span class="text-muted small">-</span>
+                                        }
                                     </td>
                                     <td class="text-center">
                                         <div class="d-flex justify-content-center gap-2">
                                             @if (p.Estado)
                                             {
-                                                <button class="btn btn-sm btn-outline-primary" 
-                                                        @onclick='() => NavigationManager.NavigateTo($"/editar-producto/{p.IdProducto}")' 
-                                                        title="Editar">
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                    @onclick='() => NavigationManager.NavigateTo($"/editar-producto/{p.IdProducto}")'
+                                                    title="Editar">
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
 
-                                                <button class="btn btn-sm btn-outline-info" @onclick="() => GestionarLotes(p.IdProducto)" title="Lotes">
+                                                <button class="btn btn-sm btn-outline-info"
+                                                    @onclick="() => GestionarLotes(p.IdProducto)" title="Lotes">
                                                     <i class="bi bi-layers"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-warning" @onclick="() => CambiarEstado(p, false)" title="Desactivar">
+                                                <button class="btn btn-sm btn-outline-warning" @onclick="() => CambiarEstado(p, false)"
+                                                    title="Desactivar">
                                                     <i class="bi bi-archive"></i>
                                                 </button>
                                             }
                                             else
                                             {
-                                                <button class="btn btn-sm btn-outline-success" @onclick="() => CambiarEstado(p, true)" title="Reactivar">
+                                                <button class="btn btn-sm btn-outline-success" @onclick="() => CambiarEstado(p, true)"
+                                                    title="Reactivar">
                                                     <i class="bi bi-arrow-counterclockwise"></i>
                                                 </button>
                                             }
@@ -158,6 +164,12 @@ else
                         }
                     </tbody>
                 </table>
+                @if (ProductosFiltrados.Any())
+                {
+                    <Paginador TItem="Producto" TodosLosItems="ProductosFiltrados.ToList()" ItemsPorPagina="8"
+                        OnCambioPagina="ActualizarProductosPaginados" />
+                }
+
             </div>
         </div>
     </div>
@@ -165,24 +177,26 @@ else
 
 @code {
     private HttpClient _http => HttpFactory.CreateClient("LocalApi");
-    
+
     private List<Producto> productos = new();
     private List<Producto> productosActivos => productos.Where(p => p.Estado).ToList();
     private List<Producto> productosInactivos => productos.Where(p => !p.Estado).ToList();
-    
+    private List<Producto> productosPaginados = new();
+
+
     private string busquedaQuery = "";
     private string filtroCategoria = "";
     private List<string> categoriasDisponibles = new()
-    {
-        "Alimento",
-        "Medicamento",
-        "Juguete",
-        "Accesorio",
-        "Higiene",
-        "Ropa",
-        "Transportadora",
-        "Suplemento",
-        "Otros"
+{
+"Alimento",
+"Medicamento",
+"Juguete",
+"Accesorio",
+"Higiene",
+"Ropa",
+"Transportadora",
+"Suplemento",
+"Otros"
     };
 
     private IEnumerable<Producto> ProductosFiltrados
@@ -197,13 +211,16 @@ else
             if (!string.IsNullOrWhiteSpace(busquedaQuery))
             {
                 var q = busquedaQuery.ToLower();
-                baseList = baseList.Where(p => 
-                    p.Nombre.ToLower().Contains(q) || 
-                    p.Codigo.ToLower().Contains(q)
+                baseList = baseList.Where(p =>
+                p.Nombre.ToLower().Contains(q) ||
+                p.Codigo.ToLower().Contains(q)
                 ).ToList();
             }
 
-            return baseList;
+            return baseList
+            .OrderByDescending(p => p.IdProducto) // o por Nombre, Categoria, etc.
+            .ToList();
+
         }
     }
 
@@ -216,6 +233,13 @@ else
     protected override async Task OnInitializedAsync()
     {
         await Cargar();
+
+        // Inicializar la primera página cuando ya hay datos
+        if (ProductosFiltrados.Any())
+        {
+            // Simular primera página: tomar los primeros 8
+            productosPaginados = ProductosFiltrados.Take(8).ToList();
+        }
     }
 
     private async Task Cargar()
@@ -236,7 +260,7 @@ else
     private void CambiarVista(bool activos)
     {
         mostrarActivos = activos;
-        busquedaQuery = ""; 
+        busquedaQuery = "";
         filtroCategoria = "";
     }
 
@@ -265,4 +289,12 @@ else
         StateHasChanged();
         _ = Task.Run(async () => { await Task.Delay(4000); mostrarMensaje = false; await InvokeAsync(StateHasChanged); });
     }
+
+    private Task ActualizarProductosPaginados(List<Producto> items)
+    {
+        productosPaginados = items;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
 }

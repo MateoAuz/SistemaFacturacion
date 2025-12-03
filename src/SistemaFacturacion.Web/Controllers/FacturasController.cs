@@ -51,7 +51,7 @@ public class FacturasController : ControllerBase
         // Asignar fecha y generar número de factura
         factura.IdUsuario = 1; // Valor temporal
         factura.FechaEmision = DateTime.UtcNow;
-        
+
         // Generar número de factura secuencial
         var consecutivo = await _context.Facturas.CountAsync() + 1;
         factura.NumeroFactura = $"001-002-{consecutivo:000000000}";
@@ -77,21 +77,27 @@ public class FacturasController : ControllerBase
 
     // GET /api/facturas
     [HttpGet]
-    public async Task<IActionResult> GetFacturas([FromQuery] string? estado = null) // MODIFICADO
+    public async Task<IActionResult> GetFacturas([FromQuery] string? estado = null) // ✅ Cambiar a Task<IActionResult>
     {
         try
         {
             var facturas = await _facturaRepo.GetAllAsync(
-                estado: estado, // Pasa el filtro de estado al repositorio
+                estado: estado,
                 includeCliente: true,
                 includeDetalles: true);
 
             if (!facturas.Any())
             {
-                return Ok(new List<object>()); 
+                return Ok(new List<object>());
             }
 
-            var result = facturas.Select(f => new
+            // ✅ ORDENAR POR ID (el más reciente es el mayor ID):
+            var facturasOrdenadas = facturas
+                .OrderByDescending(f => f.IdFactura)
+                .ToList();
+
+
+            var result = facturasOrdenadas.Select(f => new
             {
                 f.IdFactura,
                 f.NumeroFactura,
@@ -99,8 +105,8 @@ public class FacturasController : ControllerBase
                 f.Subtotal,
                 f.Iva,
                 f.Total,
-                f.Estado, 
-                f.SaldoPendiente, // <<-- AÑADIDO
+                f.Estado,
+                f.SaldoPendiente,
                 Cliente = f.Cliente == null ? null : new
                 {
                     f.Cliente.IdCliente,
@@ -125,14 +131,14 @@ public class FacturasController : ControllerBase
         }
         catch (Exception ex)
         {
-            // Log del error
             Console.WriteLine($"Error al obtener facturas: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            
-            return StatusCode(500, new { 
+            return StatusCode(500, new
+            {
                 error = "Error interno del servidor",
                 details = ex.Message
             });
         }
     }
+
 }

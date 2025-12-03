@@ -47,11 +47,8 @@ else
                         <span class="input-group-text bg-white">
                             <i class="bi bi-search"></i>
                         </span>
-                        <input type="text" 
-                               class="form-control" 
-                               placeholder="Buscar por N° factura o cliente..."
-                               @bind-value="terminoBusqueda"
-                               @bind-value:event="oninput" />
+                        <input type="text" class="form-control" placeholder="Buscar por N° factura o cliente..."
+                            @bind-value="terminoBusqueda" @bind-value:event="oninput" />
                         @if (!string.IsNullOrEmpty(terminoBusqueda))
                         {
                             <button class="btn btn-outline-secondary" @onclick="LimpiarBusqueda" type="button">
@@ -139,10 +136,8 @@ else
             <!-- Paginador -->
             @if (facturasFiltradas.Any())
             {
-                <Paginador TItem="FacturaValidacionDto" 
-                           TodosLosItems="facturasFiltradas" 
-                           ItemsPorPagina="8"
-                           OnCambioPagina="ActualizarFacturasPaginadas" />
+                <Paginador TItem="FacturaValidacionDto" TodosLosItems="facturasFiltradas" ItemsPorPagina="8"
+                    OnCambioPagina="ActualizarFacturasPaginadas" />
             }
         </div>
     </div>
@@ -158,7 +153,8 @@ else
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">
-                        <i class="bi bi-file-earmark-code"></i> Visualización de XML - Factura @facturaSeleccionada?.NumeroFactura
+                        <i class="bi bi-file-earmark-code"></i> Visualización de XML - Factura
+                        @facturaSeleccionada?.NumeroFactura
                     </h5>
                     <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
                 </div>
@@ -169,10 +165,11 @@ else
                             <i class="bi bi-info-circle me-2"></i>
                             <small>Este es el contenido XML generado para el comprobante electrónico.</small>
                         </div>
-                        
+
                         <div class="card">
                             <div class="card-body p-0">
-                                <pre class="mb-0 p-3" style="background-color: #2d2d2d; color: #f8f8f2; border-radius: 8px; max-height: 500px; overflow-y: auto; font-size: 0.85rem; line-height: 1.4;"><code>@xmlContent</code></pre>
+                                <pre class="mb-0 p-3"
+                                    style="background-color: #2d2d2d; color: #f8f8f2; border-radius: 8px; max-height: 500px; overflow-y: auto; font-size: 0.85rem; line-height: 1.4;"><code>@xmlContent</code></pre>
                             </div>
                         </div>
                     }
@@ -187,7 +184,8 @@ else
                     <button type="button" class="btn btn-secondary" @onclick="CerrarModal">
                         <i class="bi bi-x-circle"></i> Cerrar
                     </button>
-                    <button type="button" class="btn btn-primary" @onclick="() => DescargarXml(facturaSeleccionada.IdFactura)">
+                    <button type="button" class="btn btn-primary"
+                        @onclick="() => DescargarXml(facturaSeleccionada.IdFactura)">
                         <i class="bi bi-download"></i> Descargar XML
                     </button>
                 </div>
@@ -200,10 +198,10 @@ else
 @code {
     private List<FacturaValidacionDto> facturas = new();
     private List<FacturaValidacionDto> facturasPaginadas = new();
-    
+
     // ✅ NUEVA: Variable para búsqueda
     private string terminoBusqueda = string.Empty;
-    
+
     // ✅ NUEVA: Propiedad computada para filtrar
     private List<FacturaValidacionDto> facturasFiltradas
     {
@@ -214,17 +212,17 @@ else
 
             var busqueda = terminoBusqueda.Trim().ToLower();
             return facturas.Where(f =>
-                (f.NumeroFactura != null && f.NumeroFactura.ToLower().Contains(busqueda)) ||
-                (f.NombreCliente != null && f.NombreCliente.ToLower().Contains(busqueda))
+            (f.NumeroFactura != null && f.NumeroFactura.ToLower().Contains(busqueda)) ||
+            (f.NombreCliente != null && f.NombreCliente.ToLower().Contains(busqueda))
             ).ToList();
         }
     }
-    
+
     private bool isLoading = true;
     private string mensajeExito = string.Empty;
     private string mensajeError = string.Empty;
     private bool mostrarModal = false;
-    
+
     // Variables para visualización de XML
     private string xmlContent = string.Empty;
     private FacturaValidacionDto? facturaSeleccionada;
@@ -240,8 +238,21 @@ else
         {
             isLoading = true;
             StateHasChanged();
-            
-            facturas = await ValidacionService.GetFacturasPagadasParaValidacionAsync();
+
+            var facturasTemp = await ValidacionService.GetFacturasPagadasParaValidacionAsync();
+
+            // ✅ ORDENAR AQUÍ POR ID DESCENDENTE
+            facturas = facturasTemp
+            .OrderByDescending(f => f.IdFactura)
+            .ToList();
+
+            // 🔍 DEBUG: Ver qué IDs están cargados
+            Console.WriteLine("=== FACTURAS CARGADAS ===");
+            foreach (var f in facturas.Take(3))
+            {
+                Console.WriteLine($"ID: {f.IdFactura}, Numero: {f.NumeroFactura}");
+            }
+            Console.WriteLine("=========================");
         }
         catch (Exception ex)
         {
@@ -253,6 +264,8 @@ else
             StateHasChanged();
         }
     }
+
+
 
     // ✅ NUEVO: Método para limpiar búsqueda
     private void LimpiarBusqueda()
@@ -289,12 +302,12 @@ else
             var xmlContentToDownload = await XmlValidator.DescargarXmlFacturaAsync(idFactura);
             var factura = facturas.FirstOrDefault(f => f.IdFactura == idFactura);
             var fileName = $"FAC_{factura?.NumeroFactura?.Replace("-", "")}_{DateTime.Now:yyyyMMddHHmmss}.xml";
-            
+
             var bytes = System.Text.Encoding.UTF8.GetBytes(xmlContentToDownload);
             var base64 = Convert.ToBase64String(bytes);
-            
+
             await JS.InvokeVoidAsync("downloadFile", fileName, "application/xml", base64);
-            
+
             MostrarMensaje("✅ XML descargado correctamente", true);
         }
         catch (Exception ex)
@@ -338,7 +351,7 @@ else
             mensajeError = texto;
             mensajeExito = string.Empty;
         }
-        
+
         StateHasChanged();
 
         _ = Task.Run(async () =>
@@ -350,4 +363,3 @@ else
         });
     }
 }
-
