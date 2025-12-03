@@ -7,11 +7,11 @@ public class ConfiguracionEmpresa
     public string? NombreComercial { get; set; }
     public string Ruc { get; set; } = string.Empty;
     public string? DireccionMatriz { get; set; }
-    public string? Establecimiento { get; set; } // NUEVO: 001, 002, etc.
+    public string? Establecimiento { get; set; } 
     public string? PuntoEmision { get; set; }
-    public char Ambiente { get; set; }  // '1' o '2'
+    public char Ambiente { get; set; } 
     public string? RutaCertificado { get; set; }
     public string? ClaveCertificado { get; set; }
     public string? CorreoEmpresa { get; set; }
-    public string? ObligadoContabilidad { get; set; } // SI o NO
+    public string? ObligadoContabilidad { get; set; } 
 }

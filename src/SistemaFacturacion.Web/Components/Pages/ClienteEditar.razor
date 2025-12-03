@@ -148,17 +148,13 @@ else
             {
                 cliente = await http.GetFromJsonAsync<Cliente>($"api/clientes/{IdCliente}") ?? new();
 
-                // === CORRECCIÓN AQUÍ ===
-                // Limpiamos espacios en blanco (Trim) para evitar falsos errores
                 cliente.Identificacion = cliente.Identificacion?.Trim() ?? "";
                 cliente.TipoIdentificacion = cliente.TipoIdentificacion?.Trim() ?? "CEDUL";
                 cliente.Nombres = cliente.Nombres?.Trim() ?? "";
                 cliente.Apellidos = cliente.Apellidos?.Trim() ?? "";
 
-                // Guardamos el original YA LIMPIO
                 identificacionOriginal = cliente.Identificacion;
 
-                // Si ya existe, asumimos que es válida de inicio
                 identificacionEsValida = true;
             }
             catch (Exception ex)
@@ -177,12 +173,10 @@ else
 
     private async Task ValidarYVerificarExistencia()
     {
-        // Limpiar espacios antes de validar
         if (!string.IsNullOrEmpty(cliente.Identificacion))
             cliente.Identificacion = cliente.Identificacion.Trim();
 
-        // Si no ha cambiado la identificación respecto a la original (en edición),
-        // NO hacemos nada y asumimos que es válida.
+        
         if (IdCliente != 0 && cliente.Identificacion == identificacionOriginal)
         {
             identificacionEsValida = true;
@@ -198,7 +192,6 @@ else
         validandoIdentificacion = true;
         StateHasChanged();
 
-        // 1. Validar Formato
         var errorFormato = cliente.ValidarIdentificacion();
         if (errorFormato != null)
         {
@@ -207,7 +200,6 @@ else
             return;
         }
 
-        // 2. Validar Duplicado en BD (Solo si cambió)
         try
         {
             var http = HttpClientFactory.CreateClient("LocalApi");
@@ -222,7 +214,6 @@ else
         }
         catch
         {
-            // Si falla la red, permitimos continuar con precaución
         }
 
         identificacionEsValida = true;
@@ -232,8 +223,7 @@ else
 
     private async Task Guardar()
     {
-        // Solo validamos duplicados si la ID cambió.
-        // Si es la misma ID original, nos saltamos la validación de existencia para no bloquear.
+                  
         if (IdCliente == 0 || cliente.Identificacion != identificacionOriginal)
         {
             await ValidarYVerificarExistencia();

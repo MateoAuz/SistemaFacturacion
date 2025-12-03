@@ -71,7 +71,7 @@ public class ClientesController : ControllerBase
         return Ok(updated);
     }
 
-    // DELETE /api/clientes/{id} (baja lógica)
+    // DELETE /api/clientes/{id} 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
@@ -97,7 +97,7 @@ public class ClientesController : ControllerBase
         return NoContent();
     }
 
-    // GET /api/clientes/todos (opcional - para ver todos incluyendo inactivos)
+    // GET /api/clientes/todos 
     [HttpGet("todos")]
     public async Task<ActionResult<IEnumerable<Cliente>>> GetAllIncluyendoInactivos(CancellationToken ct)
     {
@@ -105,7 +105,6 @@ public class ClientesController : ControllerBase
         return Ok(list);
     }
 
-    // En tu ClienteController agrega este método
     [HttpGet("existe/{identificacion}")]
     public async Task<ActionResult<bool>> ExisteIdentificacion(string identificacion)
     {

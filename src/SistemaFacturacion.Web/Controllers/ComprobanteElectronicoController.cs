@@ -9,21 +9,19 @@ public class ComprobanteElectronicoController : ControllerBase
 {
     private readonly IXmlGeneratorService _xmlGeneratorService;
     private readonly IComprobanteElectronicoRepository _comprobanteRepository;
-    private readonly IXmlValidationService _xmlValidationService; // ✅ AGREGAR ESTA LÍNEA
+    private readonly IXmlValidationService _xmlValidationService; 
 
     public ComprobanteElectronicoController(
         IXmlGeneratorService xmlGeneratorService,
         IComprobanteElectronicoRepository comprobanteRepository,
-        IXmlValidationService xmlValidationService) // ✅ AGREGAR ESTE PARÁMETRO
+        IXmlValidationService xmlValidationService) 
     {
         _xmlGeneratorService = xmlGeneratorService;
         _comprobanteRepository = comprobanteRepository;
-        _xmlValidationService = xmlValidationService; // ✅ AGREGAR ESTA ASIGNACIÓN
+        _xmlValidationService = xmlValidationService; 
     }
 
-    /// <summary>
-    /// Genera el XML de una factura
-    /// </summary>
+
     [HttpPost("generar-xml/{idFactura}")]
     public async Task<IActionResult> GenerarXml(int idFactura, CancellationToken ct)
     {
@@ -50,9 +48,7 @@ public class ComprobanteElectronicoController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Obtiene el comprobante electrónico de una factura
-    /// </summary>
+  
     [HttpGet("factura/{idFactura}")]
     public async Task<IActionResult> ObtenerComprobante(int idFactura, CancellationToken ct)
     {
@@ -83,9 +79,7 @@ public class ComprobanteElectronicoController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Descarga el XML de una factura
-    /// </summary>
+
     [HttpGet("descargar-xml/{idFactura}")]
     public async Task<IActionResult> DescargarXml(int idFactura, CancellationToken ct)
     {
@@ -105,15 +99,11 @@ public class ComprobanteElectronicoController : ControllerBase
         }
     }
 
-    /// <summary>
-/// Valida el XML de un comprobante contra el esquema XSD del SRI
-/// </summary>
 [HttpPost("validar-xml/{idFactura}")]
 public async Task<IActionResult> ValidarXml(int idFactura, CancellationToken ct)
 {
     try
     {
-        // Obtener el comprobante
         var comprobante = await _comprobanteRepository.GetByFacturaIdAsync(idFactura, ct);
         
         if (comprobante == null)
@@ -122,7 +112,6 @@ public async Task<IActionResult> ValidarXml(int idFactura, CancellationToken ct)
         if (string.IsNullOrEmpty(comprobante.XmlGenerado))
             return BadRequest(new { success = false, message = "El comprobante no tiene XML generado" });
         
-        // Validar contra XSD del SRI
         var xsdPath = "Resources/XSD/factura_V2.1.0.xsd";
         var (esValido, mensajes) = await _xmlValidationService.ValidarXmlContraXsdAsync(
             comprobante.XmlGenerado, 

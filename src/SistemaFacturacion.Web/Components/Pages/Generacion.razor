@@ -199,10 +199,8 @@ else
     private List<FacturaValidacionDto> facturas = new();
     private List<FacturaValidacionDto> facturasPaginadas = new();
 
-    // ✅ NUEVA: Variable para búsqueda
     private string terminoBusqueda = string.Empty;
 
-    // ✅ NUEVA: Propiedad computada para filtrar
     private List<FacturaValidacionDto> facturasFiltradas
     {
         get
@@ -223,7 +221,6 @@ else
     private string mensajeError = string.Empty;
     private bool mostrarModal = false;
 
-    // Variables para visualización de XML
     private string xmlContent = string.Empty;
     private FacturaValidacionDto? facturaSeleccionada;
 
@@ -241,12 +238,10 @@ else
 
             var facturasTemp = await ValidacionService.GetFacturasPagadasParaValidacionAsync();
 
-            // ✅ ORDENAR AQUÍ POR ID DESCENDENTE
             facturas = facturasTemp
             .OrderByDescending(f => f.IdFactura)
             .ToList();
 
-            // 🔍 DEBUG: Ver qué IDs están cargados
             Console.WriteLine("=== FACTURAS CARGADAS ===");
             foreach (var f in facturas.Take(3))
             {

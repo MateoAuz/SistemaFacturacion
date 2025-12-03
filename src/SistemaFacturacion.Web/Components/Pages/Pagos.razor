@@ -285,7 +285,6 @@
     private List<FacturaDto> facturas = new();
     private List<FacturaDto> facturasPaginadas = new();
     private string terminoBusqueda = string.Empty;
-    // ✅ ACTUALIZADA: Incluye lógica de búsqueda
     private List<FacturaDto> facturasFiltradas
     {
         get
@@ -298,7 +297,6 @@
                 resultado = resultado.Where(f => f.Estado == filtroEstado);
             }
 
-            // ✅ NUEVO: Aplicar búsqueda
             if (!string.IsNullOrWhiteSpace(terminoBusqueda))
             {
                 var busqueda = terminoBusqueda.Trim().ToLower();
@@ -361,7 +359,6 @@
         }
     }
 
-    // ✅ NUEVO: Método para limpiar búsqueda
     private void LimpiarBusqueda()
     {
         terminoBusqueda = string.Empty;
@@ -402,7 +399,6 @@
     private void AplicarFiltro(string estado)
 {
     filtroEstado = estado;
-    // ✅ Limpiar la paginación al cambiar filtro (el paginador se reiniciará automáticamente)
     facturasPaginadas = new();
     StateHasChanged();
 }
@@ -414,7 +410,7 @@
         return facturas.Count(f => f.Estado == estado);
     }
 
-    // --- Lógica de Pagos (CA-06.1 - CA-06.4) ---
+    // --- Lógica de Pagos ---
     private void AbrirModalPago(FacturaDto factura)
     {
         facturaParaPago = factura;
@@ -454,7 +450,6 @@
 
             if (response.IsSuccessStatusCode)
             {
-                // Solo recargamos si el filtro es TODAS o el estado después del pago no cambiará
                 await CargarFacturas(); 
                 CerrarModalPago();
             }
@@ -500,8 +495,6 @@
         return "text-danger";
     }
 
-    // --- DTOs (Data Transfer Objects) Modificados ---
-    // NOTA: Se añade Pagos al DTO para que Reportes.razor funcione sin el fetch de detalle completo
     public class FacturaDto
     {
         public int IdFactura { get; set; }

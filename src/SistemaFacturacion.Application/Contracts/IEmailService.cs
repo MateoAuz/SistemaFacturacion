@@ -1,11 +1,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SistemaFacturacion.Application.Contracts; // O .Services si prefieres
+namespace SistemaFacturacion.Application.Contracts; 
 
 public interface IEmailService
 {
-    // ✅ NUEVO: Método con múltiples adjuntos
+    
     Task EnviarFacturaConXmlAsync(
         string emailDestino,
         string nombreCliente,

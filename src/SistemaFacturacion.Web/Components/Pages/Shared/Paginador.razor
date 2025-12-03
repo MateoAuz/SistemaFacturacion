@@ -63,8 +63,6 @@
 
             var itemsParaSaltar = (PaginaActual - 1) * ItemsPorPagina;
 
-            // ❌ Ya NO usar Reverse aquí
-            // Solo paginar respetando el orden recibido
             return TodosLosItems
             .Skip(itemsParaSaltar)
             .Take(ItemsPorPagina)

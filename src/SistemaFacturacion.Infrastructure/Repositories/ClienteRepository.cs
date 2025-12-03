@@ -16,11 +16,9 @@ public class ClienteRepository : IClienteRepository
 
     public async Task<Cliente> AddAsync(Cliente cliente, CancellationToken ct = default)
     {
-        // Normalizar identificacion/correo si aplica
         if (!string.IsNullOrWhiteSpace(cliente.Identificacion))
             cliente.Identificacion = cliente.Identificacion.Trim();
 
-        // Validar duplicado por identificacion
         var exists = await _db.Clientes
             .AnyAsync(c => c.Identificacion == cliente.Identificacion, ct);
 
@@ -39,7 +37,6 @@ public class ClienteRepository : IClienteRepository
         var entity = await _db.Clientes.FirstOrDefaultAsync(c => c.IdCliente == id, ct);
         if (entity is null) return null;
 
-        // Si cambia identificacion, valida duplicado
         if (!string.IsNullOrWhiteSpace(input.Identificacion) &&
             input.Identificacion.Trim() != entity.Identificacion)
         {
@@ -56,7 +53,7 @@ public class ClienteRepository : IClienteRepository
         entity.Direccion = input.Direccion;
         entity.Telefono = input.Telefono;
         entity.Correo = input.Correo;
-        // No cambiamos Estado aquí salvo que quieras exponerlo en PUT
+       
 
         await _db.SaveChangesAsync(ct);
         return entity;
@@ -67,7 +64,7 @@ public class ClienteRepository : IClienteRepository
         var entity = await _db.Clientes.FirstOrDefaultAsync(c => c.IdCliente == id, ct);
         if (entity is null) return false;
 
-        if (!entity.Estado) return true; // ya está dado de baja
+        if (!entity.Estado) return true; 
         entity.Estado = false;
         await _db.SaveChangesAsync(ct);
         return true;
@@ -78,7 +75,7 @@ public class ClienteRepository : IClienteRepository
     var entity = await _db.Clientes.FirstOrDefaultAsync(c => c.IdCliente == id, ct);
     if (entity is null) return false;
 
-    if (entity.Estado) return true; // ya está activo
+    if (entity.Estado) return true; 
     entity.Estado = true;
     await _db.SaveChangesAsync(ct);
     return true;

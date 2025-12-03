@@ -4,7 +4,7 @@ using SistemaFacturacion.Infrastructure.Persistence;
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Infrastructure.Repositories;
 using SistemaFacturacion.Application.Services;
-using SistemaFacturacion.Infrastructure.Services; // ✅ AGREGAR ESTE USING
+using SistemaFacturacion.Infrastructure.Services; 
 using SistemaFacturacion.Domain.Entities;
 using SistemaFacturacion.Domain.Configuration;
 using System.Text.Json;
@@ -13,7 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Polly;
 
-using System.Globalization;  // ← AGREGAR ESTA LÍNEA
+using System.Globalization; 
 
 
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -21,13 +21,12 @@ CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 🔧 CONFIGURACIÓN DE HTTPCLIENT
+// CONFIGURACIÓN DE HTTPCLIENT
 builder.Services.AddHttpClient("LocalApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["BaseUrl"] ?? builder.Configuration["Urls"]?.Split(';').First() ?? "https://localhost:7001/");
 });
 
-// ✅ AGREGAR HttpClient para el API del SRI (SOAP)
 builder.Services.AddHttpClient("SriSoap", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(60);
@@ -39,7 +38,6 @@ builder.Services.AddHttpClient("SriSoap", client =>
         sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
     ));
 
-// También agrega HttpClient genérico con BaseAddress
 builder.Services.AddScoped(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
@@ -56,7 +54,6 @@ var sriConfig = new SriConfiguracion();
 builder.Configuration.GetSection("SRI").Bind(sriConfig);
 builder.Services.AddSingleton(sriConfig);
 
-// 🔧 REPOSITORIOS
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
@@ -66,41 +63,32 @@ builder.Services.AddScoped<ILoteRepository, LoteRepository>();
 builder.Services.AddScoped<IPagoRepository, PagoRepository>();
 builder.Services.AddScoped<IComprobanteElectronicoRepository, ComprobanteElectronicoRepository>();
 
-// 🔧 SERVICIOS DE APLICACIÓN (Lógica Pura)
 builder.Services.AddScoped<ITaxCalculator, SistemaFacturacion.Application.Services.TaxCalculator>();
 builder.Services.AddScoped<IPagoService, PagoService>();
 builder.Services.AddScoped<IXmlValidationService, XmlValidationService>();
 builder.Services.AddScoped<IValidacionFacturaService, ValidacionFacturaService>();
 
-// 🔧 SERVICIOS DE INFRAESTRUCTURA (Conexión a BD)
 builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Services.StockService>();
 
-// ==========================================
-// SERVICIOS DE FACTURACIÓN ELECTRÓNICA (NUEVOS)
-// ==========================================
+
 builder.Services.AddScoped<IClaveAccesoService, ClaveAccesoService>();
 builder.Services.AddScoped<IXmlGeneratorService, XmlGeneratorService>();
 
-// ✅ CORREGIR: SriApiService debe ser de Infrastructure.Services
 builder.Services.AddScoped<ISriApiService, SistemaFacturacion.Infrastructure.Services.SriApiService>();
 builder.Services.AddScoped<IFacturacionElectronicaService, FacturacionElectronicaService>();
 
-// ✅ AGREGAR ESTOS SERVICIOS
 builder.Services.AddScoped<IRideGeneratorService, RideGeneratorService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// 🔧 CONFIGURACIÓN JSON
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.SerializerOptions.WriteIndented = true;
 });
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// 💾 CONFIGURAR LA CONEXIÓN A POSTGRESQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -121,10 +109,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
-// 🔄 REDIRECCIÓN TEMPORAL: DE "/" A "/LOGIN"
 app.MapGet("/", () => Results.Redirect("/login"));
 
-// CONFIGURE THE HTTP REQUEST PIPELINE.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
@@ -145,23 +131,19 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// ✅ ORDEN CORRECTO: Primero mapear componentes, luego el manejo de 404
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
     
 app.UseAntiforgery();
 
-// ✅ MIDDLEWARE PARA RUTAS NO MANEJADAS - DEBE IR AL FINAL
 app.Use(async (context, next) =>
 {
     await next();
     
-    // Si después de procesar la request sigue siendo 404 y no es una ruta de Blazor
     if (context.Response.StatusCode == 404 && 
         !context.Request.Path.StartsWithSegments("/_blazor") &&
         !context.Request.Path.StartsWithSegments("/_framework"))
     {
-        // Redirigir a la página de error 404 de Blazor
         context.Response.Redirect("/error-404");
     }
 });

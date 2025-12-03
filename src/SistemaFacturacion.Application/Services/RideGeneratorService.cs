@@ -19,10 +19,9 @@ public class RideGeneratorService : IRideGeneratorService
     private readonly IComprobanteElectronicoRepository _comprobanteRepo;
     private readonly IConfiguracionRepository _configuracionRepo;
 
-    // Colores del diseño (Verde pastel de la imagen)
     private static class CustomColors
     {
-        public static readonly string Primary = "#C8D9C6"; // Verde claro encabezado
+        public static readonly string Primary = "#C8D9C6"; 
         public static readonly string TextDark = "#333333";
         public static readonly string HeaderText = "#555555";
     }
@@ -74,23 +73,18 @@ public class RideGeneratorService : IRideGeneratorService
     {
         container.Column(column =>
         {
-            // 1. Franja superior con Logo y Nombre
             column.Item().Background(CustomColors.Primary).PaddingVertical(15).Row(row =>
             {
                 row.RelativeItem().AlignCenter().Column(col =>
                 {
-                    // Aquí iría el logo si tuvieras la imagen
-                    // col.Item().Image("logo.png").Width(50); 
                     col.Item().Text(config.NombreComercial ?? "TU LOGO AQUÍ").FontSize(14).SemiBold();
                 });
             });
 
             column.Item().PaddingTop(20).Row(row =>
             {
-                // 2. Título FACTURA
                 row.RelativeItem().Text("FACTURA").FontSize(36).Bold().FontColor("#555555");
 
-                // 3. Recuadro Número Factura
                 row.ConstantItem(180).Background("#F0F5F0").Padding(10).Column(col =>
                 {
                     col.Item().AlignCenter().Text("FACTURA NÚMERO").FontSize(9).SemiBold();
@@ -100,10 +94,8 @@ public class RideGeneratorService : IRideGeneratorService
 
             column.Item().PaddingTop(20).LineHorizontal(1).LineColor(CustomColors.Primary);
 
-            // 4. Datos Cliente y Emisor
             column.Item().PaddingTop(15).Row(row =>
             {
-                // Datos Cliente (Izquierda)
                 row.RelativeItem().Column(col =>
                 {
                     col.Item().Text("DATOS DEL CLIENTE").Bold().FontSize(10);
@@ -114,7 +106,6 @@ public class RideGeneratorService : IRideGeneratorService
                     col.Item().Text($"Teléfono: {factura.Cliente?.Telefono ?? "N/A"}");
                 });
 
-                // Datos Emisor (Derecha)
                 row.RelativeItem().PaddingLeft(20).Column(col =>
                 {
                     col.Item().Text(config.RazonSocial ?? "EMPRESA").Bold().FontSize(10);
@@ -124,7 +115,6 @@ public class RideGeneratorService : IRideGeneratorService
                 });
             });
 
-            // 5. Fecha con fondo verde
             column.Item().PaddingTop(15).Row(row =>
             {
                 row.AutoItem().Background(CustomColors.Primary).PaddingHorizontal(10).PaddingVertical(5)
@@ -144,13 +134,12 @@ public class RideGeneratorService : IRideGeneratorService
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.RelativeColumn(4); // Descripción
-                    columns.ConstantColumn(60); // Cantidad
-                    columns.ConstantColumn(80); // Precio
-                    columns.ConstantColumn(80); // Total
+                    columns.RelativeColumn(4); 
+                    columns.ConstantColumn(60); 
+                    columns.ConstantColumn(80); 
+                    columns.ConstantColumn(80); 
                 });
 
-                // Header Tabla
                 table.Header(header =>
                 {
                     header.Cell().Background(CustomColors.Primary).Padding(8).Text("DESCRIPCIÓN").Bold().FontSize(9);
@@ -159,7 +148,6 @@ public class RideGeneratorService : IRideGeneratorService
                     header.Cell().Background(CustomColors.Primary).Padding(8).AlignRight().Text("TOTAL").Bold().FontSize(9);
                 });
 
-                // Filas
                 foreach (var item in factura.Detalles)
                 {
                     table.Cell().BorderBottom(1).BorderColor("#E0E0E0").Padding(8).Text(item.Producto?.Nombre ?? "Item");
@@ -169,10 +157,9 @@ public class RideGeneratorService : IRideGeneratorService
                 }
             });
 
-            // TOTALES (Alineados a la derecha debajo de la tabla)
             column.Item().PaddingTop(10).Row(row =>
             {
-                row.RelativeItem(); // Espacio vacío a la izquierda
+                row.RelativeItem(); 
                 row.ConstantItem(200).Column(col =>
                 {
                     col.Item().Row(r => { 
@@ -191,13 +178,10 @@ public class RideGeneratorService : IRideGeneratorService
                 });
             });
 
-            // SECCIÓN NOTA + QR (Reemplazando el recuadro gris de la imagen)
             column.Item().PaddingTop(20).Background("#F0F5F0").Border(1).BorderColor(CustomColors.Primary).Padding(10).Row(row =>
             {
-                // QR a la izquierda
                 row.ConstantItem(80).Image(qrBytes);
 
-                // Info SRI a la derecha
                 row.RelativeItem().PaddingLeft(15).Column(col =>
                 {
                     col.Item().Text("INFORMACIÓN TRIBUTARIA").Bold().FontSize(9);
@@ -208,7 +192,6 @@ public class RideGeneratorService : IRideGeneratorService
                 });
             });
 
-            // Mensaje final estilo imagen
             column.Item().PaddingTop(20).AlignCenter().Background(CustomColors.Primary).PaddingVertical(8).PaddingHorizontal(20)
                 .Text("MUCHAS GRACIAS").FontSize(12).LetterSpacing(2).FontColor("#555555");
         });

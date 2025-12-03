@@ -7,10 +7,10 @@ public class Usuario
     public string NombreUsuario { get; set; } = string.Empty;
     public string ClaveHash { get; set; } = string.Empty;
     public string? Correo { get; set; }
-    public char Rol { get; set; }  // 'A' = Admin, 'V' = Vendedor
+    public char Rol { get; set; }  
     public bool Estado { get; set; } = true;
     
-    [JsonIgnore] // <-- AÑADE ESTO
+    [JsonIgnore] 
 
     public ICollection<Factura>? Facturas { get; set; }
     public ICollection<HistorialPrecio>? HistorialPrecios { get; set; }

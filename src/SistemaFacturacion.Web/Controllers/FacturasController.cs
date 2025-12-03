@@ -9,7 +9,7 @@ namespace SistemaFacturacion.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Permitir acceso sin autenticación
+[AllowAnonymous] 
 public class FacturasController : ControllerBase
 {
     private readonly IFacturaRepository _facturaRepo;
@@ -36,7 +36,6 @@ public class FacturasController : ControllerBase
         if (!factura.Detalles.Any())
             return BadRequest("La factura debe tener al menos un producto.");
 
-        // 1. Recalcular totales en el backend
         decimal subtotal = 0;
         foreach (var detalle in factura.Detalles)
         {
@@ -48,11 +47,9 @@ public class FacturasController : ControllerBase
         factura.Iva = calculo.MontoIva;
         factura.Total = calculo.Total;
 
-        // Asignar fecha y generar número de factura
-        factura.IdUsuario = 1; // Valor temporal
+        factura.IdUsuario = 1; 
         factura.FechaEmision = DateTime.UtcNow;
 
-        // Generar número de factura secuencial
         var consecutivo = await _context.Facturas.CountAsync() + 1;
         factura.NumeroFactura = $"001-002-{consecutivo:000000000}";
         factura.Estado = "PENDIENTE";
@@ -65,19 +62,17 @@ public class FacturasController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // Error de negocio (ej. Sin Stock)
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            // Otro error
             return StatusCode(500, new { message = $"Error interno: {ex.Message}" });
         }
     }
 
     // GET /api/facturas
     [HttpGet]
-    public async Task<IActionResult> GetFacturas([FromQuery] string? estado = null) // ✅ Cambiar a Task<IActionResult>
+    public async Task<IActionResult> GetFacturas([FromQuery] string? estado = null) 
     {
         try
         {
@@ -91,7 +86,7 @@ public class FacturasController : ControllerBase
                 return Ok(new List<object>());
             }
 
-            // ✅ ORDENAR POR ID (el más reciente es el mayor ID):
+            
             var facturasOrdenadas = facturas
                 .OrderByDescending(f => f.IdFactura)
                 .ToList();

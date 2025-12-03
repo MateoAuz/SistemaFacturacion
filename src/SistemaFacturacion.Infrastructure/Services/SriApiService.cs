@@ -29,14 +29,6 @@ public class SriApiService : ISriApiService
         try
         {
 
-            // ✅ Limpiar el XML firmado
-            //xmlFirmado = xmlFirmado.Trim();
-
-            // ✅ Remover el atributo standalone="no" que puede causar problemas
-            //xmlFirmado = xmlFirmado.Replace(" standalone=\"no\"", "");
-
-            // ✅ Normalizar espacios en blanco
-            //xmlFirmado = System.Text.RegularExpressions.Regex.Replace(xmlFirmado, @">\s+<", "><");
 
             // --- Convertir el XML firmado a Base64 SIN MODIFICARLO ---
             var xmlBytes = Encoding.UTF8.GetBytes(xmlFirmado); // asume utf-8; si recibes bytes, úsalos directamente
@@ -59,7 +51,6 @@ public class SriApiService : ISriApiService
             var response = await _httpClient.PostAsync(URL_RECEPCION_PRUEBAS, content, ct);
             var responseBody = await response.Content.ReadAsStringAsync(ct);
 
-            // ✅ LOG: Guardar la respuesta completa para debugging
             Console.WriteLine("=== RESPUESTA DEL SRI (Recepción) ===");
             Console.WriteLine(responseBody);
             Console.WriteLine("====================================");
@@ -69,10 +60,8 @@ public class SriApiService : ISriApiService
                 return (false, $"❌ Error HTTP {response.StatusCode}: {response.ReasonPhrase}");
             }
 
-            // Parsear la respuesta SOAP
             var doc = XDocument.Parse(responseBody);
 
-            // Buscar en todos los namespaces posibles
             var namespaces = new[]
             {
                 XNamespace.Get("http://ec.gob.sri.ws.recepcion"),
@@ -89,7 +78,6 @@ public class SriApiService : ISriApiService
 
             if (respuestaElement == null)
             {
-                // Si no encuentra la respuesta estructurada, buscar el estado directamente
                 var estadoElement = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "estado");
                 if (estadoElement != null)
                 {
@@ -174,7 +162,6 @@ public class SriApiService : ISriApiService
         var response = await _httpClient.PostAsync(URL_AUTORIZACION_PRUEBAS, content, ct);
         var responseBody = await response.Content.ReadAsStringAsync(ct);
 
-        // LOG: Guardar la respuesta completa
         Console.WriteLine("=== RESPUESTA DEL SRI (Autorización) ===");
         Console.WriteLine(responseBody);
         Console.WriteLine("========================================");
@@ -186,7 +173,6 @@ public class SriApiService : ISriApiService
 
         var doc = XDocument.Parse(responseBody);
 
-        // Buscar autorizacion sin importar el namespace
         var autorizacionElement = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "autorizacion");
 
         if (autorizacionElement == null)
@@ -198,18 +184,12 @@ public class SriApiService : ISriApiService
         var estado = autorizacionElement.Element(ns + "estado")?.Value;
         var numeroAutorizacion = autorizacionElement.Element(ns + "numeroAutorizacion")?.Value;
         var fechaAutorizacion = autorizacionElement.Element(ns + "fechaAutorizacion")?.Value;
-        
-        // ❌ ANTES (INCORRECTO): Extraía solo el contenido interior
-        // var comprobante = autorizacionElement.Element(ns + "comprobante")?.Value;
-
-        // ✅ AHORA (CORRECTO): Devolver TODO el nodo <autorizacion> completo
         var xmlAutorizado = autorizacionElement.ToString();
 
         if (estado == "AUTORIZADO")
         {
             var msg = $"✅ Comprobante AUTORIZADO\n📋 Número: {numeroAutorizacion}\n📅 Fecha: {fechaAutorizacion}";
             
-            // ✅ Devolver el XML completo con <autorizacion>
             return (true, msg, xmlAutorizado, numeroAutorizacion);
         }
         else if (estado == "NO AUTORIZADO" || estado == "DEVUELTA")

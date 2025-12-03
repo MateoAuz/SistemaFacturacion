@@ -43,17 +43,14 @@ public class StockService : IStockService
         }
     }
 
-    // ✅ ACTUALIZADO: Método para reducir stock usando FEFO con Corrección de Fechas UTC
     private async Task ReducirStockFifoAsync(int productoId, int cantidad, CancellationToken ct = default)
     {
-        // 1. Obtener todos los lotes con stock positivo de la BD
         var lotesDb = await _context.Lotes
             .Where(l => l.ProductoId == productoId && l.CantidadActual > 0)
             .ToListAsync(ct);
 
-        // 2. Ordenar en MEMORIA (FEFO)
         var lotesOrdenados = lotesDb
-            .OrderBy(l => l.FechaExpiracion ?? DateTime.MaxValue) // Nulls al final
+            .OrderBy(l => l.FechaExpiracion ?? DateTime.MaxValue) 
             .ThenBy(l => l.FechaIngreso)
             .ToList();
 
@@ -63,15 +60,12 @@ public class StockService : IStockService
         {
             if (cantidadPendiente <= 0) break;
 
-            // Tomar lo que se pueda de este lote
             var cantidadAReducir = Math.Min(lote.CantidadActual, cantidadPendiente);
             
             lote.CantidadActual -= cantidadAReducir;
             cantidadPendiente -= cantidadAReducir;
-            
-            // 🚑 FIX CRÍTICO: Asegurar que las fechas sean UTC antes de guardar
-            // Esto evita el error "Cannot write DateTime with Kind=Unspecified"
             lote.FechaIngreso = AsegurarUtc(lote.FechaIngreso);
+
             if (lote.FechaExpiracion.HasValue)
             {
                 lote.FechaExpiracion = AsegurarUtc(lote.FechaExpiracion.Value);
@@ -88,7 +82,6 @@ public class StockService : IStockService
         await _context.SaveChangesAsync(ct);
     }
 
-    // Helper para normalizar fechas a UTC
     private DateTime AsegurarUtc(DateTime fecha)
     {
         if (fecha.Kind == DateTimeKind.Unspecified)

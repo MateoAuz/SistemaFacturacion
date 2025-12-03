@@ -18,35 +18,29 @@ public class FacturaRepository : IFacturaRepository
 
     public async Task<Factura> CrearFacturaAsync(Factura factura, CancellationToken ct = default)
     {
-        // Iniciar una transacción
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
         try
         {
-            // 1. Validar Stock (doble chequeo)
             var (esValido, error) = await _stockService.ValidarStockAsync(factura.Detalles, ct);
             if (!esValido)
             {
                 throw new InvalidOperationException($"Error de stock: {error}");
             }
 
-            // 2. Guardar la cabecera de la factura
             _db.Facturas.Add(factura);
             await _db.SaveChangesAsync(ct);
 
-            // 3. Descontar el Stock
             await _stockService.DescontarStockAsync(factura.Detalles, ct);
 
-            // 4. Confirmar la transacción
             await tx.CommitAsync(ct);
 
             return factura;
         }
         catch (Exception)
         {
-            // Si algo falla (guardar factura o descontar stock), revierte todo.
             await tx.RollbackAsync(ct);
-            throw; // Relanza la excepción
+            throw;
         }
     }
     public async Task<Factura?> GetByIdAsync(int id, bool includePagos = false, bool includeDetalles = false, bool includeCliente = false, CancellationToken ct = default)
@@ -63,7 +57,6 @@ public class FacturaRepository : IFacturaRepository
         return await query.FirstOrDefaultAsync(f => f.IdFactura == id, ct);
     }
 
-    // NUEVO: Actualizar estado y saldo pendiente de una factura
     public async Task UpdateEstadoAndSaldoAsync(int idFactura, string nuevoEstado, decimal nuevoSaldoPendiente, CancellationToken ct = default)
     {
         var factura = await _db.Facturas.FirstOrDefaultAsync(f => f.IdFactura == idFactura, ct);
@@ -75,7 +68,6 @@ public class FacturaRepository : IFacturaRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    // NUEVO: Obtener todas las facturas con opciones de filtrado
     public async Task<IReadOnlyList<Factura>> GetAllAsync(string? estado = null, bool includeCliente = true, bool includeDetalles = false, CancellationToken ct = default)
     {
         var query = _db.Facturas.AsNoTracking();

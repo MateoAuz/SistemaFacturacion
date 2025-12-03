@@ -202,14 +202,14 @@ else
         var http = HttpFactory.CreateClient("LocalApi");
         try
         {
-            // Cargar Producto si es edición
+           
             if (IdProducto != 0)
             {
                 producto = await http.GetFromJsonAsync<Producto>($"api/productos/{IdProducto}") ?? new();
             }
             else
             {
-                // Inicializar valores por defecto para nuevo
+                
                 producto = new Producto { Estado = true, PrecioVenta = 0 };
             }
         }
@@ -306,7 +306,7 @@ else
             }
             catch
             {
-                codigoDuplicado = false; // Si da 404 es que no existe (bueno)
+                codigoDuplicado = false; 
             }
         }
     }

@@ -277,14 +277,11 @@
     {
         try
         {
-            // 1. Cargar Clientes en caché
             var clientes = await _http.GetFromJsonAsync<List<Cliente>>("api/clientes");
             cacheClientes = clientes ?? new List<Cliente>();
 
-            // 2. Cargar Productos en caché
             cacheProductos = await _http.GetFromJsonAsync<List<Producto>>("api/productos?includeLotes=true") ?? new();
             
-            // Extraer categorías
             categoriasDisponibles = cacheProductos
                 .Where(p => !string.IsNullOrEmpty(p.Categoria))
                 .Select(p => p.Categoria!)
@@ -309,14 +306,14 @@
 
         var query = busquedaClienteQuery.ToLower().Trim();
 
-        // Búsqueda por: Nombre, Apellido o Identificación
+       
         clientesFiltrados = cacheClientes
             .Where(c => c.Estado && (
                 c.Nombres.ToLower().Contains(query) ||
                 (c.Apellidos != null && c.Apellidos.ToLower().Contains(query)) ||
                 c.Identificacion.Contains(query)
             ))
-            .Take(5) // Mostrar máximo 5 sugerencias
+            .Take(5) 
             .ToList();
     }
 
@@ -441,7 +438,6 @@
                 var creada = await response.Content.ReadFromJsonAsync<Factura>();
                 mensajeExito = $"✅ Venta registrada: {creada?.NumeroFactura}";
                 LimpiarFormularioCompleto();
-                // Recargar productos para actualizar stock en memoria
                 await OnInitializedAsync(); 
             }
             else

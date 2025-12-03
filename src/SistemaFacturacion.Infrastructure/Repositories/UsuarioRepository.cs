@@ -55,10 +55,6 @@ public class UsuarioRepository : IUsuarioRepository
         
         if (usuario == null) return null;
 
-        // Para desarrollo: verificación simple
-        // Esto es TEMPORAL - en producción usar siempre crypt
-       
-
         return null;
     }
 }

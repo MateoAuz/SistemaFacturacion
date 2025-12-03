@@ -72,7 +72,6 @@ public class ProductoRepository : IProductoRepository
         await _ctx.SaveChangesAsync(ct);
     }
 
-    // ✅ ACTUALIZAR: Obtener total de stock desde lotes
     public async Task<int> GetTotalStockAsync(CancellationToken ct = default)
     {
         return await _ctx.Lotes

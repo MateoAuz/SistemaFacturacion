@@ -35,12 +35,10 @@ namespace SistemaFacturacion.Domain.Entities
         [Column(TypeName = "decimal(12,2)")]
         public decimal PrecioCompra { get; set; }
 
-        // Navigation properties
         [ForeignKey("ProductoId")]
         [JsonIgnore]
         public Producto Producto { get; set; } = null!;
-        
-        // ✅ AGREGAR: Propiedades calculadas
+ 
         [NotMapped]
         public bool EstaVencido => FechaExpiracion.HasValue && FechaExpiracion.Value < DateTime.Now.Date;
         
