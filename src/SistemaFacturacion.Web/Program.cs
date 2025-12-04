@@ -4,7 +4,7 @@ using SistemaFacturacion.Infrastructure.Persistence;
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Infrastructure.Repositories;
 using SistemaFacturacion.Application.Services;
-using SistemaFacturacion.Infrastructure.Services; 
+using SistemaFacturacion.Web.Services; 
 using SistemaFacturacion.Domain.Entities;
 using SistemaFacturacion.Domain.Configuration;
 using System.Text.Json;
@@ -79,6 +79,9 @@ builder.Services.AddScoped<IFacturacionElectronicaService, FacturacionElectronic
 
 builder.Services.AddScoped<IRideGeneratorService, RideGeneratorService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+// En Program.cs, busca donde están los otros services y agrega:
+builder.Services.AddScoped<AuthStateService>();
+
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {

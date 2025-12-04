@@ -22,27 +22,47 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto dto)
+    public async Task<IActionResult> Login([FromBody] LoginDto dto)  // ✅ Agregar <IActionResult>
     {
         var usuario = await _usuarioRepository.ValidarCredencialesAsync(dto.Usuario, dto.Password);
-
+        
         if (usuario == null)
             return Unauthorized(new { message = "Usuario o contraseña incorrectos" });
 
         var token = GenerarToken(usuario);
+        
+        var rolCompleto = usuario.Rol switch
+        {
+            'A' => "Admin",
+            'V' => "Vendedor",
+            _ => "Vendedor"
+        };
 
-        return Ok(new { token });
+        return Ok(new
+        {
+            token,
+            nombreUsuario = usuario.NombreUsuario,
+            rol = rolCompleto,
+            idUsuario = usuario.IdUsuario
+        });
     }
 
     private string GenerarToken(Usuario usuario)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
+        
+        var rolCompleto = usuario.Rol switch
+        {
+            'A' => "Admin",
+            'V' => "Vendedor",
+            _ => "Vendedor"
+        };
+        
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, usuario.NombreUsuario),
-            new Claim("rol", usuario.Rol.ToString()),
+            new Claim("rol", rolCompleto),
             new Claim("id", usuario.IdUsuario.ToString())
         };
 
@@ -50,12 +70,12 @@ public class AuthController : ControllerBase
             issuer: _config["Jwt:Issuer"],
             audience: _config["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(2),
+            expires: DateTime.UtcNow.AddHours(8),
             signingCredentials: creds
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-}
 
-public record LoginDto(string Usuario, string Password);
+    public record LoginDto(string Usuario, string Password);
+}

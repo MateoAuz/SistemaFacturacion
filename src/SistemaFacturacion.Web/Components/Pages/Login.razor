@@ -3,8 +3,10 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject AuthStateService AuthState
 @using System.Text.Json
 @using SistemaFacturacion.Web.Components.Layout
+@using SistemaFacturacion.Web.Services
 @layout EmptyLayout
 
 <div class="login-wrapper">
@@ -14,7 +16,7 @@
             <img src="images/logo-petmarket.png" alt="PetMarket EC" class="brand-logo" />
             <h1 class="brand-title">PetMarket EC</h1>
             <p class="brand-subtitle">Sistema de Facturación Electrónica</p>
-            
+
             <div class="brand-features">
                 <div class="feature-item">
                     <i class="bi bi-check-circle-fill"></i>
@@ -30,12 +32,12 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="brand-footer">
             <small>© 2025 PetMarket EC. Todos los derechos reservados.</small>
         </div>
     </div>
-    
+
     <!-- Panel Derecho - Formulario -->
     <div class="login-form-panel">
         <div class="login-form-container">
@@ -43,7 +45,7 @@
             <div class="mobile-logo">
                 <img src="images/logo-petmarket.png" alt="PetMarket EC" />
             </div>
-            
+
             <div class="form-header">
                 <h2>Bienvenido</h2>
                 <p>Ingresa tus credenciales para continuar</p>
@@ -61,11 +63,8 @@
                 <label class="form-label">
                     <i class="bi bi-person"></i> Usuario
                 </label>
-                <input type="text" 
-                       class="form-input" 
-                       @bind="usuario" 
-                       placeholder="Ingrese su usuario" 
-                       autocomplete="username" />
+                <input type="text" class="form-input" @bind="usuario" placeholder="Ingrese su usuario"
+                    autocomplete="username" />
             </div>
 
             <div class="form-group">
@@ -73,12 +72,9 @@
                     <i class="bi bi-lock"></i> Contraseña
                 </label>
                 <div class="password-wrapper">
-                    <input type="@(mostrarPassword ? "text" : "password")" 
-                           class="form-input" 
-                           @bind="password" 
-                           placeholder="Ingrese su contraseña"
-                           autocomplete="current-password"
-                           @onkeypress="HandleKeyPress" />
+                    <input type="@(mostrarPassword ? "text" : "password")" class="form-input" @bind="password"
+                        placeholder="Ingrese su contraseña" autocomplete="current-password"
+                        @onkeypress="HandleKeyPress" />
                     <button type="button" class="toggle-password" @onclick="TogglePassword">
                         <i class="bi @(mostrarPassword ? "bi-eye-slash" : "bi-eye")"></i>
                     </button>
@@ -146,11 +142,24 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<JsonElement>();
-                var token = result.GetProperty("token").GetString();
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
 
-                await JS.InvokeVoidAsync("localStorage.setItem", "authToken", token);
-                Navigation.NavigateTo("/dashboard", true);
+                if (result is not null)
+                {
+                    await JS.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
+                    await JS.InvokeVoidAsync("localStorage.setItem", "userRole", result.Rol);
+                    await JS.InvokeVoidAsync("localStorage.setItem", "userName", result.NombreUsuario);
+                    await JS.InvokeVoidAsync("localStorage.setItem", "userId", result.IdUsuario.ToString());
+
+                    // ✅ AGREGAR: Guardar en el servicio de estado
+                    AuthState.SetUsuario(result.Rol, result.NombreUsuario, result.IdUsuario);
+
+                    Navigation.NavigateTo("/dashboard", true);
+                }
+                else
+                {
+                    error = "Error al procesar la respuesta del servidor";
+                }
             }
             else
             {
@@ -165,5 +174,13 @@
         {
             isLoading = false;
         }
+    }
+
+    public class LoginResponse
+    {
+        public string Token { get; set; } = "";
+        public string NombreUsuario { get; set; } = "";
+        public string Rol { get; set; } = "";
+        public int IdUsuario { get; set; }
     }
 }

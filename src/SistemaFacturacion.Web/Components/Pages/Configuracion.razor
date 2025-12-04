@@ -3,6 +3,7 @@
 @using SistemaFacturacion.Domain.Entities
 @inject IHttpClientFactory HttpFactory
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-gear-fill"></i> Configuración de la Empresa</h1>
@@ -145,6 +146,18 @@ else
         finally
         {
             cargando = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var rol = await JS.InvokeAsync<string>("localStorage.getItem", "userRole");
+            if (rol != "Admin")
+            {
+                Nav.NavigateTo("/dashboard");
+            }
         }
     }
 
