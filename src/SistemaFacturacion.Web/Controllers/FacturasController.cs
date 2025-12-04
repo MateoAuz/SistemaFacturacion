@@ -15,15 +15,18 @@ public class FacturasController : ControllerBase
     private readonly IFacturaRepository _facturaRepo;
     private readonly ITaxCalculator _taxCalculator;
     private readonly ApplicationDbContext _context;
+    private readonly IConfiguracionRepository _configuracionRepo; // ✅ AGREGAR
 
     public FacturasController(
         IFacturaRepository facturaRepo,
         ITaxCalculator taxCalculator,
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        IConfiguracionRepository configuracionRepo) // ✅ AGREGAR
     {
         _facturaRepo = facturaRepo;
         _taxCalculator = taxCalculator;
         _context = context;
+        _configuracionRepo = configuracionRepo; // ✅ AGREGAR
     }
 
     // POST /api/facturas
@@ -50,8 +53,23 @@ public class FacturasController : ControllerBase
         factura.IdUsuario = 1; 
         factura.FechaEmision = DateTime.UtcNow;
 
-        var consecutivo = await _context.Facturas.CountAsync() + 1;
-        factura.NumeroFactura = $"001-002-{consecutivo:000000000}";
+        // ✅ OBTENER CONFIGURACIÓN
+        var config = await _configuracionRepo.GetConfiguracionAsync(ct);
+        
+        if (config == null)
+        {
+            return BadRequest("No se ha configurado la información de la empresa. Configure el establecimiento y punto de emisión.");
+        }
+
+        // ✅ VALIDAR QUE EXISTAN LOS VALORES
+        if (string.IsNullOrWhiteSpace(config.Establecimiento) || string.IsNullOrWhiteSpace(config.PuntoEmision))
+        {
+            return BadRequest("Debe configurar el establecimiento y punto de emisión en la configuración del sistema.");
+        }
+
+        // ✅ USAR VALORES DE CONFIGURACIÓN
+        var consecutivo = await _context.Facturas.CountAsync(ct) + 1;
+        factura.NumeroFactura = $"{config.Establecimiento}-{config.PuntoEmision}-{consecutivo:000000000}";
         factura.Estado = "PENDIENTE";
         factura.SaldoPendiente = factura.Total;
 
@@ -86,11 +104,9 @@ public class FacturasController : ControllerBase
                 return Ok(new List<object>());
             }
 
-            
             var facturasOrdenadas = facturas
                 .OrderByDescending(f => f.IdFactura)
                 .ToList();
-
 
             var result = facturasOrdenadas.Select(f => new
             {
@@ -135,5 +151,4 @@ public class FacturasController : ControllerBase
             });
         }
     }
-
 }
