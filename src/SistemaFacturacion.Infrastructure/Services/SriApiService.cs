@@ -30,8 +30,7 @@ public class SriApiService : ISriApiService
         {
 
 
-            // --- Convertir el XML firmado a Base64 SIN MODIFICARLO ---
-            var xmlBytes = Encoding.UTF8.GetBytes(xmlFirmado); // asume utf-8; si recibes bytes, úsalos directamente
+            var xmlBytes = Encoding.UTF8.GetBytes(xmlFirmado); 
             var xmlBase64 = Convert.ToBase64String(xmlBytes);
 
             // Construir el SOAP Envelope con el base64 dentro de CDATA

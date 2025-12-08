@@ -136,7 +136,6 @@ else
 }
 
 @code {
-    // ✅ PROTECCIÓN: Solo Admin puede acceder
     protected override string[]? RolesPermitidos => new[] { "Admin" };
 
     private HttpClient _http = null!;

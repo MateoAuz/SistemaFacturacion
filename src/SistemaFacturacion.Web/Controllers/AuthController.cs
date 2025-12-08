@@ -22,7 +22,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto dto)  // ✅ Agregar <IActionResult>
+    public async Task<IActionResult> Login([FromBody] LoginDto dto)  
     {
         var usuario = await _usuarioRepository.ValidarCredencialesAsync(dto.Usuario, dto.Password);
         

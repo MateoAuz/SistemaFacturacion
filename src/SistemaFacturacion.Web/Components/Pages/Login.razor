@@ -151,7 +151,6 @@
                     await JS.InvokeVoidAsync("localStorage.setItem", "userName", result.NombreUsuario);
                     await JS.InvokeVoidAsync("localStorage.setItem", "userId", result.IdUsuario.ToString());
 
-                    // ✅ AGREGAR: Guardar en el servicio de estado
                     AuthState.SetUsuario(result.Rol, result.NombreUsuario, result.IdUsuario);
 
                     Navigation.NavigateTo("/dashboard", true);

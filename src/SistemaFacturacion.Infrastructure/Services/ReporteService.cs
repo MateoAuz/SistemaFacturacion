@@ -15,7 +15,6 @@ public class ReporteService : IReporteService
         _db = db;
     }
 
-    // 1. VENTAS POR PERIODO
     public async Task<List<ReporteVentasDto>> GetVentasPorPeriodoAsync(DateTime inicio, DateTime fin, string agrupacion = "DIA", CancellationToken ct = default)
     {
         var fechaInicio = DateTime.SpecifyKind(inicio.Date, DateTimeKind.Utc);
@@ -36,7 +35,7 @@ public class ReporteService : IReporteService
         {
             grupos = facturas.GroupBy(f => f.FechaEmision.ToString("yyyy"));
         }
-        else // DIA
+        else 
         {
             grupos = facturas.GroupBy(f => f.FechaEmision.ToString("yyyy-MM-dd"));
         }
@@ -53,7 +52,6 @@ public class ReporteService : IReporteService
         .ToList();
     }
 
-    // 2. PRODUCTOS MÁS VENDIDOS
     public async Task<List<ReporteProductoDto>> GetProductosMasVendidosAsync(DateTime inicio, DateTime fin, CancellationToken ct = default)
     {
         var fechaInicio = DateTime.SpecifyKind(inicio.Date, DateTimeKind.Utc);
@@ -84,7 +82,6 @@ public class ReporteService : IReporteService
             .ToListAsync(ct);
     }
 
-    // 3. AUDITORÍA DE VENTAS (Precios)
     public async Task<List<ReporteAuditoriaVentaDto>> GetAuditoriaVentasAsync(DateTime inicio, DateTime fin, CancellationToken ct = default)
     {
         var fechaInicio = DateTime.SpecifyKind(inicio.Date, DateTimeKind.Utc);

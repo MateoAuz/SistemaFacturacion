@@ -24,7 +24,6 @@ CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 var builder = WebApplication.CreateBuilder(args);
 
 
-// CONFIGURACIÓN DE HTTPCLIENT
 builder.Services.AddHttpClient("LocalApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["BaseUrl"] ?? builder.Configuration["Urls"]?.Split(';').First() ?? "https://localhost:7001/");
@@ -48,7 +47,6 @@ builder.Services.AddScoped(sp =>
 });
 
 builder.Services.AddControllers();
-// --- Swagger ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -122,7 +120,6 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
-// --- Middleware Swagger ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

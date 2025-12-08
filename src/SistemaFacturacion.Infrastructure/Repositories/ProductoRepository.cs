@@ -59,22 +59,18 @@ public class ProductoRepository : IProductoRepository
 
     public async Task UpdateAsync(Producto entity, CancellationToken ct = default)
     {
-        // 1. Buscamos el producto existente en la base de datos (con rastreo/tracking)
         var productoExistente = await _ctx.Productos
             .FirstOrDefaultAsync(p => p.IdProducto == entity.IdProducto, ct);
 
         if (productoExistente != null)
         {
-            // 2. Actualizamos SOLO las propiedades editables
             productoExistente.Nombre = entity.Nombre;
             productoExistente.Categoria = entity.Categoria;
-            productoExistente.PrecioVenta = entity.PrecioVenta; // Aquí se guarda el nuevo precio
+            productoExistente.PrecioVenta = entity.PrecioVenta;
             productoExistente.Estado = entity.Estado;
 
-            // IMPORTANTE: No tocamos productoExistente.Lotes ni productoExistente.Codigo
             // esto evita errores de concurrencia o duplicidad de claves.
 
-            // 3. Guardamos los cambios
             await _ctx.SaveChangesAsync(ct);
         }
     }

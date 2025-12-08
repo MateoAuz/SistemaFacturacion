@@ -38,7 +38,6 @@ public class Cliente
     [JsonIgnore]
     public ICollection<Factura>? Facturas { get; set; }
 
-    // --- LÓGICA DE VALIDACIÓN ---
     public string? ValidarIdentificacion()
     {
         var id = Identificacion?.Trim();

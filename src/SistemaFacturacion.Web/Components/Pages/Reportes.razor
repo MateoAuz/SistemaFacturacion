@@ -240,7 +240,7 @@ else if (ejecutado)
     
     // Listas para auditoría
     private List<ReporteAuditoriaVentaDto> reporteAuditoriaVentas = new();
-    private List<ReporteAuditoriaVentaDto> reporteAuditoriaVentasPaginados = new(); // ✅ Lista paginada
+    private List<ReporteAuditoriaVentaDto> reporteAuditoriaVentasPaginados = new(); 
 
     private HttpClient _http => HttpFactory.CreateClient("LocalApi");
 
@@ -252,7 +252,7 @@ else if (ejecutado)
         reporteVentas.Clear();
         reporteProductos.Clear();
         reporteAuditoriaVentas.Clear();
-        reporteAuditoriaVentasPaginados.Clear(); // ✅ Limpiar paginados
+        reporteAuditoriaVentasPaginados.Clear(); 
 
         StateHasChanged(); 
         
@@ -263,7 +263,6 @@ else if (ejecutado)
         {
             if (tipoReporte == "VENTAS")
             {
-                // ... (código existente de ventas)
                 reporteVentas = await _http.GetFromJsonAsync<List<ReporteVentasDto>>(
                     $"api/reportes/ventas?inicio={fInicio}&fin={fFin}&agrupacion={agrupacionVentas}") ?? new();
                 
@@ -315,7 +314,6 @@ else if (ejecutado)
         }
     }
 
-    // ✅ Método manejador para la paginación de auditoría
     private Task ActualizarAuditoriaPaginada(List<ReporteAuditoriaVentaDto> items)
     {
         reporteAuditoriaVentasPaginados = items;

@@ -405,7 +405,7 @@
     {
         try
         {
-            await CargarDatosUsuario(); // ✅ Recuperar usuario logueado
+            await CargarDatosUsuario(); 
 
             var clientes = await _http.GetFromJsonAsync<List<Cliente>>("api/clientes");
             cacheClientes = clientes ?? new List<Cliente>();
@@ -450,11 +450,10 @@
                     AuthState.SetUsuario(rolStr, nombreVendedorActual, idUsuarioActual);
                 }
             }
-            catch { /* Ignorar errores de JS si no hay datos */ }
+            catch {}
         }
     }
 
-    // --- LÓGICA CLIENTES MEJORADA ---
     private void FiltrarClientes()
     {
         if (string.IsNullOrWhiteSpace(busquedaClienteQuery))
@@ -490,7 +489,6 @@
         busquedaClienteQuery = "";
     }
 
-    // --- LÓGICA PRODUCTOS (Ya existente y mejorada) ---
     private void FiltrarProductos()
     {
         if (string.IsNullOrWhiteSpace(busquedaProductoQuery) && string.IsNullOrWhiteSpace(filtroCategoria))
@@ -595,11 +593,10 @@
     
     try
     {
-        // 1️⃣ CREAR LA FACTURA (se crea con estado PENDIENTE por defecto)
         Factura nuevaFactura = new Factura
         {
                 IdCliente = clienteSeleccionado!.IdCliente,
-                IdUsuario = idUsuarioActual, // ✅ Usar el ID del usuario logueado
+                IdUsuario = idUsuarioActual, 
                 Detalles = detallesFactura.Select(d => new DetalleFactura
                 {
                     IdProducto = d.IdProducto,
@@ -624,13 +621,12 @@
             return;
         }
 
-        // 2️⃣ REGISTRAR EL PAGO (esto cambia el estado a PAGADA)
         var pagoRequest = new PagoRequestDto
             {
                 IdFactura = facturaCreada.IdFactura,
                 Monto = facturaCreada.Total,
                 MetodoPago = metodoPagoSeleccionado,
-                IdUsuario = idUsuarioActual // ✅ Usar el ID del usuario logueado
+                IdUsuario = idUsuarioActual 
             };
 
         var responsePago = await _http.PostAsJsonAsync("api/pagos", pagoRequest);
@@ -642,10 +638,9 @@
             return;
         }
 
-        // ✅ TODO EXITOSO
         mensajeExito = $"✅ Factura {facturaCreada.NumeroFactura} generada y pagada con {metodoPagoSeleccionado}";
         LimpiarFormularioCompleto();
-        await OnInitializedAsync(); // Recargar productos (actualizar stock)
+        await OnInitializedAsync(); 
     }
     catch (Exception ex) 
     { 
@@ -676,7 +671,7 @@
     private void SeleccionarMetodoPago(string metodo)
     {
         metodoPagoSeleccionado = metodo;
-        estaPagado = false; // Resetear confirmación al cambiar método
+        estaPagado = false; 
     }
 
     private string ObtenerIconoMetodoPago(string metodo) => metodo switch
