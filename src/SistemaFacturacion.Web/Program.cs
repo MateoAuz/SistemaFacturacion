@@ -75,6 +75,8 @@ builder.Services.AddScoped<IPagoService, PagoService>();
 builder.Services.AddScoped<IXmlValidationService, XmlValidationService>();
 builder.Services.AddScoped<IValidacionFacturaService, ValidacionFacturaService>();
 
+builder.Services.AddScoped<IReporteService, SistemaFacturacion.Infrastructure.Services.ReporteService>();
+
 builder.Services.AddScoped<IStockService, SistemaFacturacion.Infrastructure.Services.StockService>();
 
 
