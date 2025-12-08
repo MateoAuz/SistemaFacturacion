@@ -1,3 +1,4 @@
+/* src/SistemaFacturacion.Web/Controllers/ReportesController.cs */
 using Microsoft.AspNetCore.Mvc;
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Application.DTOs;
@@ -18,10 +19,11 @@ public class ReportesController : ControllerBase
     [HttpGet("ventas")]
     public async Task<ActionResult<List<ReporteVentasDto>>> GetVentas(
         [FromQuery] DateTime inicio, 
-        [FromQuery] DateTime fin, 
+        [FromQuery] DateTime fin,
+        [FromQuery] string agrupacion, // Nuevo
         CancellationToken ct)
     {
-        return Ok(await _reporteService.GetVentasPorPeriodoAsync(inicio, fin, ct));
+        return Ok(await _reporteService.GetVentasPorPeriodoAsync(inicio, fin, agrupacion ?? "DIA", ct));
     }
 
     [HttpGet("productos-top")]
@@ -31,6 +33,15 @@ public class ReportesController : ControllerBase
         CancellationToken ct)
     {
         return Ok(await _reporteService.GetProductosMasVendidosAsync(inicio, fin, ct));
+    }
+
+    [HttpGet("auditoria-ventas")]
+    public async Task<ActionResult<List<ReporteAuditoriaVentaDto>>> GetAuditoriaVentas(
+        [FromQuery] DateTime inicio, 
+        [FromQuery] DateTime fin, 
+        CancellationToken ct)
+    {
+        return Ok(await _reporteService.GetAuditoriaVentasAsync(inicio, fin, ct));
     }
 
     [HttpGet("auditoria")]

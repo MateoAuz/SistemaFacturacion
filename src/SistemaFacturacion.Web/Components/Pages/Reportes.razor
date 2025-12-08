@@ -3,21 +3,21 @@
 @using SistemaFacturacion.Application.DTOs
 @using System.Globalization
 @inject IHttpClientFactory HttpFactory
+@inject IJSRuntime JS
 
 <PageTitle>Reportes y Auditoría</PageTitle>
 
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-graph-up"></i> Reportes y Auditoría</h1>
-    <p class="text-white-50 mb-0">Análisis de desempeño y control de cambios</p>
 </div>
 
 <div class="card-modern mb-4">
     <div class="row g-3 align-items-end">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label fw-bold">Fecha Inicio</label>
             <input type="date" class="form-control" @bind="fechaInicio" />
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label fw-bold">Fecha Fin</label>
             <input type="date" class="form-control" @bind="fechaFin" />
         </div>
@@ -26,9 +26,23 @@
             <select class="form-select" @bind="tipoReporte">
                 <option value="VENTAS">Ventas por Período</option>
                 <option value="PRODUCTOS">Productos Más Vendidos</option>
-                <option value="AUDITORIA">Auditoría de Precios</option>
+                <option value="AUDITORIA_VENTAS">Auditoría de Precios (Ventas)</option>
+                <option value="AUDITORIA_LOG">Log de Cambios (Sistema)</option>
             </select>
         </div>
+        
+        @if (tipoReporte == "VENTAS")
+        {
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Agrupar Por</label>
+                <select class="form-select" @bind="agrupacionVentas">
+                    <option value="DIA">Día</option>
+                    <option value="MES">Mes</option>
+                    <option value="ANIO">Año</option>
+                </select>
+            </div>
+        }
+
         <div class="col-md-3">
             <button class="btn btn-primary w-100 btn-modern" @onclick="GenerarReporte" disabled="@cargando">
                 @if (cargando) { <span class="spinner-border spinner-border-sm me-2"></span> }
@@ -42,7 +56,7 @@
 {
     <div class="text-center py-5">
         <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">Procesando datos...</p>
+        <p class="mt-2 text-muted">Generando reporte...</p>
     </div>
 }
 else if (ejecutado)
@@ -51,26 +65,33 @@ else if (ejecutado)
     {
         @if (reporteVentas.Any())
         {
+            <div class="card shadow-sm border-0 fade-in mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-primary fw-bold mb-3">Gráfico de Ventas</h5>
+                    <canvas id="chartVentas" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+
             <div class="card shadow-sm border-0 fade-in">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-cash-stack"></i> Resumen de Ventas</h5>
+                    <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-table"></i> Detalle de Ventas</h5>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>Fecha</th>
-                                <th class="text-center">Cant. Facturas</th>
+                                <th>Período</th>
+                                <th class="text-center">Facturas</th>
                                 <th class="text-end">Subtotal</th>
                                 <th class="text-end">IVA</th>
-                                <th class="text-end">Total</th>
+                                <th class="text-end">Total Vendido</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var item in reporteVentas)
                             {
                                 <tr>
-                                    <td>@item.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@item.Periodo</td>
                                     <td class="text-center"><span class="badge bg-secondary">@item.CantidadFacturas</span></td>
                                     <td class="text-end">$@item.Subtotal.ToString("N2")</td>
                                     <td class="text-end">$@item.Iva.ToString("N2")</td>
@@ -93,13 +114,20 @@ else if (ejecutado)
         }
         else
         {
-            <div class="alert alert-info text-center mt-3"><i class="bi bi-info-circle"></i> No hay ventas en este período.</div>
+            <div class="alert alert-info text-center mt-3">No hay ventas en este período.</div>
         }
     }
     else if (tipoReporte == "PRODUCTOS")
     {
         @if (reporteProductos.Any())
         {
+            <div class="card shadow-sm border-0 fade-in mb-4">
+                <div class="card-body">
+                    <h5 class="card-title text-success fw-bold mb-3">Top 10 Productos</h5>
+                    <canvas id="chartProductos" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+
             <div class="card shadow-sm border-0 fade-in">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0 text-success fw-bold"><i class="bi bi-trophy"></i> Top Productos Más Vendidos</h5>
@@ -108,11 +136,12 @@ else if (ejecutado)
                     <table class="table table-hover mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th class="text-center" style="width: 60px;">#</th>
+                                <th class="text-center">#</th>
                                 <th>Producto</th>
                                 <th>Categoría</th>
-                                <th class="text-center">Unidades Vendidas</th>
-                                <th class="text-end">Ingresos Generados</th>
+                                <th class="text-center">Cant. Vendida</th>
+                                <th class="text-end">Precio Promedio</th>
+                                <th class="text-end">Total Facturado</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -127,6 +156,7 @@ else if (ejecutado)
                                     </td>
                                     <td><span class="badge bg-light text-dark border">@p.Categoria</span></td>
                                     <td class="text-center fs-5">@p.CantidadVendida</td>
+                                    <td class="text-end">$@p.PrecioPromedio.ToString("N2")</td>
                                     <td class="text-end fw-bold text-success">$@p.TotalGenerado.ToString("N2")</td>
                                 </tr>
                             }
@@ -137,35 +167,54 @@ else if (ejecutado)
         }
         else
         {
-            <div class="alert alert-info text-center mt-3"><i class="bi bi-info-circle"></i> No hay productos vendidos en este período.</div>
+            <div class="alert alert-info text-center mt-3">No hay productos vendidos.</div>
         }
     }
-    else if (tipoReporte == "AUDITORIA")
+    else if (tipoReporte == "AUDITORIA_VENTAS")
     {
-        @if (reporteAuditoria.Any())
+        @if (reporteAuditoriaVentas.Any())
         {
             <div class="card shadow-sm border-0 fade-in">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-warning fw-bold"><i class="bi bi-shield-lock"></i> Auditoría de Cambios de Precio</h5>
+                    <h5 class="mb-0 text-danger fw-bold"><i class="bi bi-shield-exclamation"></i> Auditoría de Precios (Ventas vs Lista)</h5>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0 align-middle">
+                    <table class="table table-hover mb-0 align-middle small">
                         <thead class="table-light">
                             <tr>
-                                <th>Fecha/Hora</th>
-                                <th>Usuario</th>
+                                <th>Fecha</th>
+                                <th>Factura</th>
                                 <th>Producto</th>
-                                <th>Detalle del Cambio</th>
+                                <th>Usuario</th>
+                                <th class="text-end">Precio Lista (Ref)</th>
+                                <th class="text-end">Precio Aplicado</th>
+                                <th class="text-end">Descuento/Dif.</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var log in reporteAuditoria)
+                            @foreach (var item in reporteAuditoriaVentas)
                             {
+                                bool hayDescuento = item.Descuento > 0;
                                 <tr>
-                                    <td>@log.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td><i class="bi bi-person-fill text-muted"></i> @log.Usuario</td>
-                                    <td class="fw-bold">@log.Producto</td>
-                                    <td>@log.Detalle</td>
+                                    <td>@item.Fecha.ToString("dd/MM/yy HH:mm")</td>
+                                    <td>
+                                        <div class="fw-bold">@item.NumeroFactura</div>
+                                        <div class="text-muted small">@item.Cliente</div>
+                                    </td>
+                                    <td>@item.Producto</td>
+                                    <td>@item.Usuario</td>
+                                    <td class="text-end text-muted">$@item.PrecioLista.ToString("N2")</td>
+                                    <td class="text-end fw-bold">$@item.PrecioVendido.ToString("N2")</td>
+                                    <td class="text-end">
+                                        @if(hayDescuento)
+                                        {
+                                            <span class="badge bg-warning text-dark">-$@item.Descuento.ToString("N2")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -175,8 +224,39 @@ else if (ejecutado)
         }
         else
         {
-            <div class="alert alert-info text-center mt-3"><i class="bi bi-check-circle"></i> No se registraron cambios de precios en este período.</div>
+            <div class="alert alert-info text-center mt-3">No hay datos de auditoría de ventas.</div>
         }
+    }
+    else if (tipoReporte == "AUDITORIA_LOG")
+    {
+         <div class="card shadow-sm border-0 fade-in">
+             <div class="card-header bg-white py-3">
+                 <h5 class="mb-0 text-secondary"><i class="bi bi-clock-history"></i> Historial de Cambios en Catálogo</h5>
+             </div>
+             <div class="table-responsive">
+                 <table class="table table-striped mb-0">
+                     <thead>
+                         <tr>
+                             <th>Fecha</th>
+                             <th>Usuario</th>
+                             <th>Producto</th>
+                             <th>Detalle</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         @foreach(var log in reporteAuditoriaLog)
+                         {
+                             <tr>
+                                 <td>@log.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                                 <td>@log.Usuario</td>
+                                 <td>@log.Producto</td>
+                                 <td>@log.Detalle</td>
+                             </tr>
+                         }
+                     </tbody>
+                 </table>
+             </div>
+         </div>
     }
 }
 
@@ -184,12 +264,15 @@ else if (ejecutado)
     private DateTime fechaInicio = DateTime.Today.AddDays(-30);
     private DateTime fechaFin = DateTime.Today;
     private string tipoReporte = "VENTAS";
+    private string agrupacionVentas = "DIA";
+    
     private bool cargando = false;
     private bool ejecutado = false;
 
     private List<ReporteVentasDto> reporteVentas = new();
     private List<ReporteProductoDto> reporteProductos = new();
-    private List<ReporteAuditoriaDto> reporteAuditoria = new();
+    private List<ReporteAuditoriaVentaDto> reporteAuditoriaVentas = new();
+    private List<ReporteAuditoriaDto> reporteAuditoriaLog = new();
 
     private HttpClient _http => HttpFactory.CreateClient("LocalApi");
 
@@ -197,8 +280,8 @@ else if (ejecutado)
     {
         cargando = true;
         ejecutado = true;
+        StateHasChanged();
         
-        // Formato para query string
         string fInicio = fechaInicio.ToString("yyyy-MM-dd");
         string fFin = fechaFin.ToString("yyyy-MM-dd");
         
@@ -206,24 +289,54 @@ else if (ejecutado)
         {
             if (tipoReporte == "VENTAS")
             {
-                reporteVentas = await _http.GetFromJsonAsync<List<ReporteVentasDto>>($"api/reportes/ventas?inicio={fInicio}&fin={fFin}") ?? new();
+                reporteVentas = await _http.GetFromJsonAsync<List<ReporteVentasDto>>(
+                    $"api/reportes/ventas?inicio={fInicio}&fin={fFin}&agrupacion={agrupacionVentas}") ?? new();
+                
+                // Renderizar gráfico
+                if (reporteVentas.Any())
+                {
+                    var labels = reporteVentas.Select(x => x.Periodo).ToArray();
+                    var data = reporteVentas.Select(x => x.Total).ToArray();
+                    await RenderChart("chartVentas", "bar", labels, data, "Total Vendido ($)");
+                }
             }
             else if (tipoReporte == "PRODUCTOS")
             {
-                reporteProductos = await _http.GetFromJsonAsync<List<ReporteProductoDto>>($"api/reportes/productos-top?inicio={fInicio}&fin={fFin}") ?? new();
+                reporteProductos = await _http.GetFromJsonAsync<List<ReporteProductoDto>>(
+                    $"api/reportes/productos-top?inicio={fInicio}&fin={fFin}") ?? new();
+                    
+                if (reporteProductos.Any())
+                {
+                    var labels = reporteProductos.Select(x => x.Nombre).ToArray();
+                    var data = reporteProductos.Select(x => x.TotalGenerado).ToArray();
+                    await RenderChart("chartProductos", "bar", labels, data, "Ingresos por Producto ($)");
+                }
             }
-            else if (tipoReporte == "AUDITORIA")
+            else if (tipoReporte == "AUDITORIA_VENTAS")
             {
-                reporteAuditoria = await _http.GetFromJsonAsync<List<ReporteAuditoriaDto>>($"api/reportes/auditoria?inicio={fInicio}&fin={fFin}") ?? new();
+                reporteAuditoriaVentas = await _http.GetFromJsonAsync<List<ReporteAuditoriaVentaDto>>(
+                    $"api/reportes/auditoria-ventas?inicio={fInicio}&fin={fFin}") ?? new();
+            }
+            else if (tipoReporte == "AUDITORIA_LOG")
+            {
+                reporteAuditoriaLog = await _http.GetFromJsonAsync<List<ReporteAuditoriaDto>>(
+                    $"api/reportes/auditoria?inicio={fInicio}&fin={fFin}") ?? new();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al generar reporte: {ex.Message}");
+            Console.WriteLine($"Error: {ex.Message}");
         }
         finally
         {
             cargando = false;
         }
+    }
+
+    private async Task RenderChart(string id, string type, string[] labels, decimal[] data, string label)
+    {
+        // Pequeño delay para asegurar que el canvas exista en el DOM
+        await Task.Delay(100);
+        await JS.InvokeVoidAsync("renderChart", id, type, labels, data, label);
     }
 }
