@@ -4,30 +4,35 @@ using SistemaFacturacion.Infrastructure.Persistence;
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Infrastructure.Repositories;
 using SistemaFacturacion.Application.Services;
-using SistemaFacturacion.Web.Services; 
 using SistemaFacturacion.Domain.Entities;
-using SistemaFacturacion.Infrastructure.Services;
 using SistemaFacturacion.Domain.Configuration;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Polly;
+using Microsoft.AspNetCore.Components.Authorization;
+using SistemaFacturacion.Web; // donde está SimpleAuthStateProvider
+using SistemaFacturacion.Web.Services;
 
 using System.Globalization; 
-
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+// CONFIGURACIÓN DE HTTPCLIENT
 builder.Services.AddHttpClient("LocalApi", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["BaseUrl"] ?? builder.Configuration["Urls"]?.Split(';').First() ?? "https://localhost:7001/");
-});
+    client.BaseAddress = new Uri(
+        builder.Configuration["BaseUrl"]
+        ?? builder.Configuration["Urls"]?.Split(';').First()
+        ?? "https://localhost:7001/");
+})
+.AddHttpMessageHandler<AuthHeaderHandler>();
+
+builder.Services.AddTransient<AuthHeaderHandler>();
 
 builder.Services.AddHttpClient("SriSoap", client =>
 {
@@ -47,6 +52,7 @@ builder.Services.AddScoped(sp =>
 });
 
 builder.Services.AddControllers();
+// --- Swagger ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -82,7 +88,9 @@ builder.Services.AddScoped<IRideGeneratorService, RideGeneratorService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 // En Program.cs, busca donde están los otros services y agrega:
 builder.Services.AddScoped<AuthStateService>();
-builder.Services.AddScoped<SistemaFacturacion.Application.Contracts.IReporteService, SistemaFacturacion.Infrastructure.Services.ReporteService>();
+builder.Services.AddScoped<AuthenticationStateProvider, SimpleAuthStateProvider>();
+builder.Services.AddAuthorizationCore();
+builder.Services.AddSingleton<TokenHolder>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -120,6 +128,7 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+// --- Middleware Swagger ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

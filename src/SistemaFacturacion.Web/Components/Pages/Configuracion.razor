@@ -4,6 +4,9 @@
 @using SistemaFacturacion.Web.Components.Base
 @inherits AuthorizedPageBase
 @inject IHttpClientFactory HttpFactory
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager Nav
 
 @if (!Autorizado)
 {
@@ -148,6 +151,13 @@ else
     protected override async Task OnInitializedAsync()
     {
         _http = HttpFactory.CreateClient("LocalApi");
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
         await CargarConfiguracion();
     }
 

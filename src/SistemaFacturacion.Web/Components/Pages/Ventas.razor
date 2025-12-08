@@ -8,6 +8,9 @@
 @inject ITaxCalculator TaxCalculator
 @inject IJSRuntime JS
 @inject AuthStateService AuthState
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthProvider
+@using Microsoft.AspNetCore.Components.Authorization
 
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-cart-check"></i> Nueva Factura de Venta</h1>
@@ -403,6 +406,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
         try
         {
             await CargarDatosUsuario(); 

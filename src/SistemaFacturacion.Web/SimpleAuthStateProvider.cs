@@ -1,34 +1,57 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using SistemaFacturacion.Web.Services;
 
-namespace SistemaFacturacion.Web
+namespace SistemaFacturacion.Web;
+
+public class SimpleAuthStateProvider : AuthenticationStateProvider
 {
-    public class SimpleAuthStateProvider : AuthenticationStateProvider
+    private readonly TokenHolder _tokenHolder;
+
+    public SimpleAuthStateProvider(TokenHolder tokenHolder)
     {
-        private static ClaimsPrincipal _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
-        
-        public override Task<AuthenticationState> GetAuthenticationStateAsync()
-        {
-            return Task.FromResult(new AuthenticationState(_currentUser));
-        }
+        _tokenHolder = tokenHolder;
+    }
 
-        public void Login(string username, string role)
+    public override Task<AuthenticationState> GetAuthenticationStateAsync()
+    {
+        ClaimsIdentity identity;
+
+        if (!string.IsNullOrEmpty(_tokenHolder.Token))
         {
-            var identity = new ClaimsIdentity(new[]
+            // Usuario autenticado (no hace falta parsear todo el JWT para tu caso)
+            identity = new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.Name, username),
-                new Claim(ClaimTypes.Role, role)
+                new Claim(ClaimTypes.Name, "Usuario"),
             }, "custom");
-            
-            _currentUser = new ClaimsPrincipal(identity);
-            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+        }
+        else
+        {
+            // Usuario anónimo
+            identity = new ClaimsIdentity();
         }
 
-        public void Logout()
+        var user = new ClaimsPrincipal(identity);
+        return Task.FromResult(new AuthenticationState(user));
+    }
+
+    public void MarkUserAsAuthenticated(string username, string role)
+    {
+        var identity = new ClaimsIdentity(new[]
         {
-            _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
-            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
-        }
+            new Claim(ClaimTypes.Name, username),
+            new Claim(ClaimTypes.Role, role)
+        }, "custom");
+
+        var user = new ClaimsPrincipal(identity);
+        NotifyAuthenticationStateChanged(
+            Task.FromResult(new AuthenticationState(user)));
+    }
+
+    public void MarkUserAsLoggedOut()
+    {
+        var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
+        NotifyAuthenticationStateChanged(
+            Task.FromResult(new AuthenticationState(anonymous)));
     }
 }

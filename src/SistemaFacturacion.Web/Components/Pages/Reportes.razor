@@ -4,6 +4,9 @@
 @using System.Globalization
 @inject IHttpClientFactory HttpFactory
 @inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthProvider
+@using Microsoft.AspNetCore.Components.Authorization
 
 <PageTitle>Reportes y Auditoría</PageTitle>
 
@@ -147,7 +150,9 @@ else if (ejecutado)
                             </tr>
                         </thead>
                         <tbody>
-                            @{ int rank = 1; }
+                            @{
+                                int rank = 1;
+                            }
                             @foreach (var p in reporteProductos)
                             {
                                 <tr>
@@ -178,7 +183,8 @@ else if (ejecutado)
         {
             <div class="card shadow-sm border-0 fade-in">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-danger fw-bold"><i class="bi bi-shield-exclamation"></i> Auditoría de Precios (Ventas vs Lista)</h5>
+                    <h5 class="mb-0 text-danger fw-bold"><i class="bi bi-shield-exclamation"></i> Auditoría de Precios (Ventas vs
+                        Lista)</h5>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover mb-0 align-middle small">
@@ -190,7 +196,7 @@ else if (ejecutado)
                                 <th>Usuario</th>
                                 <th class="text-end">Precio Lista (Ref)</th>
                                 <th class="text-end">Precio Aplicado</th>
-                                </tr>
+                            </tr>
                         </thead>
                         <tbody>
                             @foreach (var item in reporteAuditoriaVentasPaginados)
@@ -205,17 +211,15 @@ else if (ejecutado)
                                     <td>@item.Usuario</td>
                                     <td class="text-end text-muted">$@item.PrecioLista.ToString("N2")</td>
                                     <td class="text-end fw-bold">$@item.PrecioVendido.ToString("N2")</td>
-                                    </tr>
+                                </tr>
                             }
                         </tbody>
                     </table>
                 </div>
 
                 <div class="p-3 bg-white border-top">
-                    <Paginador TItem="ReporteAuditoriaVentaDto" 
-                              TodosLosItems="reporteAuditoriaVentas" 
-                              ItemsPorPagina="10"
-                              OnCambioPagina="ActualizarAuditoriaPaginada" />
+                    <Paginador TItem="ReporteAuditoriaVentaDto" TodosLosItems="reporteAuditoriaVentas" ItemsPorPagina="10"
+                        OnCambioPagina="ActualizarAuditoriaPaginada" />
                 </div>
             </div>
         }
@@ -237,38 +241,51 @@ else if (ejecutado)
 
     private List<ReporteVentasDto> reporteVentas = new();
     private List<ReporteProductoDto> reporteProductos = new();
-    
+
     // Listas para auditoría
     private List<ReporteAuditoriaVentaDto> reporteAuditoriaVentas = new();
-    private List<ReporteAuditoriaVentaDto> reporteAuditoriaVentasPaginados = new(); 
+    private List<ReporteAuditoriaVentaDto> reporteAuditoriaVentasPaginados = new();
 
     private HttpClient _http => HttpFactory.CreateClient("LocalApi");
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        // Si no está autenticado, redirigir al login
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
+
+    }
 
     private async Task GenerarReporte()
     {
         cargando = true;
         ejecutado = true;
-        
+
         reporteVentas.Clear();
         reporteProductos.Clear();
         reporteAuditoriaVentas.Clear();
-        reporteAuditoriaVentasPaginados.Clear(); 
+        reporteAuditoriaVentasPaginados.Clear();
 
-        StateHasChanged(); 
-        
+        StateHasChanged();
+
         string fInicio = fechaInicio.ToString("yyyy-MM-dd");
         string fFin = fechaFin.ToString("yyyy-MM-dd");
-        
+
         try
         {
             if (tipoReporte == "VENTAS")
             {
                 reporteVentas = await _http.GetFromJsonAsync<List<ReporteVentasDto>>(
-                    $"api/reportes/ventas?inicio={fInicio}&fin={fFin}&agrupacion={agrupacionVentas}") ?? new();
-                
-                cargando = false; 
-                StateHasChanged(); 
-                await Task.Delay(100); 
+                $"api/reportes/ventas?inicio={fInicio}&fin={fFin}&agrupacion={agrupacionVentas}") ?? new();
+
+                cargando = false;
+                StateHasChanged();
+                await Task.Delay(100);
 
                 if (reporteVentas.Any())
                 {
@@ -281,9 +298,9 @@ else if (ejecutado)
             {
                 // ... (código existente de productos)
                 reporteProductos = await _http.GetFromJsonAsync<List<ReporteProductoDto>>(
-                    $"api/reportes/productos-top?inicio={fInicio}&fin={fFin}") ?? new();
-                
-                cargando = false; 
+                $"api/reportes/productos-top?inicio={fInicio}&fin={fFin}") ?? new();
+
+                cargando = false;
                 StateHasChanged();
                 await Task.Delay(100);
 
@@ -297,8 +314,8 @@ else if (ejecutado)
             else if (tipoReporte == "AUDITORIA_VENTAS")
             {
                 reporteAuditoriaVentas = await _http.GetFromJsonAsync<List<ReporteAuditoriaVentaDto>>(
-                    $"api/reportes/auditoria-ventas?inicio={fInicio}&fin={fFin}") ?? new();
-                
+                $"api/reportes/auditoria-ventas?inicio={fInicio}&fin={fFin}") ?? new();
+
                 // La paginación se maneja automáticamente cuando el componente Paginador recibe la lista completa
                 cargando = false;
             }

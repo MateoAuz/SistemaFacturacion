@@ -5,6 +5,9 @@
 @inject IHttpClientFactory HttpFactory
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthProvider
+@using Microsoft.AspNetCore.Components.Authorization
 
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-box-seam"></i> Gestión de Productos</h1>
@@ -232,6 +235,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
+        
         await Cargar();
 
         // Inicializar la primera página cuando ya hay datos

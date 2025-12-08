@@ -1,6 +1,7 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@using Microsoft.AspNetCore.Components.Authorization
 
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,64 +11,29 @@
     <link rel="stylesheet" href="custom.css" />
     <link rel="stylesheet" href="SistemaFacturacion.Web.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <HeadOutlet />
 </head>
 
 <body>
-    <Router AppAssembly="@typeof(App).Assembly">
-        <Found Context="routeData">
-            <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
-            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-        </Found>
-        <NotFound>
-            <LayoutView Layout="@typeof(Layout.MainLayout)">
-                <Pages.Error404 />
-            </LayoutView>
-        </NotFound>
-    </Router>
+    <CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(App).Assembly">
+            <Found Context="routeData">
+                <RouteView RouteData="@routeData"
+                           DefaultLayout="@typeof(Layout.MainLayout)" />
+            </Found>
+            <NotFound>
+                <LayoutView Layout="@typeof(Layout.MainLayout)">
+                    <Pages.Error404 />
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingAuthenticationState>
 
     <script src="_framework/blazor.web.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/site.js"></script>
     <script src="js/download.js"></script>
     <script src="js/auth.js"></script>
-
-    <script>
-        window.renderChart = (canvasId, type, labels, data, label) => {
-            var canvasElement = document.getElementById(canvasId);
-            if (!canvasElement) {
-                console.warn("El canvas " + canvasId + " no se encontró en el DOM.");
-                return;
-            }
-
-            const ctx = canvasElement.getContext('2d');
-
-            if (window[canvasId + '_chart']) {
-                window[canvasId + '_chart'].destroy();
-            }
-
-            window[canvasId + '_chart'] = new Chart(ctx, {
-                type: type,
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: label,
-                        data: data,
-                        backgroundColor: 'rgba(74, 86, 226, 0.5)',
-                        borderColor: 'rgba(74, 86, 226, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-        }
-    </script>
 </body>
-
 </html>

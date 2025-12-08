@@ -5,7 +5,8 @@
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject IJSRuntime JS
-
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthProvider
 
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-people-fill"></i> Gestión de Clientes</h1>
@@ -150,6 +151,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
+
         await CargarClientes();
     }
 

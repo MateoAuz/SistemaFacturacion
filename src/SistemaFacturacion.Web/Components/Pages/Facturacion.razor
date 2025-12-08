@@ -4,6 +4,9 @@
 @using SistemaFacturacion.Application.Contracts
 @inject IFacturacionElectronicaService FacturacionService
 @inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager Nav
 
 <PageTitle>Facturación Electrónica</PageTitle>
 
@@ -356,6 +359,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
         await CargarFacturas();
     }
 
