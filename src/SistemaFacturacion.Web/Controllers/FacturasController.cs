@@ -51,7 +51,7 @@ public class FacturasController : ControllerBase
         factura.Total = calculo.Total;
 
         factura.IdUsuario = 1; 
-        factura.FechaEmision = DateTime.UtcNow;
+        factura.FechaEmision = DateTime.UtcNow.AddHours(-5);
 
         // ✅ OBTENER CONFIGURACIÓN
         var config = await _configuracionRepo.GetConfiguracionAsync(ct);

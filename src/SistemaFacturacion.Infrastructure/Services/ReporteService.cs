@@ -16,14 +16,15 @@ public class ReporteService : IReporteService
 
     public async Task<List<ReporteVentasDto>> GetVentasPorPeriodoAsync(DateTime inicio, DateTime fin, CancellationToken ct = default)
     {
-        // Ajustar fechas para cubrir todo el día final
-        var fechaFin = fin.Date.AddDays(1).AddTicks(-1);
-        var fechaInicio = inicio.Date;
+        // 1. Aseguramos rango de fechas completo
+        // CORRECCIÓN: Al usar .Date, forzamos de nuevo a UTC inmediatamente
+        var fechaInicio = DateTime.SpecifyKind(inicio.Date, DateTimeKind.Utc);
+        var fechaFin = DateTime.SpecifyKind(fin.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
         var data = await _db.Facturas
             .AsNoTracking()
             .Where(f => f.FechaEmision >= fechaInicio && f.FechaEmision <= fechaFin && f.Estado != "ANULADA")
-            .GroupBy(f => f.FechaEmision.Date)
+            .GroupBy(f => f.FechaEmision.Date) // Nota: GroupBy en SQL suele ignorar el Kind, aquí está bien
             .Select(g => new ReporteVentasDto
             {
                 Fecha = g.Key,
@@ -40,8 +41,9 @@ public class ReporteService : IReporteService
 
     public async Task<List<ReporteProductoDto>> GetProductosMasVendidosAsync(DateTime inicio, DateTime fin, CancellationToken ct = default)
     {
-        var fechaFin = fin.Date.AddDays(1).AddTicks(-1);
-        var fechaInicio = inicio.Date;
+        // CORRECCIÓN: Aplicamos la misma lógica UTC aquí
+        var fechaInicio = DateTime.SpecifyKind(inicio.Date, DateTimeKind.Utc);
+        var fechaFin = DateTime.SpecifyKind(fin.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
         // Unimos Detalles -> Factura para filtrar por fecha y estado
         var query = from d in _db.DetallesFactura
@@ -68,8 +70,9 @@ public class ReporteService : IReporteService
 
     public async Task<List<ReporteAuditoriaDto>> GetAuditoriaPreciosAsync(DateTime inicio, DateTime fin, CancellationToken ct = default)
     {
-        var fechaFin = fin.Date.AddDays(1).AddTicks(-1);
-        var fechaInicio = inicio.Date;
+        // CORRECCIÓN: Aplicamos la misma lógica UTC aquí también
+        var fechaInicio = DateTime.SpecifyKind(inicio.Date, DateTimeKind.Utc);
+        var fechaFin = DateTime.SpecifyKind(fin.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
         var historial = await _db.HistorialPrecios
             .AsNoTracking()

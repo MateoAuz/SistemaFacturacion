@@ -16,11 +16,13 @@ using Polly;
 
 using System.Globalization; 
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 // CONFIGURACIÓN DE HTTPCLIENT
 builder.Services.AddHttpClient("LocalApi", client =>
