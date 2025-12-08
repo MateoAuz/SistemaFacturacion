@@ -50,7 +50,10 @@ public class FacturasController : ControllerBase
         factura.Iva = calculo.MontoIva;
         factura.Total = calculo.Total;
 
-        factura.IdUsuario = 1; 
+        if (factura.IdUsuario == 0) 
+        {
+            factura.IdUsuario = 1; 
+        }
         factura.FechaEmision = DateTime.UtcNow.AddHours(-5);
 
         // ✅ OBTENER CONFIGURACIÓN

@@ -190,13 +190,11 @@ else if (ejecutado)
                                 <th>Usuario</th>
                                 <th class="text-end">Precio Lista (Ref)</th>
                                 <th class="text-end">Precio Aplicado</th>
-                                <th class="text-end">Descuento/Dif.</th>
-                            </tr>
+                                </tr>
                         </thead>
                         <tbody>
-                            @foreach (var item in reporteAuditoriaVentas)
+                            @foreach (var item in reporteAuditoriaVentasPaginados)
                             {
-                                bool hayDescuento = item.Descuento > 0;
                                 <tr>
                                     <td>@item.Fecha.ToString("dd/MM/yy HH:mm")</td>
                                     <td>
@@ -207,20 +205,17 @@ else if (ejecutado)
                                     <td>@item.Usuario</td>
                                     <td class="text-end text-muted">$@item.PrecioLista.ToString("N2")</td>
                                     <td class="text-end fw-bold">$@item.PrecioVendido.ToString("N2")</td>
-                                    <td class="text-end">
-                                        @if (hayDescuento)
-                                        {
-                                            <span class="badge bg-warning text-dark">-$@item.Descuento.ToString("N2")</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">-</span>
-                                        }
-                                    </td>
-                                </tr>
+                                    </tr>
                             }
                         </tbody>
                     </table>
+                </div>
+
+                <div class="p-3 bg-white border-top">
+                    <Paginador TItem="ReporteAuditoriaVentaDto" 
+                              TodosLosItems="reporteAuditoriaVentas" 
+                              ItemsPorPagina="10"
+                              OnCambioPagina="ActualizarAuditoriaPaginada" />
                 </div>
             </div>
         }
@@ -242,7 +237,10 @@ else if (ejecutado)
 
     private List<ReporteVentasDto> reporteVentas = new();
     private List<ReporteProductoDto> reporteProductos = new();
+    
+    // Listas para auditoría
     private List<ReporteAuditoriaVentaDto> reporteAuditoriaVentas = new();
+    private List<ReporteAuditoriaVentaDto> reporteAuditoriaVentasPaginados = new(); // ✅ Lista paginada
 
     private HttpClient _http => HttpFactory.CreateClient("LocalApi");
 
@@ -254,6 +252,7 @@ else if (ejecutado)
         reporteVentas.Clear();
         reporteProductos.Clear();
         reporteAuditoriaVentas.Clear();
+        reporteAuditoriaVentasPaginados.Clear(); // ✅ Limpiar paginados
 
         StateHasChanged(); 
         
@@ -264,6 +263,7 @@ else if (ejecutado)
         {
             if (tipoReporte == "VENTAS")
             {
+                // ... (código existente de ventas)
                 reporteVentas = await _http.GetFromJsonAsync<List<ReporteVentasDto>>(
                     $"api/reportes/ventas?inicio={fInicio}&fin={fFin}&agrupacion={agrupacionVentas}") ?? new();
                 
@@ -280,6 +280,7 @@ else if (ejecutado)
             }
             else if (tipoReporte == "PRODUCTOS")
             {
+                // ... (código existente de productos)
                 reporteProductos = await _http.GetFromJsonAsync<List<ReporteProductoDto>>(
                     $"api/reportes/productos-top?inicio={fInicio}&fin={fFin}") ?? new();
                 
@@ -298,6 +299,8 @@ else if (ejecutado)
             {
                 reporteAuditoriaVentas = await _http.GetFromJsonAsync<List<ReporteAuditoriaVentaDto>>(
                     $"api/reportes/auditoria-ventas?inicio={fInicio}&fin={fFin}") ?? new();
+                
+                // La paginación se maneja automáticamente cuando el componente Paginador recibe la lista completa
                 cargando = false;
             }
         }
@@ -310,6 +313,14 @@ else if (ejecutado)
         {
             StateHasChanged();
         }
+    }
+
+    // ✅ Método manejador para la paginación de auditoría
+    private Task ActualizarAuditoriaPaginada(List<ReporteAuditoriaVentaDto> items)
+    {
+        reporteAuditoriaVentasPaginados = items;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task RenderChart(string id, string type, string[] labels, decimal[] data, string label)

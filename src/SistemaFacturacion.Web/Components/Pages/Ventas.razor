@@ -3,12 +3,15 @@
 @using System.Net.Http.Json
 @using SistemaFacturacion.Domain.Entities
 @using SistemaFacturacion.Application.Contracts
+@using SistemaFacturacion.Web.Services
 @inject IHttpClientFactory HttpFactory
 @inject ITaxCalculator TaxCalculator
 @inject IJSRuntime JS
+@inject AuthStateService AuthState
 
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-cart-check"></i> Nueva Factura de Venta</h1>
+    <small class="text-white-50">Vendedor: @nombreVendedorActual</small>
 </div>
 
 @if (!string.IsNullOrEmpty(mensajeError))
@@ -353,6 +356,7 @@
 
 @code {
     private HttpClient _http => HttpFactory.CreateClient("LocalApi");
+    
 
     // CLIENTES
     private string busquedaClienteQuery = "";
@@ -377,6 +381,9 @@
     // PAGO (NUEVO)
     private string metodoPagoSeleccionado = "";
     private bool estaPagado = false;
+    // DATOS DE SESIÓN
+    private int idUsuarioActual = 0;
+    private string nombreVendedorActual = "Cargando...";
 
     private List<string> metodosPago = new()
 {
@@ -398,11 +405,12 @@
     {
         try
         {
+            await CargarDatosUsuario(); // ✅ Recuperar usuario logueado
+
             var clientes = await _http.GetFromJsonAsync<List<Cliente>>("api/clientes");
             cacheClientes = clientes ?? new List<Cliente>();
 
             cacheProductos = await _http.GetFromJsonAsync<List<Producto>>("api/productos?includeLotes=true") ?? new();
-
             categoriasDisponibles = cacheProductos
             .Where(p => !string.IsNullOrEmpty(p.Categoria))
             .Select(p => p.Categoria!)
@@ -413,6 +421,36 @@
         catch (Exception ex)
         {
             mensajeError = $"Error cargando datos iniciales: {ex.Message}";
+        }
+    }
+    
+    private async Task CargarDatosUsuario()
+    {
+        // Intentar obtener del servicio (memoria)
+        if (AuthState.IdUsuario != 0)
+        {
+            idUsuarioActual = AuthState.IdUsuario;
+            nombreVendedorActual = AuthState.NombreUsuario ?? "Vendedor";
+        }
+        else
+        {
+            // Si se recargó la página, recuperar del LocalStorage
+            try 
+            {
+                var idStr = await JS.InvokeAsync<string>("localStorage.getItem", "userId");
+                var nameStr = await JS.InvokeAsync<string>("localStorage.getItem", "userName");
+                
+                if (int.TryParse(idStr, out int id))
+                {
+                    idUsuarioActual = id;
+                    nombreVendedorActual = nameStr ?? "Vendedor";
+                    
+                    // Restaurar estado global por si acaso
+                    var rolStr = await JS.InvokeAsync<string>("localStorage.getItem", "userRole");
+                    AuthState.SetUsuario(rolStr, nombreVendedorActual, idUsuarioActual);
+                }
+            }
+            catch { /* Ignorar errores de JS si no hay datos */ }
         }
     }
 
@@ -560,14 +598,15 @@
         // 1️⃣ CREAR LA FACTURA (se crea con estado PENDIENTE por defecto)
         Factura nuevaFactura = new Factura
         {
-            IdCliente = clienteSeleccionado!.IdCliente,
-            Detalles = detallesFactura.Select(d => new DetalleFactura
-            {
-                IdProducto = d.IdProducto,
-                Cantidad = (short)d.Cantidad,
-                PrecioUnitario = d.PrecioUnitario
-            }).ToList()
-        };
+                IdCliente = clienteSeleccionado!.IdCliente,
+                IdUsuario = idUsuarioActual, // ✅ Usar el ID del usuario logueado
+                Detalles = detallesFactura.Select(d => new DetalleFactura
+                {
+                    IdProducto = d.IdProducto,
+                    Cantidad = (short)d.Cantidad,
+                    PrecioUnitario = d.PrecioUnitario
+                }).ToList()
+            };
 
         var responseFactura = await _http.PostAsJsonAsync("api/facturas", nuevaFactura);
         
@@ -587,12 +626,12 @@
 
         // 2️⃣ REGISTRAR EL PAGO (esto cambia el estado a PAGADA)
         var pagoRequest = new PagoRequestDto
-        {
-            IdFactura = facturaCreada.IdFactura,
-            Monto = facturaCreada.Total,
-            MetodoPago = metodoPagoSeleccionado,
-            IdUsuario = 1 // TODO: Obtener del usuario logueado
-        };
+            {
+                IdFactura = facturaCreada.IdFactura,
+                Monto = facturaCreada.Total,
+                MetodoPago = metodoPagoSeleccionado,
+                IdUsuario = idUsuarioActual // ✅ Usar el ID del usuario logueado
+            };
 
         var responsePago = await _http.PostAsJsonAsync("api/pagos", pagoRequest);
         
