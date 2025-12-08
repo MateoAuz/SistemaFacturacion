@@ -6,6 +6,7 @@ using SistemaFacturacion.Infrastructure.Repositories;
 using SistemaFacturacion.Application.Services;
 using SistemaFacturacion.Web.Services; 
 using SistemaFacturacion.Domain.Entities;
+using SistemaFacturacion.Infrastructure.Services;
 using SistemaFacturacion.Domain.Configuration;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -81,7 +82,7 @@ builder.Services.AddScoped<IRideGeneratorService, RideGeneratorService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 // En Program.cs, busca donde están los otros services y agrega:
 builder.Services.AddScoped<AuthStateService>();
-
+builder.Services.AddScoped<SistemaFacturacion.Application.Contracts.IReporteService, SistemaFacturacion.Infrastructure.Services.ReporteService>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {

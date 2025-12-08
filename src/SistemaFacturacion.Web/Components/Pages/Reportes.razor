@@ -1,0 +1,229 @@
+@page "/reportes"
+@rendermode InteractiveServer
+@using SistemaFacturacion.Application.DTOs
+@using System.Globalization
+@inject IHttpClientFactory HttpFactory
+
+<PageTitle>Reportes y Auditoría</PageTitle>
+
+<div class="page-header">
+    <h1 class="mb-0"><i class="bi bi-graph-up"></i> Reportes y Auditoría</h1>
+    <p class="text-white-50 mb-0">Análisis de desempeño y control de cambios</p>
+</div>
+
+<div class="card-modern mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Fecha Inicio</label>
+            <input type="date" class="form-control" @bind="fechaInicio" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Fecha Fin</label>
+            <input type="date" class="form-control" @bind="fechaFin" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Tipo de Reporte</label>
+            <select class="form-select" @bind="tipoReporte">
+                <option value="VENTAS">Ventas por Período</option>
+                <option value="PRODUCTOS">Productos Más Vendidos</option>
+                <option value="AUDITORIA">Auditoría de Precios</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-primary w-100 btn-modern" @onclick="GenerarReporte" disabled="@cargando">
+                @if (cargando) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                <i class="bi bi-search"></i> Generar
+            </button>
+        </div>
+    </div>
+</div>
+
+@if (cargando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Procesando datos...</p>
+    </div>
+}
+else if (ejecutado)
+{
+    @if (tipoReporte == "VENTAS")
+    {
+        @if (reporteVentas.Any())
+        {
+            <div class="card shadow-sm border-0 fade-in">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-cash-stack"></i> Resumen de Ventas</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th class="text-center">Cant. Facturas</th>
+                                <th class="text-end">Subtotal</th>
+                                <th class="text-end">IVA</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in reporteVentas)
+                            {
+                                <tr>
+                                    <td>@item.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center"><span class="badge bg-secondary">@item.CantidadFacturas</span></td>
+                                    <td class="text-end">$@item.Subtotal.ToString("N2")</td>
+                                    <td class="text-end">$@item.Iva.ToString("N2")</td>
+                                    <td class="text-end fw-bold text-success">$@item.Total.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="bg-light fw-bold">
+                            <tr>
+                                <td>TOTALES</td>
+                                <td class="text-center">@reporteVentas.Sum(x => x.CantidadFacturas)</td>
+                                <td class="text-end">$@reporteVentas.Sum(x => x.Subtotal).ToString("N2")</td>
+                                <td class="text-end">$@reporteVentas.Sum(x => x.Iva).ToString("N2")</td>
+                                <td class="text-end text-primary fs-5">$@reporteVentas.Sum(x => x.Total).ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center mt-3"><i class="bi bi-info-circle"></i> No hay ventas en este período.</div>
+        }
+    }
+    else if (tipoReporte == "PRODUCTOS")
+    {
+        @if (reporteProductos.Any())
+        {
+            <div class="card shadow-sm border-0 fade-in">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-success fw-bold"><i class="bi bi-trophy"></i> Top Productos Más Vendidos</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center" style="width: 60px;">#</th>
+                                <th>Producto</th>
+                                <th>Categoría</th>
+                                <th class="text-center">Unidades Vendidas</th>
+                                <th class="text-end">Ingresos Generados</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int rank = 1; }
+                            @foreach (var p in reporteProductos)
+                            {
+                                <tr>
+                                    <td class="text-center"><span class="badge rounded-circle bg-dark">@(rank++)</span></td>
+                                    <td>
+                                        <div class="fw-bold">@p.Nombre</div>
+                                        <small class="text-muted">@p.Codigo</small>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border">@p.Categoria</span></td>
+                                    <td class="text-center fs-5">@p.CantidadVendida</td>
+                                    <td class="text-end fw-bold text-success">$@p.TotalGenerado.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center mt-3"><i class="bi bi-info-circle"></i> No hay productos vendidos en este período.</div>
+        }
+    }
+    else if (tipoReporte == "AUDITORIA")
+    {
+        @if (reporteAuditoria.Any())
+        {
+            <div class="card shadow-sm border-0 fade-in">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 text-warning fw-bold"><i class="bi bi-shield-lock"></i> Auditoría de Cambios de Precio</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha/Hora</th>
+                                <th>Usuario</th>
+                                <th>Producto</th>
+                                <th>Detalle del Cambio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in reporteAuditoria)
+                            {
+                                <tr>
+                                    <td>@log.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td><i class="bi bi-person-fill text-muted"></i> @log.Usuario</td>
+                                    <td class="fw-bold">@log.Producto</td>
+                                    <td>@log.Detalle</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center mt-3"><i class="bi bi-check-circle"></i> No se registraron cambios de precios en este período.</div>
+        }
+    }
+}
+
+@code {
+    private DateTime fechaInicio = DateTime.Today.AddDays(-30);
+    private DateTime fechaFin = DateTime.Today;
+    private string tipoReporte = "VENTAS";
+    private bool cargando = false;
+    private bool ejecutado = false;
+
+    private List<ReporteVentasDto> reporteVentas = new();
+    private List<ReporteProductoDto> reporteProductos = new();
+    private List<ReporteAuditoriaDto> reporteAuditoria = new();
+
+    private HttpClient _http => HttpFactory.CreateClient("LocalApi");
+
+    private async Task GenerarReporte()
+    {
+        cargando = true;
+        ejecutado = true;
+        
+        // Formato para query string
+        string fInicio = fechaInicio.ToString("yyyy-MM-dd");
+        string fFin = fechaFin.ToString("yyyy-MM-dd");
+        
+        try
+        {
+            if (tipoReporte == "VENTAS")
+            {
+                reporteVentas = await _http.GetFromJsonAsync<List<ReporteVentasDto>>($"api/reportes/ventas?inicio={fInicio}&fin={fFin}") ?? new();
+            }
+            else if (tipoReporte == "PRODUCTOS")
+            {
+                reporteProductos = await _http.GetFromJsonAsync<List<ReporteProductoDto>>($"api/reportes/productos-top?inicio={fInicio}&fin={fFin}") ?? new();
+            }
+            else if (tipoReporte == "AUDITORIA")
+            {
+                reporteAuditoria = await _http.GetFromJsonAsync<List<ReporteAuditoriaDto>>($"api/reportes/auditoria?inicio={fInicio}&fin={fFin}") ?? new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al generar reporte: {ex.Message}");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+}
