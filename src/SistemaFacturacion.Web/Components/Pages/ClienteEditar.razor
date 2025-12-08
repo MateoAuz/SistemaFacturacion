@@ -39,11 +39,16 @@ else
                             <label class="form-label fw-bold">Tipo de Documento *</label>
 
                             <InputSelect class="form-select" @bind-Value="cliente.TipoIdentificacion"
-                                @bind-Value:after="ValidarYVerificarExistencia">
+                                @bind-Value:after="ValidarYVerificarExistencia" disabled="@(IdCliente != 0)">
                                 <option value="CEDUL">Cédula</option>
                                 <option value="RUC">RUC</option>
                                 <option value="PASAP">Pasaporte (Extranjero)</option>
                             </InputSelect>
+
+                            @if (IdCliente != 0)
+                            {
+                                <small class="text-muted"><i class="bi bi-lock-fill"></i> No modificable</small>
+                            }
 
                             <ValidationMessage For="@(() => cliente.TipoIdentificacion)" />
                         </div>
@@ -53,17 +58,15 @@ else
                             <div class="input-group">
                                 <InputText class="form-control" @bind-Value="cliente.Identificacion"
                                     @onfocusout="ValidarYVerificarExistencia"
-                                    placeholder="@(cliente.TipoIdentificacion == "PASAP" ? "Pasaporte" : "Solo números")" />
-
-                                <span class="input-group-text">
+                                    placeholder="@(cliente.TipoIdentificacion == "PASAP" ? "Pasaporte" : "Solo números")"
+                                    disabled="@(IdCliente != 0)" /> <span class="input-group-text">
                                     @if (validandoIdentificacion)
                                     {
                                         <div class="spinner-border spinner-border-sm text-secondary"></div>
                                     }
                                     else if (identificacionEsValida)
                                     {
-                                        <i class="bi bi-check-circle-fill text-success"
-                                            title="Identificación válida y disponible"></i>
+                                        <i class="bi bi-check-circle-fill text-success" title="Identificación válida"></i>
                                     }
                                     else if (!string.IsNullOrEmpty(mensajeValidacion))
                                     {
@@ -75,6 +78,11 @@ else
                                     }
                                 </span>
                             </div>
+
+                            @if (IdCliente != 0)
+                            {
+                                <small class="text-muted"><i class="bi bi-lock-fill"></i> No modificable</small>
+                            }
 
                             @if (!string.IsNullOrEmpty(mensajeValidacion))
                             {
@@ -176,7 +184,7 @@ else
         if (!string.IsNullOrEmpty(cliente.Identificacion))
             cliente.Identificacion = cliente.Identificacion.Trim();
 
-        
+
         if (IdCliente != 0 && cliente.Identificacion == identificacionOriginal)
         {
             identificacionEsValida = true;
@@ -223,7 +231,7 @@ else
 
     private async Task Guardar()
     {
-                  
+
         if (IdCliente == 0 || cliente.Identificacion != identificacionOriginal)
         {
             await ValidarYVerificarExistencia();
