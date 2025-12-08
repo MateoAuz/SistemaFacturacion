@@ -1,4 +1,3 @@
-// toast.js - Sistema de notificaciones
 window.showToast = function(message, type = 'error') {
     // Remover toast anterior si existe
     const existingToast = document.getElementById('custom-toast');

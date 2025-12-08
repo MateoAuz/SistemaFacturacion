@@ -15,18 +15,18 @@ public class FacturasController : ControllerBase
     private readonly IFacturaRepository _facturaRepo;
     private readonly ITaxCalculator _taxCalculator;
     private readonly ApplicationDbContext _context;
-    private readonly IConfiguracionRepository _configuracionRepo; // ✅ AGREGAR
+    private readonly IConfiguracionRepository _configuracionRepo; 
 
     public FacturasController(
         IFacturaRepository facturaRepo,
         ITaxCalculator taxCalculator,
         ApplicationDbContext context,
-        IConfiguracionRepository configuracionRepo) // ✅ AGREGAR
+        IConfiguracionRepository configuracionRepo) 
     {
         _facturaRepo = facturaRepo;
         _taxCalculator = taxCalculator;
         _context = context;
-        _configuracionRepo = configuracionRepo; // ✅ AGREGAR
+        _configuracionRepo = configuracionRepo; 
     }
 
     // POST /api/facturas
@@ -56,7 +56,6 @@ public class FacturasController : ControllerBase
         }
         factura.FechaEmision = DateTime.UtcNow.AddHours(-5);
 
-        // ✅ OBTENER CONFIGURACIÓN
         var config = await _configuracionRepo.GetConfiguracionAsync(ct);
         
         if (config == null)
@@ -64,13 +63,11 @@ public class FacturasController : ControllerBase
             return BadRequest("No se ha configurado la información de la empresa. Configure el establecimiento y punto de emisión.");
         }
 
-        // ✅ VALIDAR QUE EXISTAN LOS VALORES
         if (string.IsNullOrWhiteSpace(config.Establecimiento) || string.IsNullOrWhiteSpace(config.PuntoEmision))
         {
             return BadRequest("Debe configurar el establecimiento y punto de emisión en la configuración del sistema.");
         }
 
-        // ✅ USAR VALORES DE CONFIGURACIÓN
         var consecutivo = await _context.Facturas.CountAsync(ct) + 1;
         factura.NumeroFactura = $"{config.Establecimiento}-{config.PuntoEmision}-{consecutivo:000000000}";
         factura.Estado = "PENDIENTE";

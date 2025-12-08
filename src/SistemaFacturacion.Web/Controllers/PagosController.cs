@@ -55,7 +55,7 @@ public class PagosController : ControllerBase
         }
     }
     
-    // GET: api/pagos/by-factura/5 (CA-06.6)
+    // GET: api/pagos/by-factura/5 
     [HttpGet("by-factura/{idFactura:int}")]
     public async Task<ActionResult<IEnumerable<Pago>>> GetPagosPorFactura(int idFactura, CancellationToken ct)
     {

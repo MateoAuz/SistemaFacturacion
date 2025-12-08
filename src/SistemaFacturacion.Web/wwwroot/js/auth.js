@@ -1,4 +1,3 @@
-// auth.js - Control de menú según rol
 function verificarMenuConfig() {
     const rol = localStorage.getItem('userRole');
     const menuConfig = document.getElementById('menu-config');

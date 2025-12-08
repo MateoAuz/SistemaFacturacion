@@ -1,9 +1,7 @@
-// navigation-lock.js - Protección de rutas con autenticación
 (function() {
     let isInternalNavigation = false;
     let currentPath = window.location.pathname;
     
-    // Rutas públicas que NO requieren autenticación
     const publicRoutes = ['/login', '/acceso-denegado'];
     
     // Función para verificar si el usuario está autenticado
@@ -17,7 +15,6 @@
         return publicRoutes.some(route => path.startsWith(route));
     }
     
-    // ✅ VERIFICACIÓN INMEDIATA al cargar el script
     (function verificacionInicial() {
         const path = window.location.pathname;
         if (!isPublicRoute(path) && !isAuthenticated()) {
