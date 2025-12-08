@@ -1,4 +1,3 @@
-/* src/SistemaFacturacion.Infrastructure/Services/ReporteService.cs */
 using Microsoft.EntityFrameworkCore;
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Application.DTOs;

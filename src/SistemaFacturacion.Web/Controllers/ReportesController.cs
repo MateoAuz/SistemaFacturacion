@@ -1,4 +1,3 @@
-/* src/SistemaFacturacion.Web/Controllers/ReportesController.cs */
 using Microsoft.AspNetCore.Mvc;
 using SistemaFacturacion.Application.Contracts;
 using SistemaFacturacion.Application.DTOs;
