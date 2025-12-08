@@ -20,7 +20,7 @@ public class ReportesController : ControllerBase
     public async Task<ActionResult<List<ReporteVentasDto>>> GetVentas(
         [FromQuery] DateTime inicio, 
         [FromQuery] DateTime fin,
-        [FromQuery] string agrupacion, // Nuevo
+        [FromQuery] string agrupacion,
         CancellationToken ct)
     {
         return Ok(await _reporteService.GetVentasPorPeriodoAsync(inicio, fin, agrupacion ?? "DIA", ct));
@@ -42,14 +42,5 @@ public class ReportesController : ControllerBase
         CancellationToken ct)
     {
         return Ok(await _reporteService.GetAuditoriaVentasAsync(inicio, fin, ct));
-    }
-
-    [HttpGet("auditoria")]
-    public async Task<ActionResult<List<ReporteAuditoriaDto>>> GetAuditoria(
-        [FromQuery] DateTime inicio, 
-        [FromQuery] DateTime fin, 
-        CancellationToken ct)
-    {
-        return Ok(await _reporteService.GetAuditoriaPreciosAsync(inicio, fin, ct));
     }
 }

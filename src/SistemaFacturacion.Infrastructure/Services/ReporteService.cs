@@ -16,6 +16,7 @@ public class ReporteService : IReporteService
         _db = db;
     }
 
+    // 1. VENTAS POR PERIODO
     public async Task<List<ReporteVentasDto>> GetVentasPorPeriodoAsync(DateTime inicio, DateTime fin, string agrupacion = "DIA", CancellationToken ct = default)
     {
         var fechaInicio = DateTime.SpecifyKind(inicio.Date, DateTimeKind.Utc);
@@ -26,7 +27,6 @@ public class ReporteService : IReporteService
             .Where(f => f.FechaEmision >= fechaInicio && f.FechaEmision <= fechaFin && f.Estado != "ANULADA")
             .ToListAsync(ct);
 
-        // Agrupación en memoria para mayor flexibilidad con formatos de fecha
         IEnumerable<IGrouping<string, SistemaFacturacion.Domain.Entities.Factura>> grupos;
 
         if (agrupacion == "MES")
@@ -54,6 +54,7 @@ public class ReporteService : IReporteService
         .ToList();
     }
 
+    // 2. PRODUCTOS MÁS VENDIDOS
     public async Task<List<ReporteProductoDto>> GetProductosMasVendidosAsync(DateTime inicio, DateTime fin, CancellationToken ct = default)
     {
         var fechaInicio = DateTime.SpecifyKind(inicio.Date, DateTimeKind.Utc);
@@ -73,7 +74,6 @@ public class ReporteService : IReporteService
                         Categoria = g.Key.Categoria ?? "Sin Categoría",
                         CantidadVendida = g.Sum(x => x.Cantidad),
                         TotalGenerado = g.Sum(x => x.TotalLinea),
-                        // Precio Promedio = Total / Cantidad
                         PrecioPromedio = g.Sum(x => x.Cantidad) > 0 
                             ? g.Sum(x => x.TotalLinea) / g.Sum(x => x.Cantidad) 
                             : 0
@@ -85,13 +85,12 @@ public class ReporteService : IReporteService
             .ToListAsync(ct);
     }
 
+    // 3. AUDITORÍA DE VENTAS (Precios)
     public async Task<List<ReporteAuditoriaVentaDto>> GetAuditoriaVentasAsync(DateTime inicio, DateTime fin, CancellationToken ct = default)
     {
         var fechaInicio = DateTime.SpecifyKind(inicio.Date, DateTimeKind.Utc);
         var fechaFin = DateTime.SpecifyKind(fin.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
-        // Comparamos Precio Venta Real (Detalle) vs Precio Oficial Actual (Producto)
-        // Nota: Si el precio oficial cambió, esto mostrará la diferencia contra el actual.
         var query = from d in _db.DetallesFactura
                     join f in _db.Facturas on d.IdFactura equals f.IdFactura
                     join p in _db.Productos on d.IdProducto equals p.IdProducto
@@ -113,28 +112,5 @@ public class ReporteService : IReporteService
                     };
 
         return await query.OrderByDescending(x => x.Fecha).ToListAsync(ct);
-    }
-
-    public async Task<List<ReporteAuditoriaDto>> GetAuditoriaPreciosAsync(DateTime inicio, DateTime fin, CancellationToken ct = default)
-    {
-        var fechaInicio = DateTime.SpecifyKind(inicio.Date, DateTimeKind.Utc);
-        var fechaFin = DateTime.SpecifyKind(fin.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-
-        return await _db.HistorialPrecios
-            .AsNoTracking()
-            .Include(h => h.Producto)
-            .Include(h => h.Usuario)
-            .Where(h => h.FechaCambio >= fechaInicio && h.FechaCambio <= fechaFin)
-            .OrderByDescending(h => h.FechaCambio)
-            .Select(h => new ReporteAuditoriaDto
-            {
-                Id = h.IdHistorial,
-                Fecha = h.FechaCambio,
-                Usuario = h.Usuario != null ? h.Usuario.NombreUsuario : "Sistema",
-                Producto = h.Producto != null ? h.Producto.Nombre : "Desconocido",
-                Accion = "Cambio de Catálogo",
-                Detalle = $"Cambio de ${h.PrecioAnterior:N2} a ${h.PrecioNuevo:N2}. Motivo: {h.Motivo}"
-            })
-            .ToListAsync(ct);
     }
 }

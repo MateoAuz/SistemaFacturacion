@@ -8,7 +8,7 @@
 <PageTitle>Reportes y Auditoría</PageTitle>
 
 <div class="page-header">
-    <h1 class="mb-0"><i class="bi bi-graph-up"></i> Reportes y Auditoría</h1>
+    <h1 class="mb-0"><i class="bi bi-graph-up"></i> Reportes</h1>
 </div>
 
 <div class="card-modern mb-4">
@@ -27,7 +27,6 @@
                 <option value="VENTAS">Ventas por Período</option>
                 <option value="PRODUCTOS">Productos Más Vendidos</option>
                 <option value="AUDITORIA_VENTAS">Auditoría de Precios (Ventas)</option>
-                <option value="AUDITORIA_LOG">Log de Cambios (Sistema)</option>
             </select>
         </div>
 
@@ -148,9 +147,7 @@ else if (ejecutado)
                             </tr>
                         </thead>
                         <tbody>
-                            @{
-                                int rank = 1;
-                            }
+                            @{ int rank = 1; }
                             @foreach (var p in reporteProductos)
                             {
                                 <tr>
@@ -181,8 +178,7 @@ else if (ejecutado)
         {
             <div class="card shadow-sm border-0 fade-in">
                 <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-danger fw-bold"><i class="bi bi-shield-exclamation"></i> Auditoría de Precios (Ventas vs
-                        Lista)</h5>
+                    <h5 class="mb-0 text-danger fw-bold"><i class="bi bi-shield-exclamation"></i> Auditoría de Precios (Ventas vs Lista)</h5>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover mb-0 align-middle small">
@@ -233,37 +229,6 @@ else if (ejecutado)
             <div class="alert alert-info text-center mt-3">No hay datos de auditoría de ventas.</div>
         }
     }
-    else if (tipoReporte == "AUDITORIA_LOG")
-    {
-        <div class="card shadow-sm border-0 fade-in">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 text-secondary"><i class="bi bi-clock-history"></i> Historial de Cambios en Catálogo</h5>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-striped mb-0">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Usuario</th>
-                            <th>Producto</th>
-                            <th>Detalle</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var log in reporteAuditoriaLog)
-                        {
-                            <tr>
-                                <td>@log.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>@log.Usuario</td>
-                                <td>@log.Producto</td>
-                                <td>@log.Detalle</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    }
 }
 
 @code {
@@ -278,96 +243,77 @@ else if (ejecutado)
     private List<ReporteVentasDto> reporteVentas = new();
     private List<ReporteProductoDto> reporteProductos = new();
     private List<ReporteAuditoriaVentaDto> reporteAuditoriaVentas = new();
-    private List<ReporteAuditoriaDto> reporteAuditoriaLog = new();
 
     private HttpClient _http => HttpFactory.CreateClient("LocalApi");
 
-    /* En src/SistemaFacturacion.Web/Components/Pages/Reportes.razor */
-
     private async Task GenerarReporte()
-{
-    // 1. Iniciamos la carga
-    cargando = true;
-    ejecutado = true;
-    
-    reporteVentas.Clear();
-    reporteProductos.Clear();
-    reporteAuditoriaVentas.Clear();
-    reporteAuditoriaLog.Clear();
-
-    StateHasChanged(); // Renderiza el Spinner
-    
-    string fInicio = fechaInicio.ToString("yyyy-MM-dd");
-    string fFin = fechaFin.ToString("yyyy-MM-dd");
-    
-    try
     {
-        if (tipoReporte == "VENTAS")
+        cargando = true;
+        ejecutado = true;
+        
+        reporteVentas.Clear();
+        reporteProductos.Clear();
+        reporteAuditoriaVentas.Clear();
+
+        StateHasChanged(); 
+        
+        string fInicio = fechaInicio.ToString("yyyy-MM-dd");
+        string fFin = fechaFin.ToString("yyyy-MM-dd");
+        
+        try
         {
-            reporteVentas = await _http.GetFromJsonAsync<List<ReporteVentasDto>>(
-                $"api/reportes/ventas?inicio={fInicio}&fin={fFin}&agrupacion={agrupacionVentas}") ?? new();
-            
-            // 2. IMPORTANTE: Desactivamos 'cargando' ANTES de dibujar
-            cargando = false; 
-            
-            // 3. Forzamos renderizado para que el <canvas> aparezca en el DOM
-            StateHasChanged(); 
-
-            // 4. Pequeña espera para asegurar que el navegador pintó el canvas
-            await Task.Delay(100); 
-
-            if (reporteVentas.Any())
+            if (tipoReporte == "VENTAS")
             {
-                var labels = reporteVentas.Select(x => x.Periodo).ToArray();
-                var data = reporteVentas.Select(x => x.Total).ToArray();
-                await RenderChart("chartVentas", "bar", labels, data, "Total Vendido ($)");
-            }
-        }
-        else if (tipoReporte == "PRODUCTOS")
-        {
-            reporteProductos = await _http.GetFromJsonAsync<List<ReporteProductoDto>>(
-                $"api/reportes/productos-top?inicio={fInicio}&fin={fFin}") ?? new();
+                reporteVentas = await _http.GetFromJsonAsync<List<ReporteVentasDto>>(
+                    $"api/reportes/ventas?inicio={fInicio}&fin={fFin}&agrupacion={agrupacionVentas}") ?? new();
                 
-            // Misma lógica para productos
-            cargando = false; 
-            StateHasChanged();
-            await Task.Delay(100);
+                cargando = false; 
+                StateHasChanged(); 
+                await Task.Delay(100); 
 
-            if (reporteProductos.Any())
+                if (reporteVentas.Any())
+                {
+                    var labels = reporteVentas.Select(x => x.Periodo).ToArray();
+                    var data = reporteVentas.Select(x => x.Total).ToArray();
+                    await RenderChart("chartVentas", "bar", labels, data, "Total Vendido ($)");
+                }
+            }
+            else if (tipoReporte == "PRODUCTOS")
             {
-                var labels = reporteProductos.Select(x => x.Nombre).ToArray();
-                var data = reporteProductos.Select(x => x.TotalGenerado).ToArray();
-                await RenderChart("chartProductos", "bar", labels, data, "Ingresos por Producto ($)");
+                reporteProductos = await _http.GetFromJsonAsync<List<ReporteProductoDto>>(
+                    $"api/reportes/productos-top?inicio={fInicio}&fin={fFin}") ?? new();
+                
+                cargando = false; 
+                StateHasChanged();
+                await Task.Delay(100);
+
+                if (reporteProductos.Any())
+                {
+                    var labels = reporteProductos.Select(x => x.Nombre).ToArray();
+                    var data = reporteProductos.Select(x => x.TotalGenerado).ToArray();
+                    await RenderChart("chartProductos", "bar", labels, data, "Ingresos por Producto ($)");
+                }
+            }
+            else if (tipoReporte == "AUDITORIA_VENTAS")
+            {
+                reporteAuditoriaVentas = await _http.GetFromJsonAsync<List<ReporteAuditoriaVentaDto>>(
+                    $"api/reportes/auditoria-ventas?inicio={fInicio}&fin={fFin}") ?? new();
+                cargando = false;
             }
         }
-        else if (tipoReporte == "AUDITORIA_VENTAS")
+        catch (Exception ex)
         {
-            reporteAuditoriaVentas = await _http.GetFromJsonAsync<List<ReporteAuditoriaVentaDto>>(
-                $"api/reportes/auditoria-ventas?inicio={fInicio}&fin={fFin}") ?? new();
-            cargando = false; // Solo desactivar carga, no hay gráfico
+            Console.WriteLine($"Error: {ex.Message}");
+            cargando = false;
         }
-        else if (tipoReporte == "AUDITORIA_LOG")
+        finally
         {
-            reporteAuditoriaLog = await _http.GetFromJsonAsync<List<ReporteAuditoriaDto>>(
-                $"api/reportes/auditoria?inicio={fInicio}&fin={fFin}") ?? new();
-            cargando = false; // Solo desactivar carga
+            StateHasChanged();
         }
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error: {ex.Message}");
-        cargando = false;
-    }
-    finally
-    {
-        // Aseguramos que se actualice la UI final por si hubo error
-        StateHasChanged();
-    }
-}
 
     private async Task RenderChart(string id, string type, string[] labels, decimal[] data, string label)
     {
-        // Pequeño delay para asegurar que el canvas exista en el DOM
         await Task.Delay(100);
         await JS.InvokeVoidAsync("renderChart", id, type, labels, data, label);
     }
