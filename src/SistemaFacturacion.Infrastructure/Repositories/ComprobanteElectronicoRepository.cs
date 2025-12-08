@@ -43,7 +43,6 @@ public class ComprobanteElectronicoRepository : IComprobanteElectronicoRepositor
         if (existente == null)
             throw new InvalidOperationException($"Comprobante con ID {comprobante.IdComprobante} no encontrado");
 
-        // Actualizar campos
         existente.ClaveAcceso = comprobante.ClaveAcceso;
         existente.XmlGenerado = comprobante.XmlGenerado;
         existente.XmlFirmado = comprobante.XmlFirmado;

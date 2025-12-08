@@ -1,7 +1,13 @@
 @page "/logout"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using SistemaFacturacion.Web
+@using SistemaFacturacion.Web.Services
+
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthProvider
+@inject TokenHolder TokenHolder
 
 <div class="text-center py-5">
     <div class="spinner-border text-primary" role="status">
@@ -11,21 +17,26 @@
 </div>
 
 @code {
-    private bool isInitialized = false;
+    private bool _done;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !isInitialized)
-        {
-            isInitialized = true;
-            
-            // Limpiar cualquier dato de sesión
-            await JS.InvokeVoidAsync("sessionStorage.clear");
-            await JS.InvokeVoidAsync("localStorage.clear");
-            
-            // Redirigir al login después de un breve delay
-            await Task.Delay(1000);
-            Nav.NavigateTo("/login", forceLoad: true);
-        }
+        if (!firstRender || _done) return;
+        _done = true;
+
+        // 1. Limpiar token en memoria y en localStorage (JS interop aquí sí es válido)
+        TokenHolder.Token = null;
+        await JS.InvokeVoidAsync("localStorage.removeItem", "authToken");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "userRole");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "userName");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "userId");
+
+        // 2. Notificar al AuthenticationStateProvider
+        var simpleProvider = (SimpleAuthStateProvider)AuthProvider;
+        simpleProvider.MarkUserAsLoggedOut();
+
+        // 3. Redirigir al login
+        await Task.Delay(500);
+        Nav.NavigateTo("/login", true);
     }
 }

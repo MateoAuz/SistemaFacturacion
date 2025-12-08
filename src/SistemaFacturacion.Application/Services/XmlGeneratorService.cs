@@ -28,7 +28,6 @@ public class XmlGeneratorService : IXmlGeneratorService
     
     public async Task<string> GenerarXmlFactura(int idFactura, CancellationToken ct = default)
     {
-        // 1. Obtener la factura con todas sus relaciones
         var factura = await _facturaRepository.GetByIdAsync(
             idFactura, 
             includePagos: true, 
@@ -45,13 +44,11 @@ public class XmlGeneratorService : IXmlGeneratorService
         if (factura.Detalles == null || !factura.Detalles.Any())
             throw new Exception("La factura no tiene detalles");
         
-        // 2. Obtener configuración de empresa
         var config = await _configuracionRepository.GetConfiguracionAsync(ct);
             
         if (config == null)
             throw new Exception("No hay configuración de empresa registrada");
         
-        // 3. Validar configuración requerida
         if (string.IsNullOrEmpty(config.Ruc) || 
             string.IsNullOrEmpty(config.RazonSocial) ||
             string.IsNullOrEmpty(config.Establecimiento) ||
@@ -60,7 +57,6 @@ public class XmlGeneratorService : IXmlGeneratorService
             throw new Exception("Configuración de empresa incompleta. Verifique RUC, Razón Social, Establecimiento y Punto de Emisión");
         }
         
-        // 4. Extraer número secuencial del número de factura (formato: 001-001-000000001)
         var partes = factura.NumeroFactura.Split('-');
         if (partes.Length != 3)
             throw new Exception("Formato de número de factura inválido. Debe ser: 001-001-000000001");
@@ -69,10 +65,9 @@ public class XmlGeneratorService : IXmlGeneratorService
         string puntoEmision = partes[1];
         string secuencial = partes[2];
         
-        // 5. Generar clave de acceso
         string claveAcceso = _claveAccesoService.GenerarClaveAcceso(
             factura.FechaEmision,
-            "01", // 01 = Factura
+            "01", 
             config.Ruc,
             config.Ambiente.ToString(),
             establecimiento,
@@ -80,7 +75,6 @@ public class XmlGeneratorService : IXmlGeneratorService
             secuencial
         );
         
-        // 6. Construir el objeto FacturaXml
         var facturaXml = new FacturaXml
         {
             InfoTributaria = ConstruirInfoTributaria(factura, config, claveAcceso, establecimiento, puntoEmision, secuencial),
@@ -89,15 +83,12 @@ public class XmlGeneratorService : IXmlGeneratorService
             InfoAdicional = ConstruirInfoAdicional(factura)
         };
         
-        // 7. Serializar a XML
         string xmlGenerado = SerializarAXml(facturaXml);
         
-        // 8. Verificar si ya existe un comprobante electrónico
         var comprobanteExistente = await _comprobanteRepository.GetByFacturaIdAsync(idFactura, ct);
         
         if (comprobanteExistente != null)
         {
-            // Actualizar el existente
             comprobanteExistente.ClaveAcceso = claveAcceso;
             comprobanteExistente.XmlGenerado = xmlGenerado;
             comprobanteExistente.EstadoEnvio = "NO_ENVIADO";
@@ -105,7 +96,6 @@ public class XmlGeneratorService : IXmlGeneratorService
         }
         else
         {
-            // Crear uno nuevo
             var comprobante = new ComprobanteElectronico
             {
                 IdFactura = idFactura,
@@ -145,7 +135,6 @@ public class XmlGeneratorService : IXmlGeneratorService
     
     private InfoFactura ConstruirInfoFactura(Factura factura, ConfiguracionEmpresa config)
     {
-        // Determinar tipo de identificación (04=RUC, 05=Cédula)
         string tipoIdComprador = factura.Cliente.TipoIdentificacion == "RUC" ? "04" : "05";
         
         return new InfoFactura
@@ -171,13 +160,12 @@ public class XmlGeneratorService : IXmlGeneratorService
     
     private List<TotalImpuesto> ConstruirTotalImpuestos(Factura factura)
     {
-        // IVA 15% (ajusta según la tarifa vigente en Ecuador)
         return new List<TotalImpuesto>
         {
             new TotalImpuesto
             {
-                Codigo = "2", // 2 = IVA
-                CodigoPorcentaje = "4", // 3 = 15% (verificar tabla SRI actualizada)
+                Codigo = "2", 
+                CodigoPorcentaje = "4", 
                 BaseImponible = factura.Subtotal.ToString("F2"),
                 Tarifa = "15",
                 Valor = factura.Iva.ToString("F2")
@@ -196,19 +184,18 @@ public class XmlGeneratorService : IXmlGeneratorService
             pagos.Add(new FormaPago
             {
                 FormaPagoCode = MapearMetodoPagoASri(pago.MetodoPago),
-                Total = pago.Monto.ToString("F2"), // Siempre 2 decimales
+                Total = pago.Monto.ToString("F2"), 
                 Plazo = null,
                 UnidadTiempo = null
             });
         }
     }
     
-    // Si no hay pagos, agregar uno por defecto
     if (!pagos.Any())
     {
         pagos.Add(new FormaPago
         {
-            FormaPagoCode = "01", // Sin utilización del sistema financiero
+            FormaPagoCode = "01", 
             Total = factura.Total.ToString("F2"),
             Plazo = null,
             UnidadTiempo = null
@@ -220,15 +207,14 @@ public class XmlGeneratorService : IXmlGeneratorService
 
 private string MapearMetodoPagoASri(string metodoPago)
 {
-    // Códigos oficiales del SRI (Tabla 24)
     return metodoPago?.ToUpper() switch
     {
-        "EFECTIVO" => "01", // Sin utilización del sistema financiero
-        "CHEQUE" => "02", // Cheque propio
-        "TRANSFERENCIA" => "17", // Transferencia - Depósito en cuenta
-        "TARJETA_DEBITO" => "19", // Tarjeta de débito
+        "EFECTIVO" => "01", 
+        "CHEQUE" => "02", 
+        "TRANSFERENCIA" => "17", 
+        "TARJETA_DEBITO" => "19", 
         "TARJETA DEBITO" => "19",
-        "TARJETA_CREDITO" => "20", // Tarjeta de crédito nacional
+        "TARJETA_CREDITO" => "20", 
         "TARJETA CREDITO" => "20",
         "TARJETA" => "20",
         _ => "01"
@@ -250,8 +236,8 @@ private string MapearMetodoPagoASri(string metodoPago)
             {
                 new ImpuestoDetalle
                 {
-                    Codigo = "2", // IVA
-                    CodigoPorcentaje = "4", // 15%
+                    Codigo = "2", 
+                    CodigoPorcentaje = "4", 
                     Tarifa = "15",
                     BaseImponible = d.TotalLinea.ToString("F2"),
                     Valor = (d.TotalLinea * 0.15m).ToString("F2")
@@ -286,7 +272,6 @@ private string MapearMetodoPagoASri(string metodoPago)
     }
     private string SerializarAXml(FacturaXml facturaXml)
 {
-    // ✅ Crear namespaces para el XML con los prefijos del SRI
     var namespaces = new XmlSerializerNamespaces();
 
 
@@ -294,7 +279,7 @@ private string MapearMetodoPagoASri(string metodoPago)
     
     var settings = new XmlWriterSettings
     {
-        Encoding = new UTF8Encoding(false), // UTF-8 sin BOM
+        Encoding = new UTF8Encoding(false),
         Indent = true,
         IndentChars = "  ",
         OmitXmlDeclaration = false
@@ -303,7 +288,6 @@ private string MapearMetodoPagoASri(string metodoPago)
     using var stringWriter = new Utf8StringWriter();
     using var xmlWriter = XmlWriter.Create(stringWriter, settings);
     
-    // ✅ Serializar con los namespaces
     serializer.Serialize(xmlWriter, facturaXml, namespaces);
     
     return stringWriter.ToString();
@@ -316,10 +300,10 @@ private string MapearMetodoPagoASri(string metodoPago)
     {
         Indent = true,
         IndentChars = "  ",
-        Encoding = new UTF8Encoding(false), // Sin BOM
+        Encoding = new UTF8Encoding(false),
         OmitXmlDeclaration = false
     };
-    using var stringWriter = new Utf8StringWriter(); // ← ESTA CLASE
+    using var stringWriter = new Utf8StringWriter(); 
     using var xmlWriter = XmlWriter.Create(stringWriter, settings);
     var namespaces = new XmlSerializerNamespaces();
     namespaces.Add("", "");
@@ -329,7 +313,6 @@ private string MapearMetodoPagoASri(string metodoPago)
 
 }
 
-// ✅ Clase helper para forzar encoding UTF-8
 public class Utf8StringWriter : StringWriter
 {
     public override Encoding Encoding => Encoding.UTF8;

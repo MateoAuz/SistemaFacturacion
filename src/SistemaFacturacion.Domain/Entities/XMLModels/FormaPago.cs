@@ -6,7 +6,7 @@ namespace SistemaFacturacion.Domain.Entities.XmlModels;
 public class FormaPago
 {
     [XmlElement("formaPago")]
-    public string FormaPagoCode { get; set; } = "01"; // 01 = Sin utilización del sistema financiero
+    public string FormaPagoCode { get; set; } = "01"; 
     
     [XmlElement("total")]
     public string Total { get; set; } = string.Empty;

@@ -21,7 +21,6 @@ public class ProductosController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Producto>>> GetProductos(CancellationToken ct)
     {
-        // ✅ ACTUALIZADO: Incluir lotes para calcular StockTotal
         var productos = await _productoRepo.GetAllAsync(includeLotes: true, ct);
         return Ok(productos);
     }
@@ -30,7 +29,7 @@ public class ProductosController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<Producto>> GetProducto(int id, CancellationToken ct)
     {
-        // ✅ ACTUALIZADO: Incluir lotes
+       
         var producto = await _productoRepo.GetByIdAsync(id, includeLotes: true, ct);
         if (producto == null) return NotFound();
         return producto;
@@ -40,7 +39,6 @@ public class ProductosController : ControllerBase
     [HttpGet("by-codigo/{codigo}")]
     public async Task<ActionResult<Producto>> GetProductoByCodigo(string codigo, CancellationToken ct)
     {
-        // ✅ ACTUALIZADO: Incluir lotes
         var producto = await _productoRepo.GetByCodigoAsync(codigo, includeLotes: true, ct);
         if (producto == null) return NotFound();
         return producto;
@@ -50,8 +48,6 @@ public class ProductosController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Producto>> PostProducto(Producto producto, CancellationToken ct)
     {
-        // ✅ ELIMINADO: Validaciones de propiedades eliminadas
-        // Solo validamos datos básicos
         if (string.IsNullOrEmpty(producto.Codigo) || string.IsNullOrEmpty(producto.Nombre))
             return BadRequest("Código y nombre son obligatorios");
 

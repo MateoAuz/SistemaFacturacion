@@ -6,6 +6,9 @@
 @inject IValidacionFacturaService ValidacionService
 @inject IXmlValidationService XmlValidator
 @inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager Nav
 
 <PageTitle>Validación de Comprobantes</PageTitle>
 
@@ -199,10 +202,8 @@ else
     private List<FacturaValidacionDto> facturas = new();
     private List<FacturaValidacionDto> facturasPaginadas = new();
 
-    // ✅ NUEVA: Variable para búsqueda
     private string terminoBusqueda = string.Empty;
 
-    // ✅ NUEVA: Propiedad computada para filtrar
     private List<FacturaValidacionDto> facturasFiltradas
     {
         get
@@ -223,12 +224,18 @@ else
     private string mensajeError = string.Empty;
     private bool mostrarModal = false;
 
-    // Variables para visualización de XML
     private string xmlContent = string.Empty;
     private FacturaValidacionDto? facturaSeleccionada;
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
         await CargarFacturas();
     }
 
@@ -241,12 +248,10 @@ else
 
             var facturasTemp = await ValidacionService.GetFacturasPagadasParaValidacionAsync();
 
-            // ✅ ORDENAR AQUÍ POR ID DESCENDENTE
             facturas = facturasTemp
             .OrderByDescending(f => f.IdFactura)
             .ToList();
 
-            // 🔍 DEBUG: Ver qué IDs están cargados
             Console.WriteLine("=== FACTURAS CARGADAS ===");
             foreach (var f in facturas.Take(3))
             {
@@ -267,7 +272,6 @@ else
 
 
 
-    // ✅ NUEVO: Método para limpiar búsqueda
     private void LimpiarBusqueda()
     {
         terminoBusqueda = string.Empty;

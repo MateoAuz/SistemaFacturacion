@@ -213,9 +213,9 @@
     private List<Lote> lotes = new();
     // Ordenamiento FIFO: Primero los que vencen antes, luego los que llegaron antes
     private List<Lote> lotesOrdenados => lotes
-        .OrderBy(l => l.CantidadActual == 0) // Agotados al final
-        .ThenBy(l => l.FechaExpiracion ?? DateTime.MaxValue) // Primero los que vencen
-        .ThenBy(l => l.FechaIngreso) // Luego por fecha de llegada
+        .OrderBy(l => l.CantidadActual == 0) 
+        .ThenBy(l => l.FechaExpiracion ?? DateTime.MaxValue) 
+        .ThenBy(l => l.FechaIngreso) 
         .ToList();
 
     private bool cargando = true;
@@ -254,7 +254,7 @@
         form = new Lote 
         { 
             ProductoId = ProductoId,
-            FechaIngreso = DateTime.Today, // Por defecto hoy
+            FechaIngreso = DateTime.Today, 
             CantidadInicial = 0,
             CantidadActual = 0,
             PrecioCompra = 0
@@ -296,7 +296,7 @@
     {
         if (int.TryParse(e.Value?.ToString(), out int val) && !editando)
         {
-            form.CantidadActual = val; // Al crear, actual es igual a inicial
+            form.CantidadActual = val; 
         }
     }
 

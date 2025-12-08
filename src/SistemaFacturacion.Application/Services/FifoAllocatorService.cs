@@ -1,4 +1,3 @@
-// AGREGAR: Services/FifoAllocatorService.cs
 using SistemaFacturacion.Domain.Entities;
 
 namespace SistemaFacturacion.Application.Services

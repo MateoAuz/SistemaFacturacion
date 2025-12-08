@@ -11,7 +11,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Producto> Productos => Set<Producto>();
-    public DbSet<Lote> Lotes => Set<Lote>(); // ✅ AGREGAR ESTA LÍNEA
+    public DbSet<Lote> Lotes => Set<Lote>(); 
     public DbSet<Factura> Facturas => Set<Factura>();
     public DbSet<DetalleFactura> DetallesFactura => Set<DetalleFactura>();
     public DbSet<ComprobanteElectronico> ComprobantesElectronicos => Set<ComprobanteElectronico>();
@@ -63,28 +63,18 @@ public class ApplicationDbContext : DbContext
             e.HasIndex(x => x.Codigo).IsUnique().HasDatabaseName("idx_productos_codigo");
             e.Property(x => x.Nombre).HasColumnName("nombre").HasMaxLength(80).IsRequired();
             e.Property(x => x.Categoria).HasColumnName("categoria").HasMaxLength(40);
-
-            // ❌ ELIMINAR: PrecioUnitario, StockActual, FechaExpiracion
-            // e.Property(x => x.PrecioUnitario).HasColumnName("preciounitario").HasColumnType("numeric(12,2)").IsRequired();
-
             e.Property(x => x.PrecioVenta).HasColumnName("precioventa").HasColumnType("numeric(12,2)").IsRequired();
 
-            // ❌ ELIMINAR: StockActual y FechaExpiracion
-            // e.Property(x => x.StockActual).HasColumnName("stockactual");
-            // e.Property(x => x.FechaExpiracion).HasColumnName("fechaexpiracion");
+          
 
             e.Property(x => x.Estado).HasColumnName("estado").HasDefaultValue(true);
 
-            // ✅ AGREGAR: Relación con Lotes
             e.HasMany(p => p.Lotes)
                 .WithOne(l => l.Producto)
                 .HasForeignKey(l => l.ProductoId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // LOTES (NUEVA ENTIDAD)
-        // En el método OnModelCreating, en la configuración de Lote
-        // LOTES - CONFIGURACIÓN PARA timestamp with time zone
         modelBuilder.Entity<Lote>(e =>
         {
             e.ToTable("lotes");
@@ -93,7 +83,6 @@ public class ApplicationDbContext : DbContext
             e.Property(x => x.ProductoId).HasColumnName("idproducto").IsRequired();
             e.Property(x => x.NumeroLote).HasColumnName("numerolote").HasMaxLength(30).IsRequired();
 
-            // ✅ CAMBIAR A timestamp with time zone
             e.Property(x => x.FechaIngreso)
                 .HasColumnName("fechaingreso")
                 .HasColumnType("timestamp with time zone")
@@ -107,18 +96,15 @@ public class ApplicationDbContext : DbContext
             e.Property(x => x.CantidadActual).HasColumnName("cantidadactual").IsRequired();
             e.Property(x => x.PrecioCompra).HasColumnName("preciocompra").HasColumnType("numeric(12,2)").IsRequired();
 
-            // Relación
             e.HasOne(l => l.Producto)
                 .WithMany(p => p.Lotes)
                 .HasForeignKey(l => l.ProductoId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Índices
             e.HasIndex(l => l.ProductoId).HasDatabaseName("idx_lotes_producto");
             e.HasIndex(l => l.NumeroLote).HasDatabaseName("idx_lotes_numero");
         });
 
-        // FACTURAS (principal)
         modelBuilder.Entity<Factura>(e =>
         {
             e.ToTable("facturas");
@@ -133,7 +119,7 @@ public class ApplicationDbContext : DbContext
             e.Property(x => x.Iva).HasColumnName("iva").HasColumnType("numeric(12,2)").IsRequired();
             e.Property(x => x.Total).HasColumnName("total").HasColumnType("numeric(12,2)").IsRequired();
             e.Property(x => x.Estado).HasColumnName("estado").HasMaxLength(12).HasDefaultValue("PENDIENTE");
-            e.Property(x => x.SaldoPendiente).HasColumnName("saldopendiente").HasColumnType("numeric(12,2)").IsRequired(); // <<-- AÑADIDO
+            e.Property(x => x.SaldoPendiente).HasColumnName("saldopendiente").HasColumnType("numeric(12,2)").IsRequired(); 
 
             e.HasOne(x => x.Cliente)
             .WithMany(c => c.Facturas)

@@ -6,10 +6,10 @@ namespace SistemaFacturacion.Domain.Entities.XmlModels;
 public class TotalImpuesto
 {
     [XmlElement("codigo")]
-    public string Codigo { get; set; } = string.Empty; // 2 = IVA
+    public string Codigo { get; set; } = string.Empty; 
 
     [XmlElement("codigoPorcentaje")]
-    public string CodigoPorcentaje { get; set; } = string.Empty; // 2 = 12%, 0 = 0%, 6 = No Objeto de Impuesto
+    public string CodigoPorcentaje { get; set; } = string.Empty;
 
     [XmlElement("baseImponible")]
     public string BaseImponible { get; set; } = string.Empty;

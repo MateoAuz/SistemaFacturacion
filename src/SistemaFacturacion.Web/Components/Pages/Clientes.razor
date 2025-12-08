@@ -5,7 +5,8 @@
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject IJSRuntime JS
-
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthProvider
 
 <div class="page-header">
     <h1 class="mb-0"><i class="bi bi-people-fill"></i> Gestión de Clientes</h1>
@@ -139,7 +140,6 @@ else
     private List<Cliente> clientesActivos = new();
     private List<Cliente> clientesInactivos = new();
 
-    // ✅ NUEVA VARIABLE: Para almacenar los clientes de la página actual
     private List<Cliente> clientesPaginados = new();
 
     private Cliente nuevoCliente = new();
@@ -151,6 +151,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
+
         await CargarClientes();
     }
 
@@ -167,7 +175,6 @@ else
         var urlInactivos = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/inactivos";
         clientesInactivos = await Http.GetFromJsonAsync<List<Cliente>>(urlInactivos) ?? new();
         
-        // ✅ NO LLAMAR NADA MÁS - El paginador se encarga
     }
     catch (Exception ex)
     {
@@ -180,12 +187,10 @@ else
 }
 
 
-    // ✅ NUEVO MÉTODO: Inicializar la paginación con los primeros 8
     private void InicializarPaginacion()
     {
         if (clientesActuales.Any())
         {
-            // Mostrar las últimas 8 primero (orden inverso)
             clientesPaginados = clientesActuales.AsEnumerable().Reverse().Take(8).ToList();
         }
         else
@@ -195,7 +200,6 @@ else
     }
 
 
-    // ✅ NUEVO MÉTODO: Callback para actualizar los clientes mostrados
     private Task ActualizarClientesPaginados(List<Cliente> items)
     {
         clientesPaginados = items;
@@ -220,7 +224,6 @@ else
 
         try
         {
-            // Validación personalizada de cédula/RUC
             var errorValidacion = nuevoCliente.ValidarIdentificacion();
             if (!string.IsNullOrEmpty(errorValidacion))
             {
@@ -229,7 +232,6 @@ else
                 return;
             }
 
-            // Validar si la identificación ya existe
             var urlVerificar = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/existe/{nuevoCliente.Identificacion}";
             var responseVerificar = await Http.GetAsync(urlVerificar);
 
@@ -282,7 +284,6 @@ else
     tabActiva = tab;
     mostrandoForm = false;
     LimpiarMensajes();
-    // ✅ El paginador detectará el cambio automáticamente
 }
 
 

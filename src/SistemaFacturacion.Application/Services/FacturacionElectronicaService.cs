@@ -17,9 +17,9 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         IFacturaRepository facturaRepo,
         IComprobanteElectronicoRepository comprobanteRepo,
         ISriApiService sriApi,
-        IRideGeneratorService rideGenerator,      // ✅ AGREGAR
+        IRideGeneratorService rideGenerator,      
         IEmailService emailService,
-        ILogger<FacturacionElectronicaService> logger)              // ✅ AGREGAR
+        ILogger<FacturacionElectronicaService> logger)             
 
     {
         _facturaRepo = facturaRepo;
@@ -32,7 +32,6 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
 
     public async Task<List<FacturaElectronicaDto>> GetFacturasParaEnvioAsync(CancellationToken ct = default)
     {
-        // Obtener facturas PAGADAS con XML validado
         var facturas = await _facturaRepo.GetFacturasPagadasAsync(includeCliente: true, ct);
         var resultado = new List<FacturaElectronicaDto>();
 
@@ -40,7 +39,6 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         {
             var comprobante = await _comprobanteRepo.GetByFacturaIdAsync(factura.IdFactura, ct);
 
-            // Solo mostrar facturas que tienen XML generado
             if (comprobante != null && !string.IsNullOrEmpty(comprobante.XmlGenerado))
             {
                 resultado.Add(new FacturaElectronicaDto
@@ -79,7 +77,6 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         return true;
     }
 
-    // ✅ NUEVO MÉTODO: Para reemplazar XML cuando hubo rechazo
     public async Task<(bool Success, string Message)> ReemplazarXmlFirmadoAsync(int idFactura, string nuevoXmlFirmado, CancellationToken ct = default)
     {
         var comprobante = await _comprobanteRepo.GetByFacturaIdAsync(idFactura, ct);
@@ -87,19 +84,17 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         if (comprobante == null)
             return (false, "No se encontró el comprobante electrónico");
 
-        // NO permitir reemplazar si ya está autorizado
         if (comprobante.EstadoEnvio == "AUTORIZADO")
             return (false, "El comprobante ya está autorizado, no se puede reemplazar");
 
         try
         {
-            // Validar formato básico XML
             var xmlDoc = System.Xml.Linq.XDocument.Parse(nuevoXmlFirmado);
 
             // Actualizar XML firmado
             comprobante.XmlFirmado = nuevoXmlFirmado;
-            comprobante.EstadoEnvio = "FIRMADO";  // Reset a firmado para poder enviar
-            comprobante.FechaFirma = DateTime.UtcNow; // Limpiar errores previos
+            comprobante.EstadoEnvio = "FIRMADO";  
+            comprobante.FechaFirma = DateTime.UtcNow; 
             comprobante.MensajeRespuesta = null;
 
             await _comprobanteRepo.UpdateAsync(comprobante, ct);
@@ -187,17 +182,15 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         .Replace("&amp;", "&")
         .Replace("&quot;", "\"")
         .Replace("&apos;", "'")
-        .Replace("&#xD;", "")     // Remover retornos de carro
-        .Replace("&#xA;", "\n");  // Normalizar saltos de línea
+        .Replace("&#xD;", "")     
+        .Replace("&#xA;", "\n");  
 }
 
 
     public async Task<byte[]> GenerarYEnviarRideAsync(int idFactura, CancellationToken ct = default)
 {
-    // 1. Generar PDF
     var pdfBytes = await _rideGenerator.GenerarRidePdfAsync(idFactura, ct);
 
-    // 2. Obtener datos de la factura y comprobante
     var factura = await _facturaRepo.GetByIdAsync(idFactura, includeCliente: true, ct: ct);
 
     if (factura == null)
@@ -211,14 +204,12 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         return pdfBytes;
     }
 
-    // ✅ Verificación y desescapado del XML
     string xmlParaEnviar = comprobante.XmlAutorizado;
     
     if (comprobante.XmlAutorizado.Contains("<autorizacion>"))
     {
         _logger.LogInformation($"✅ XML es AUTORIZADO para factura {idFactura}");
         
-        // ✅ NUEVO: Desescapar el contenido del nodo <comprobante>
         xmlParaEnviar = DesescaparXml(comprobante.XmlAutorizado);
     }
     else
@@ -227,7 +218,6 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
         return pdfBytes;
     }
 
-    // 3. Enviar correo con PDF + XML
     if (factura.Cliente != null && !string.IsNullOrEmpty(factura.Cliente.Correo))
     {
         try
@@ -242,7 +232,6 @@ public class FacturacionElectronicaService : IFacturacionElectronicaService
             if (string.IsNullOrEmpty(nombreCliente))
                 nombreCliente = "Cliente";
 
-            // ✅ Convertir el XML desescapado a bytes
             var xmlBytes = System.Text.Encoding.UTF8.GetBytes(xmlParaEnviar);
 
             await _emailService.EnviarFacturaConXmlAsync(

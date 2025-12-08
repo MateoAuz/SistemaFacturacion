@@ -39,11 +39,16 @@ else
                             <label class="form-label fw-bold">Tipo de Documento *</label>
 
                             <InputSelect class="form-select" @bind-Value="cliente.TipoIdentificacion"
-                                @bind-Value:after="ValidarYVerificarExistencia">
+                                @bind-Value:after="ValidarYVerificarExistencia" disabled="@(IdCliente != 0)">
                                 <option value="CEDUL">Cédula</option>
                                 <option value="RUC">RUC</option>
                                 <option value="PASAP">Pasaporte (Extranjero)</option>
                             </InputSelect>
+
+                            @if (IdCliente != 0)
+                            {
+                                <small class="text-muted"><i class="bi bi-lock-fill"></i> No modificable</small>
+                            }
 
                             <ValidationMessage For="@(() => cliente.TipoIdentificacion)" />
                         </div>
@@ -53,17 +58,15 @@ else
                             <div class="input-group">
                                 <InputText class="form-control" @bind-Value="cliente.Identificacion"
                                     @onfocusout="ValidarYVerificarExistencia"
-                                    placeholder="@(cliente.TipoIdentificacion == "PASAP" ? "Pasaporte" : "Solo números")" />
-
-                                <span class="input-group-text">
+                                    placeholder="@(cliente.TipoIdentificacion == "PASAP" ? "Pasaporte" : "Solo números")"
+                                    disabled="@(IdCliente != 0)" /> <span class="input-group-text">
                                     @if (validandoIdentificacion)
                                     {
                                         <div class="spinner-border spinner-border-sm text-secondary"></div>
                                     }
                                     else if (identificacionEsValida)
                                     {
-                                        <i class="bi bi-check-circle-fill text-success"
-                                            title="Identificación válida y disponible"></i>
+                                        <i class="bi bi-check-circle-fill text-success" title="Identificación válida"></i>
                                     }
                                     else if (!string.IsNullOrEmpty(mensajeValidacion))
                                     {
@@ -75,6 +78,11 @@ else
                                     }
                                 </span>
                             </div>
+
+                            @if (IdCliente != 0)
+                            {
+                                <small class="text-muted"><i class="bi bi-lock-fill"></i> No modificable</small>
+                            }
 
                             @if (!string.IsNullOrEmpty(mensajeValidacion))
                             {
@@ -148,17 +156,13 @@ else
             {
                 cliente = await http.GetFromJsonAsync<Cliente>($"api/clientes/{IdCliente}") ?? new();
 
-                // === CORRECCIÓN AQUÍ ===
-                // Limpiamos espacios en blanco (Trim) para evitar falsos errores
                 cliente.Identificacion = cliente.Identificacion?.Trim() ?? "";
                 cliente.TipoIdentificacion = cliente.TipoIdentificacion?.Trim() ?? "CEDUL";
                 cliente.Nombres = cliente.Nombres?.Trim() ?? "";
                 cliente.Apellidos = cliente.Apellidos?.Trim() ?? "";
 
-                // Guardamos el original YA LIMPIO
                 identificacionOriginal = cliente.Identificacion;
 
-                // Si ya existe, asumimos que es válida de inicio
                 identificacionEsValida = true;
             }
             catch (Exception ex)
@@ -177,12 +181,10 @@ else
 
     private async Task ValidarYVerificarExistencia()
     {
-        // Limpiar espacios antes de validar
         if (!string.IsNullOrEmpty(cliente.Identificacion))
             cliente.Identificacion = cliente.Identificacion.Trim();
 
-        // Si no ha cambiado la identificación respecto a la original (en edición),
-        // NO hacemos nada y asumimos que es válida.
+
         if (IdCliente != 0 && cliente.Identificacion == identificacionOriginal)
         {
             identificacionEsValida = true;
@@ -198,7 +200,6 @@ else
         validandoIdentificacion = true;
         StateHasChanged();
 
-        // 1. Validar Formato
         var errorFormato = cliente.ValidarIdentificacion();
         if (errorFormato != null)
         {
@@ -207,7 +208,6 @@ else
             return;
         }
 
-        // 2. Validar Duplicado en BD (Solo si cambió)
         try
         {
             var http = HttpClientFactory.CreateClient("LocalApi");
@@ -222,7 +222,6 @@ else
         }
         catch
         {
-            // Si falla la red, permitimos continuar con precaución
         }
 
         identificacionEsValida = true;
@@ -232,8 +231,7 @@ else
 
     private async Task Guardar()
     {
-        // Solo validamos duplicados si la ID cambió.
-        // Si es la misma ID original, nos saltamos la validación de existencia para no bloquear.
+
         if (IdCliente == 0 || cliente.Identificacion != identificacionOriginal)
         {
             await ValidarYVerificarExistencia();

@@ -38,7 +38,7 @@ public class PagoService : IPagoService
             Monto = monto,
             MetodoPago = metodoPago,
             IdUsuario = idUsuario,
-            FechaPago = DateTime.UtcNow 
+            FechaPago = DateTime.UtcNow.AddHours(-5)
         };
 
         var pagoRegistrado = await _pagoRepo.AddAsync(nuevoPago, ct);

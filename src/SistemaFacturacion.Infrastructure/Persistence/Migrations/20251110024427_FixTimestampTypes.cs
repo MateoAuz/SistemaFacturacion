@@ -8,7 +8,6 @@ namespace SistemaFacturacion.Infrastructure.Persistence.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // ✅ SOLO CAMBIAR LOS TIPOS DE COLUMNAS EXISTENTES
             migrationBuilder.AlterColumn<DateTime>(
                 name: "fechaingreso",
                 table: "lotes",
@@ -26,7 +25,6 @@ namespace SistemaFacturacion.Infrastructure.Persistence.Migrations
                 oldType: "timestamp without time zone",
                 oldNullable: true);
 
-            // ✅ AGREGAR MÁS CAMBIOS DE TIMESTAMP SI ES NECESARIO
             // Por ejemplo, para otras tablas que también usen timestamps
         }
 

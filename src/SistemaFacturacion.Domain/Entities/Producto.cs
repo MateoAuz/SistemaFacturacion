@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema; // ✅ AGREGAR esta línea
-using System.Linq; // ✅ AGREGAR para usar Where y Sum
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq; 
 
 namespace SistemaFacturacion.Domain.Entities
 {
@@ -28,18 +28,14 @@ namespace SistemaFacturacion.Domain.Entities
 
         public bool Estado { get; set; } = true;
 
-        // ✅ AGREGAR: Relación con lotes
         public ICollection<Lote> Lotes { get; set; } = new List<Lote>();
 
-        // ✅ AGREGAR: Propiedad calculada para stock total
-        [NotMapped] // ✅ Ahora funciona con el using correcto
+        [NotMapped] 
         public int StockTotal => Lotes.Where(l => l.CantidadActual > 0).Sum(l => l.CantidadActual);
         
-        // ✅ AGREGAR: Propiedad para saber si tiene stock
         [NotMapped]
         public bool TieneStock => StockTotal > 0;
         
-        // ✅ AGREGAR: Propiedad para lotes próximos a vencer
         [NotMapped]
         public IEnumerable<Lote> LotesProximosAVencer => 
             Lotes.Where(l => l.FechaExpiracion.HasValue && 

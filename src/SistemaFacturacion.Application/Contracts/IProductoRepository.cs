@@ -11,7 +11,5 @@ public interface IProductoRepository
     Task<Producto> AddAsync(Producto entity, CancellationToken ct = default);
     Task UpdateAsync(Producto entity, CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
-    
-    // ✅ ACTUALIZAR: Ahora el stock se calcula desde lotes
     Task<int> GetTotalStockAsync(CancellationToken ct = default);
 }

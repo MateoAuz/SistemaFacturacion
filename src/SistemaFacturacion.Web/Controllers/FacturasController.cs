@@ -9,21 +9,24 @@ namespace SistemaFacturacion.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Permitir acceso sin autenticación
+[AllowAnonymous] 
 public class FacturasController : ControllerBase
 {
     private readonly IFacturaRepository _facturaRepo;
     private readonly ITaxCalculator _taxCalculator;
     private readonly ApplicationDbContext _context;
+    private readonly IConfiguracionRepository _configuracionRepo; 
 
     public FacturasController(
         IFacturaRepository facturaRepo,
         ITaxCalculator taxCalculator,
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        IConfiguracionRepository configuracionRepo) 
     {
         _facturaRepo = facturaRepo;
         _taxCalculator = taxCalculator;
         _context = context;
+        _configuracionRepo = configuracionRepo; 
     }
 
     // POST /api/facturas
@@ -36,7 +39,6 @@ public class FacturasController : ControllerBase
         if (!factura.Detalles.Any())
             return BadRequest("La factura debe tener al menos un producto.");
 
-        // 1. Recalcular totales en el backend
         decimal subtotal = 0;
         foreach (var detalle in factura.Detalles)
         {
@@ -48,13 +50,26 @@ public class FacturasController : ControllerBase
         factura.Iva = calculo.MontoIva;
         factura.Total = calculo.Total;
 
-        // Asignar fecha y generar número de factura
-        factura.IdUsuario = 1; // Valor temporal
-        factura.FechaEmision = DateTime.UtcNow;
+        if (factura.IdUsuario == 0) 
+        {
+            factura.IdUsuario = 1; 
+        }
+        factura.FechaEmision = DateTime.UtcNow.AddHours(-5);
 
-        // Generar número de factura secuencial
-        var consecutivo = await _context.Facturas.CountAsync() + 1;
-        factura.NumeroFactura = $"001-002-{consecutivo:000000000}";
+        var config = await _configuracionRepo.GetConfiguracionAsync(ct);
+        
+        if (config == null)
+        {
+            return BadRequest("No se ha configurado la información de la empresa. Configure el establecimiento y punto de emisión.");
+        }
+
+        if (string.IsNullOrWhiteSpace(config.Establecimiento) || string.IsNullOrWhiteSpace(config.PuntoEmision))
+        {
+            return BadRequest("Debe configurar el establecimiento y punto de emisión en la configuración del sistema.");
+        }
+
+        var consecutivo = await _context.Facturas.CountAsync(ct) + 1;
+        factura.NumeroFactura = $"{config.Establecimiento}-{config.PuntoEmision}-{consecutivo:000000000}";
         factura.Estado = "PENDIENTE";
         factura.SaldoPendiente = factura.Total;
 
@@ -65,19 +80,17 @@ public class FacturasController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            // Error de negocio (ej. Sin Stock)
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            // Otro error
             return StatusCode(500, new { message = $"Error interno: {ex.Message}" });
         }
     }
 
     // GET /api/facturas
     [HttpGet]
-    public async Task<IActionResult> GetFacturas([FromQuery] string? estado = null) // ✅ Cambiar a Task<IActionResult>
+    public async Task<IActionResult> GetFacturas([FromQuery] string? estado = null) 
     {
         try
         {
@@ -91,11 +104,9 @@ public class FacturasController : ControllerBase
                 return Ok(new List<object>());
             }
 
-            // ✅ ORDENAR POR ID (el más reciente es el mayor ID):
             var facturasOrdenadas = facturas
                 .OrderByDescending(f => f.IdFactura)
                 .ToList();
-
 
             var result = facturasOrdenadas.Select(f => new
             {
@@ -140,5 +151,4 @@ public class FacturasController : ControllerBase
             });
         }
     }
-
 }

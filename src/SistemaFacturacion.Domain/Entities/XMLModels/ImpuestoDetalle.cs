@@ -5,13 +5,13 @@ namespace SistemaFacturacion.Domain.Entities.XmlModels;
 public class ImpuestoDetalle
 {
     [XmlElement("codigo")]
-    public string Codigo { get; set; } = "2"; // 2 = IVA
+    public string Codigo { get; set; } = "2"; 
     
     [XmlElement("codigoPorcentaje")]
-    public string CodigoPorcentaje { get; set; } = string.Empty; // 2 = 12%
+    public string CodigoPorcentaje { get; set; } = string.Empty; 
     
     [XmlElement("tarifa")]
-    public string Tarifa { get; set; } = string.Empty; // 12
+    public string Tarifa { get; set; } = string.Empty; 
     
     [XmlElement("baseImponible")]
     public string BaseImponible { get; set; } = string.Empty;

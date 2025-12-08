@@ -63,8 +63,6 @@
 
             var itemsParaSaltar = (PaginaActual - 1) * ItemsPorPagina;
 
-            // ❌ Ya NO usar Reverse aquí
-            // Solo paginar respetando el orden recibido
             return TodosLosItems
             .Skip(itemsParaSaltar)
             .Take(ItemsPorPagina)
@@ -125,34 +123,3 @@
         await OnCambioPagina.InvokeAsync(ItemsPaginados);
     }
 }
-
-<style>
-    .pagination-container {
-        padding: 1rem 0;
-        border-top: 1px solid #dee2e6;
-    }
-
-    .pagination .page-link {
-        color: #4a56e2;
-        border-radius: 6px;
-        margin: 0 2px;
-        border: 1px solid #dee2e6;
-        transition: all 0.2s ease;
-    }
-
-    .pagination .page-link:hover:not(:disabled) {
-        background-color: #f0f2ff;
-        border-color: #4a56e2;
-    }
-
-    .pagination .page-item.active .page-link {
-        background-color: #4a56e2;
-        border-color: #4a56e2;
-        color: white;
-    }
-
-    .pagination .page-item.disabled .page-link {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-</style>

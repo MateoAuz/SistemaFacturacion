@@ -34,7 +34,6 @@ public async Task<ActionResult<Lote>> PostLote([FromBody] LoteCreateDto loteDto,
             return BadRequest(ModelState);
         }
 
-        // ✅ CONVERSIÓN MEJORADA PARA UTC
         var fechaIngreso = NormalizarDateTime(loteDto.FechaIngreso);
         var fechaExpiracion = loteDto.FechaExpiracion.HasValue 
             ? NormalizarDateTime(loteDto.FechaExpiracion.Value) 
@@ -60,7 +59,6 @@ public async Task<ActionResult<Lote>> PostLote([FromBody] LoteCreateDto loteDto,
     }
 }
 
-// ✅ MÉTODO AUXILIAR PARA NORMALIZAR FECHAS
 private DateTime NormalizarDateTime(DateTime fecha)
 {
     if (fecha.Kind == DateTimeKind.Unspecified)
@@ -91,7 +89,6 @@ public async Task<IActionResult> PutLote(int id, [FromBody] LoteCreateDto loteDt
         var loteExistente = await _loteRepo.GetByIdAsync(id, ct);
         if (loteExistente == null) return NotFound();
 
-        // ✅ CONVERTIR FECHAS A UTC
         var fechaIngreso = loteDto.FechaIngreso;
         if (fechaIngreso.Kind == DateTimeKind.Unspecified)
         {

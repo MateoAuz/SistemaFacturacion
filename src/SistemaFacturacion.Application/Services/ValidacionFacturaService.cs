@@ -30,12 +30,11 @@ public class ValidacionFacturaService : IValidacionFacturaService
     {
         var facturas = await _facturaRepo.GetFacturasPagadasAsync(includeCliente: true, ct);
 
-        // ✅ ORDENAR POR ID DESCENDENTE ANTES DE PROCESAR
         var facturasOrdenadas = facturas.OrderByDescending(f => f.IdFactura).ToList();
 
         var resultado = new List<FacturaValidacionDto>();
 
-        foreach (var factura in facturasOrdenadas) // ✅ Usar la lista ordenada
+        foreach (var factura in facturasOrdenadas) 
         {
             var comprobante = await _comprobanteRepo.GetByFacturaIdAsync(factura.IdFactura, ct);
 
@@ -64,7 +63,6 @@ public class ValidacionFacturaService : IValidacionFacturaService
 
     public async Task<(bool IsValid, List<string> Errors)> ValidarEstructuraXmlAsync(int idFactura, CancellationToken ct = default)
     {
-        // Obtener el XML de la factura
         var comprobante = await _comprobanteRepo.GetByFacturaIdAsync(idFactura, ct);
 
         if (comprobante == null || string.IsNullOrEmpty(comprobante.XmlGenerado))
@@ -72,10 +70,8 @@ public class ValidacionFacturaService : IValidacionFacturaService
             return (false, new List<string> { "No existe XML generado para esta factura. Debe generarlo primero." });
         }
 
-        // Usar la ruta del XSD desde la configuración
         var xsdPath = _sriConfig.RutaXsdFactura;
 
-        // Validar contra el XSD
         return await _xmlValidator.ValidarXmlContraXsdAsync(comprobante.XmlGenerado, xsdPath, ct);
     }
 }

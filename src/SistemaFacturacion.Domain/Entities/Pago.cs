@@ -19,7 +19,7 @@ public class Pago
     
     [Required(ErrorMessage = "El método de pago es obligatorio.")]
     [StringLength(50)]
-    public string MetodoPago { get; set; } = string.Empty; // Efectivo, Transferencia, Tarjeta, Cheque
+    public string MetodoPago { get; set; } = string.Empty; 
     
     public DateTime FechaPago { get; set; } = DateTime.Now;
     
@@ -28,7 +28,7 @@ public class Pago
     
     [Required]
     [StringLength(15)]
-    public string Estado { get; set; } = "REGISTRADO"; // REGISTRADO, ANULADO
+    public string Estado { get; set; } = "REGISTRADO"; 
     
     // Navegación
     [JsonIgnore]

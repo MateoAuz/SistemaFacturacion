@@ -2,7 +2,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
 using MimeKit;
-using SistemaFacturacion.Application.Contracts; // Asegúrate de usar el namespace correcto de la interfaz
+using SistemaFacturacion.Application.Contracts; 
 
 namespace SistemaFacturacion.Application.Services;
 
@@ -15,7 +15,6 @@ public class EmailService : IEmailService
         _configuration = configuration;
     }
 
-    // ✅ NUEVO MÉTODO: Envía PDF + XML
     public async Task EnviarFacturaConXmlAsync(
         string emailDestino,
         string nombreCliente,
@@ -26,11 +25,9 @@ public class EmailService : IEmailService
     {
         var message = new MimeMessage();
 
-        // Configurar remitente
         var fromEmail = _configuration["Email:From"] ?? "no-reply@sistema.com";
         message.From.Add(new MailboxAddress("Sistema de Facturación", fromEmail));
 
-        // Configurar destinatario
         message.To.Add(new MailboxAddress(nombreCliente, emailDestino));
         message.Subject = $"Factura Electrónica No. {numeroFactura}";
 
@@ -58,10 +55,8 @@ public class EmailService : IEmailService
                     </html>"
         };
 
-        // ✅ Adjuntar PDF (RIDE)
         builder.Attachments.Add($"Factura-{numeroFactura}.pdf", pdfBytes, ContentType.Parse("application/pdf"));
 
-        // ✅ Adjuntar XML Autorizado
         builder.Attachments.Add($"Factura-{numeroFactura}.xml", xmlBytes, ContentType.Parse("application/xml"));
 
         message.Body = builder.ToMessageBody();
@@ -101,11 +96,9 @@ public class EmailService : IEmailService
     {
         var message = new MimeMessage();
 
-        // Configurar remitente
         var fromEmail = _configuration["Email:From"] ?? "no-reply@sistema.com";
         message.From.Add(new MailboxAddress("Sistema de Facturación", fromEmail));
 
-        // Configurar destinatario
         message.To.Add(new MailboxAddress(nombreCliente, emailDestino));
 
         message.Subject = $"Factura Electrónica No. {numeroFactura}";
@@ -129,7 +122,6 @@ public class EmailService : IEmailService
                 </html>"
         };
 
-        // Adjuntar el PDF
         builder.Attachments.Add($"Factura_{numeroFactura}.pdf", pdfBytes, ContentType.Parse("application/pdf"));
 
         message.Body = builder.ToMessageBody();
@@ -156,7 +148,6 @@ public class EmailService : IEmailService
         }
         catch (Exception ex)
         {
-            // Lanzar excepción con más detalles para facilitar debugging
             throw new Exception($"Error enviando correo a {emailDestino}: {ex.Message}", ex);
         }
     }

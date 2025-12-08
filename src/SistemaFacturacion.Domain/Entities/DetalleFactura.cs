@@ -9,7 +9,7 @@ public class DetalleFactura
     public short Cantidad { get; set; }
     public decimal PrecioUnitario { get; set; }
     public decimal TotalLinea { get; set; }
-    [JsonIgnore] // <-- AÑADE ESTO
+    [JsonIgnore] 
     public Factura? Factura { get; set; }
     public Producto? Producto { get; set; }
 

@@ -1,35 +1,36 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Nav
 
 <div class="sidebar-container">
     <div class="sidebar">
         <div class="sidebar-header">
             <h5><i class="bi bi-building"></i> PetMarket EC</h5>
         </div>
-        
+
         <nav class="sidebar-nav">
             <a href="/dashboard" class="nav-item @GetNavItemClass("/dashboard")">
                 <i class="bi bi-speedometer2"></i>
                 <span>Principal</span>
             </a>
-            
+
             <a href="/clientes" class="nav-item @GetNavItemClass("/clientes")">
                 <i class="bi bi-people-fill"></i>
                 <span>Clientes</span>
             </a>
-            
+
             <a href="/productos" class="nav-item @GetNavItemClass("/productos")">
                 <i class="bi bi-box-seam"></i>
                 <span>Productos</span>
             </a>
-            
+
             <a href="/ventas" class="nav-item @GetNavItemClass("/ventas")">
                 <i class="bi bi-cart-check"></i>
                 <span>Ventas</span>
             </a>
-            
-            <a href="/pagos" class="nav-item @GetNavItemClass("/pagos")">
-                <i class="bi bi-graph-up"></i>
-                <span>Pagos</span>
+
+            <a href="/reportes" class="nav-item @GetNavItemClass("/reportes")">
+                <i class="bi bi-bar-chart-line-fill"></i>
+                <span>Reportes</span>
             </a>
 
             <a href="/generacion" class="nav-item @GetNavItemClass("/generacion")">
@@ -39,15 +40,16 @@
 
             <a href="/facturacion" class="nav-item @GetNavItemClass("/facturacion")">
                 <i class="bi bi-file-earmark-text"></i>
-                <span>Facturación Electrónica</span>    
+                <span>Facturación Electrónica</span>
             </a>
 
-            <a href="/configuracion" class="nav-item @GetNavItemClass("/configuracion")">
+            @* ✅ SIEMPRE renderizar, controlar visibilidad con JS *@
+            <a href="/configuracion" class="nav-item @GetNavItemClass("/configuracion")" id="menu-config">
                 <i class="bi bi-gear-fill me-2"></i>
                 <span>Configuración</span>
             </a>
         </nav>
-        
+
         <div class="sidebar-footer">
             <a href="/logout" class="nav-item logout">
                 <i class="bi bi-box-arrow-right"></i>
@@ -62,8 +64,6 @@
 </div>
 
 @code {
-    [Inject] NavigationManager Nav { get; set; } = default!;
-
     private string GetNavItemClass(string url)
     {
         var currentUri = Nav.Uri;

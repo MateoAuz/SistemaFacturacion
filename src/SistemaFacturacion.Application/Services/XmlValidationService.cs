@@ -27,21 +27,16 @@ public class XmlValidationService : IXmlValidationService
         
         try
         {
-            // Verificar que el archivo XSD existe
             if (!File.Exists(xsdPath))
             {
                 errors.Add($"No se encontró el archivo XSD en la ruta: {xsdPath}");
                 return (false, errors);
             }
 
-            // Cargar el esquema XSD
             XmlSchemaSet schemas = new XmlSchemaSet();
             schemas.Add("", xsdPath);
 
-            // Parsear el XML
             XDocument xmlDoc = XDocument.Parse(xmlContent);
-
-            // Validar el XML contra el XSD
             xmlDoc.Validate(schemas, (sender, e) =>
             {
                 if (e.Severity == XmlSeverityType.Error)

@@ -1,129 +1,146 @@
 @page "/configuracion"
 @rendermode InteractiveServer
 @using SistemaFacturacion.Domain.Entities
+@using SistemaFacturacion.Web.Components.Base
+@inherits AuthorizedPageBase
 @inject IHttpClientFactory HttpFactory
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager Nav
 
-<div class="page-header">
-    <h1 class="mb-0"><i class="bi bi-gear-fill"></i> Configuración de la Empresa</h1>
-</div>
-
-@if (cargando)
+@if (!Autorizado)
 {
     <div class="text-center py-5">
         <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Cargando...</span>
+            <span class="visually-hidden">Verificando permisos...</span>
         </div>
-        <p class="mt-2">Cargando configuración...</p>
+        <p class="mt-2">Verificando acceso...</p>
     </div>
 }
 else
 {
-    <div class="card-modern">
-        <EditForm Model="config" OnValidSubmit="GuardarConfiguracion" FormName="configuracion-empresa">
-            <DataAnnotationsValidator />
-
-            @if (!string.IsNullOrEmpty(mensajeExito))
-            {
-                <div class="alert alert-success alert-modern fade-in">
-                    <i class="bi bi-check-circle-fill"></i> @mensajeExito
-                </div>
-            }
-            @if (!string.IsNullOrEmpty(mensajeError))
-            {
-                <div class="alert alert-danger alert-modern fade-in">
-                    <i class="bi bi-exclamation-triangle-fill"></i> @mensajeError
-                </div>
-            }
-
-            <!-- ===== SECCIÓN 1: DATOS DE LA EMPRESA ===== -->
-            <div class="mb-4">
-                <h5 class="border-bottom pb-2 mb-3">
-                    <i class="bi bi-building"></i> Información de la Empresa
-                </h5>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Razón Social *</label>
-                        <InputText class="form-control" @bind-Value="config.RazonSocial"
-                            placeholder="Ej. MI EMPRESA S.A." />
-                        <ValidationMessage For="@(() => config.RazonSocial)" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Nombre Comercial</label>
-                        <InputText class="form-control" @bind-Value="config.NombreComercial" placeholder="Ej. Mi Empresa" />
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">RUC *</label>
-                        <InputText class="form-control" @bind-Value="config.Ruc" placeholder="1234567890001"
-                            maxlength="13" />
-                        <ValidationMessage For="@(() => config.Ruc)" />
-                    </div>
-                    <div class="col-md-8">
-                        <label class="form-label fw-semibold">Dirección Matriz *</label>
-                        <InputText class="form-control" @bind-Value="config.DireccionMatriz"
-                            placeholder="Av. Principal y Calle Secundaria" />
-                        <ValidationMessage For="@(() => config.DireccionMatriz)" />
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Correo Empresa</label>
-                        <InputText type="email" class="form-control" @bind-Value="config.CorreoEmpresa"
-                            placeholder="facturacion@miempresa.com" />
-                        <small class="text-muted">Usado para enviar facturas a clientes</small>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">Obligado a Llevar Contabilidad</label>
-                        <InputSelect class="form-select" @bind-Value="config.ObligadoContabilidad">
-                            <option value="SI">Sí</option>
-                            <option value="NO">No</option>
-                        </InputSelect>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== SECCIÓN 2: CONFIGURACIÓN SRI ===== -->
-            <div class="mb-4">
-                <h5 class="border-bottom pb-2 mb-3">
-                    <i class="bi bi-file-earmark-text"></i> Configuración del SRI
-                </h5>
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Establecimiento</label>
-                        <InputText class="form-control" @bind-Value="config.Establecimiento" placeholder="001"
-                            maxlength="3" />
-                        <small class="text-muted">3 dígitos (Ej. 001)</small>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Punto de Emisión</label>
-                        <InputText class="form-control" @bind-Value="config.PuntoEmision" placeholder="001" maxlength="3" />
-                        <small class="text-muted">3 dígitos (Ej. 001)</small>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold">Ambiente SRI *</label>
-                        <InputSelect class="form-select" @bind-Value="config.Ambiente">
-                            <option value="1">1 - Pruebas</option>
-                            <option value="2">2 - Producción</option>
-                        </InputSelect>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== BOTÓN GUARDAR ===== -->
-            <div class="mt-4 text-end">
-                <button class="btn btn-success btn-lg px-5" type="submit" disabled="@guardando">
-                    @if (guardando)
-                    {
-                        <span class="spinner-border spinner-border-sm me-2"></span>
-                    }
-                    <i class="bi bi-save"></i>
-                    @(guardando ? "Guardando..." : "Guardar Configuración")
-                </button>
-            </div>
-        </EditForm>
-
+    <div class="page-header">
+        <h1 class="mb-0"><i class="bi bi-gear-fill"></i> Configuración de la Empresa</h1>
     </div>
+
+    @if (cargando)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando configuración...</p>
+        </div>
+    }
+    else
+    {
+        <div class="card-modern">
+            <EditForm Model="config" OnValidSubmit="GuardarConfiguracion" FormName="configuracion-empresa">
+                <DataAnnotationsValidator />
+
+                @if (!string.IsNullOrEmpty(mensajeExito))
+                {
+                    <div class="alert alert-success alert-modern fade-in">
+                        <i class="bi bi-check-circle-fill"></i> @mensajeExito
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(mensajeError))
+                {
+                    <div class="alert alert-danger alert-modern fade-in">
+                        <i class="bi bi-exclamation-triangle-fill"></i> @mensajeError
+                    </div>
+                }
+
+                <!-- ===== SECCIÓN 1: DATOS DE LA EMPRESA ===== -->
+                <div class="mb-4">
+                    <h5 class="border-bottom pb-2 mb-3">
+                        <i class="bi bi-building"></i> Información de la Empresa
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Razón Social *</label>
+                            <InputText class="form-control" @bind-Value="config.RazonSocial"
+                                placeholder="Ej. MI EMPRESA S.A." />
+                            <ValidationMessage For="@(() => config.RazonSocial)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nombre Comercial</label>
+                            <InputText class="form-control" @bind-Value="config.NombreComercial" placeholder="Ej. Mi Empresa" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">RUC *</label>
+                            <InputText class="form-control" @bind-Value="config.Ruc" placeholder="1234567890001"
+                                maxlength="13" />
+                            <ValidationMessage For="@(() => config.Ruc)" />
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Dirección Matriz *</label>
+                            <InputText class="form-control" @bind-Value="config.DireccionMatriz"
+                                placeholder="Av. Principal y Calle Secundaria" />
+                            <ValidationMessage For="@(() => config.DireccionMatriz)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Correo Empresa</label>
+                            <InputText type="email" class="form-control" @bind-Value="config.CorreoEmpresa"
+                                placeholder="facturacion@miempresa.com" />
+                            <small class="text-muted">Usado para enviar facturas a clientes</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Obligado a Llevar Contabilidad</label>
+                            <InputSelect class="form-select" @bind-Value="config.ObligadoContabilidad">
+                                <option value="SI">Sí</option>
+                                <option value="NO">No</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== SECCIÓN 2: CONFIGURACIÓN SRI ===== -->
+                <div class="mb-4">
+                    <h5 class="border-bottom pb-2 mb-3">
+                        <i class="bi bi-file-earmark-text"></i> Configuración del SRI
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Establecimiento</label>
+                            <InputText class="form-control" @bind-Value="config.Establecimiento" placeholder="001"
+                                maxlength="3" />
+                            <small class="text-muted">3 dígitos (Ej. 001)</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Punto de Emisión</label>
+                            <InputText class="form-control" @bind-Value="config.PuntoEmision" placeholder="001" maxlength="3" />
+                            <small class="text-muted">3 dígitos (Ej. 001)</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Ambiente SRI *</label>
+                            <InputSelect class="form-select" @bind-Value="config.Ambiente">
+                                <option value="1">1 - Pruebas</option>
+                                <option value="2">2 - Producción</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== BOTÓN GUARDAR ===== -->
+                <div class="mt-4 text-end">
+                    <button class="btn btn-success btn-lg px-5" type="submit" disabled="@guardando">
+                        @if (guardando)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        <i class="bi bi-save"></i>
+                        @(guardando ? "Guardando..." : "Guardar Configuración")
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    }
 }
 
 @code {
+    protected override string[]? RolesPermitidos => new[] { "Admin" };
+
     private HttpClient _http = null!;
     private ConfiguracionEmpresa config = new();
     private bool cargando = true;
@@ -134,6 +151,18 @@ else
     protected override async Task OnInitializedAsync()
     {
         _http = HttpFactory.CreateClient("LocalApi");
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
+        await CargarConfiguracion();
+    }
+
+    private async Task CargarConfiguracion()
+    {
         try
         {
             config = await _http.GetFromJsonAsync<ConfiguracionEmpresa>("api/configuracion") ?? new();
