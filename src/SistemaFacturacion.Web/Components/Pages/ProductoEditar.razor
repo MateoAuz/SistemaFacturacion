@@ -9,7 +9,7 @@
 
 <div class="page-header">
     <h1 class="mb-0">
-        <i class="bi bi-@(IdProducto == 0 ? "plus-square" : "pencil-square")"></i> 
+        <i class="bi bi-@(IdProducto == 0 ? "plus-square" : "pencil-square")"></i>
         @(IdProducto == 0 ? "Nuevo Producto" : "Editar Producto")
     </h1>
 </div>
@@ -73,7 +73,8 @@ else
 
                     <div class="col-md-5">
                         <label class="form-label fw-bold">Nombre *</label>
-                        <InputText class="form-control" @bind-Value="producto.Nombre" placeholder="Ej. Purina Pro Plan Adulto" />
+                        <InputText class="form-control" @bind-Value="producto.Nombre"
+                            placeholder="Ej. Purina Pro Plan Adulto" />
                         <ValidationMessage For="@(() => producto.Nombre)" />
                     </div>
 
@@ -88,10 +89,8 @@ else
                         {
                             <div class="input-group">
                                 <span class="input-group-text fw-bold" style="min-width: 60px;">@prefijoCodigo</span>
-                                <InputText class="form-control" @bind-Value="sufijoCodigo" 
-                                          @onfocusout="ActualizarCodigoCompleto"
-                                          placeholder="001" 
-                                          maxlength="6" />
+                                <InputText class="form-control" @bind-Value="sufijoCodigo"
+                                    @onfocusout="ActualizarCodigoCompleto" placeholder="001" maxlength="6" />
                             </div>
                             <small class="text-muted">Ingrese solo números (ej: 001, 002)</small>
                             @if (codigoDuplicado)
@@ -107,7 +106,8 @@ else
                         <label class="form-label fw-bold">Precio Venta (PVP) *</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <InputNumber class="form-control" @bind-Value="producto.PrecioVenta" placeholder="0.00" />
+                            <InputNumber class="form-control" @bind-Value="producto.PrecioVenta" placeholder="0.00"
+                                step="0.01" />
                         </div>
                         <ValidationMessage For="@(() => producto.PrecioVenta)" />
                     </div>
@@ -116,7 +116,7 @@ else
                         <div class="alert alert-info d-flex align-items-center mt-2 mb-0">
                             <i class="bi bi-info-circle fs-4 me-3"></i>
                             <div>
-                                <strong>Nota:</strong> El stock se gestiona mediante <strong>Lotes</strong>. 
+                                <strong>Nota:</strong> El stock se gestiona mediante <strong>Lotes</strong>.
                                 @if (IdProducto == 0)
                                 {
                                     <span>Podrá ingresar lotes una vez guardado el producto.</span>
@@ -134,7 +134,7 @@ else
                     <button type="button" class="btn btn-secondary" @onclick="Volver">
                         Cancelar
                     </button>
-                    
+
                     @if (IdProducto != 0)
                     {
                         <button type="button" class="btn btn-outline-info" @onclick="IrALotes">
@@ -142,7 +142,8 @@ else
                         </button>
                     }
 
-                    <button type="submit" class="btn btn-success btn-modern px-4" disabled="@(guardando || codigoDuplicado)">
+                    <button type="submit" class="btn btn-success btn-modern px-4"
+                        disabled="@(guardando || codigoDuplicado)">
                         @if (guardando)
                         {
                             <span class="spinner-border spinner-border-sm me-2"></span>
@@ -160,17 +161,17 @@ else
 
     private Producto producto = new();
     private List<string> categoriasDisponibles = new()
-    {
-        "Alimento",
-        "Medicamento",
-        "Juguete",
-        "Accesorio",
-        "Higiene",
-        "Ropa",
-        "Transportadora",
-        "Suplemento",
-        "Otros"
-    };
+{
+"Alimento",
+"Medicamento",
+"Juguete",
+"Accesorio",
+"Higiene",
+"Ropa",
+"Transportadora",
+"Suplemento",
+"Otros"
+};
     private bool cargando = true;
     private bool guardando = false;
     private bool codigoDuplicado = false;
@@ -202,14 +203,14 @@ else
         var http = HttpFactory.CreateClient("LocalApi");
         try
         {
-           
+
             if (IdProducto != 0)
             {
                 producto = await http.GetFromJsonAsync<Producto>($"api/productos/{IdProducto}") ?? new();
             }
             else
             {
-                
+
                 producto = new Producto { Estado = true, PrecioVenta = 0 };
             }
         }
@@ -306,7 +307,7 @@ else
             }
             catch
             {
-                codigoDuplicado = false; 
+                codigoDuplicado = false;
             }
         }
     }

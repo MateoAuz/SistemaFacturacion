@@ -17,36 +17,36 @@ public class ProductoRepository : IProductoRepository
     public async Task<IEnumerable<Producto>> GetAllAsync(bool includeLotes = false, CancellationToken ct = default)
     {
         var query = _ctx.Productos.AsNoTracking();
-        
+
         if (includeLotes)
         {
             query = query.Include(p => p.Lotes);
         }
-        
+
         return await query.OrderBy(p => p.Nombre).ToListAsync(ct);
     }
 
     public async Task<Producto?> GetByIdAsync(int id, bool includeLotes = false, CancellationToken ct = default)
     {
         var query = _ctx.Productos.AsNoTracking();
-        
+
         if (includeLotes)
         {
             query = query.Include(p => p.Lotes);
         }
-        
+
         return await query.FirstOrDefaultAsync(p => p.IdProducto == id, ct);
     }
 
     public async Task<Producto?> GetByCodigoAsync(string codigo, bool includeLotes = false, CancellationToken ct = default)
     {
         var query = _ctx.Productos.AsNoTracking();
-        
+
         if (includeLotes)
         {
             query = query.Include(p => p.Lotes);
         }
-        
+
         return await query.FirstOrDefaultAsync(p => p.Codigo == codigo, ct);
     }
 
@@ -59,8 +59,24 @@ public class ProductoRepository : IProductoRepository
 
     public async Task UpdateAsync(Producto entity, CancellationToken ct = default)
     {
-        _ctx.Entry(entity).State = EntityState.Modified;
-        await _ctx.SaveChangesAsync(ct);
+        // 1. Buscamos el producto existente en la base de datos (con rastreo/tracking)
+        var productoExistente = await _ctx.Productos
+            .FirstOrDefaultAsync(p => p.IdProducto == entity.IdProducto, ct);
+
+        if (productoExistente != null)
+        {
+            // 2. Actualizamos SOLO las propiedades editables
+            productoExistente.Nombre = entity.Nombre;
+            productoExistente.Categoria = entity.Categoria;
+            productoExistente.PrecioVenta = entity.PrecioVenta; // Aquí se guarda el nuevo precio
+            productoExistente.Estado = entity.Estado;
+
+            // IMPORTANTE: No tocamos productoExistente.Lotes ni productoExistente.Codigo
+            // esto evita errores de concurrencia o duplicidad de claves.
+
+            // 3. Guardamos los cambios
+            await _ctx.SaveChangesAsync(ct);
+        }
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
