@@ -1,0 +1,274 @@
+@page "/editar-cliente/{IdCliente:int}"
+@rendermode InteractiveServer
+@using SistemaFacturacion.Domain.Entities
+@using System.ComponentModel.DataAnnotations
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Nav
+
+<div class="page-header">
+    <h1 class="mb-0">
+        <i class="bi @(IdCliente == 0 ? "bi-person-plus" : "bi-pencil-square")"></i>
+        @(IdCliente == 0 ? "Nuevo Cliente" : "Editar Cliente")
+    </h1>
+</div>
+
+@if (cargando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+    </div>
+}
+else
+{
+    <div class="card-modern p-4">
+        <EditForm Model="cliente" OnValidSubmit="Guardar">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="alert alert-error-custom mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @mensajeError
+                </div>
+            }
+
+            <div class="row g-3">
+                <div class="col-12 border-bottom pb-3 mb-3">
+                    <h6 class="text-primary mb-3 fw-bold"><i class="bi bi-card-heading"></i> Datos de Identificación</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Tipo de Documento *</label>
+
+                            <InputSelect class="form-select" @bind-Value="cliente.TipoIdentificacion"
+                                @bind-Value:after="ValidarYVerificarExistencia" disabled="@(IdCliente != 0)">
+                                <option value="CEDUL">Cédula</option>
+                                <option value="RUC">RUC</option>
+                                <option value="PASAP">Pasaporte (Extranjero)</option>
+                            </InputSelect>
+
+                            @if (IdCliente != 0)
+                            {
+                                <small class="text-muted"><i class="bi bi-lock-fill"></i> No modificable</small>
+                            }
+
+                            <ValidationMessage For="@(() => cliente.TipoIdentificacion)" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Número de Identificación *</label>
+                            <div class="input-group">
+                                <InputText class="form-control" @bind-Value="cliente.Identificacion"
+                                    @onfocusout="ValidarYVerificarExistencia"
+                                    placeholder="@(cliente.TipoIdentificacion == "PASAP" ? "Pasaporte" : "Solo números")"
+                                    disabled="@(IdCliente != 0)" /> <span class="input-group-text">
+                                    @if (validandoIdentificacion)
+                                    {
+                                        <div class="spinner-border spinner-border-sm text-secondary"></div>
+                                    }
+                                    else if (identificacionEsValida)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success" title="Identificación válida"></i>
+                                    }
+                                    else if (!string.IsNullOrEmpty(mensajeValidacion))
+                                    {
+                                        <i class="bi bi-x-circle-fill text-danger" title="Inválida o Duplicada"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-hash"></i>
+                                    }
+                                </span>
+                            </div>
+
+                            @if (IdCliente != 0)
+                            {
+                                <small class="text-muted"><i class="bi bi-lock-fill"></i> No modificable</small>
+                            }
+
+                            @if (!string.IsNullOrEmpty(mensajeValidacion))
+                            {
+                                <div class="text-danger small mt-1 fw-bold">
+                                    <i class="bi bi-exclamation-circle"></i> @mensajeValidacion
+                                </div>
+                            }
+                            <ValidationMessage For="@(() => cliente.Identificacion)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Nombres *</label>
+                    <InputText class="form-control" @bind-Value="cliente.Nombres" />
+                    <ValidationMessage For="@(() => cliente.Nombres)" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Apellidos</label>
+                    <InputText class="form-control" @bind-Value="cliente.Apellidos" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Correo Electrónico</label>
+                    <InputText class="form-control" type="email" @bind-Value="cliente.Correo" />
+                    <ValidationMessage For="@(() => cliente.Correo)" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Teléfono</label>
+                    <InputText class="form-control" @bind-Value="cliente.Telefono" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Dirección</label>
+                    <InputText class="form-control" @bind-Value="cliente.Direccion" />
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2 justify-content-end">
+                <button type="button" class="btn btn-secondary" @onclick="Volver">Cancelar</button>
+                <button type="submit" class="btn btn-success btn-modern" disabled="@(guardando || !identificacionEsValida)">
+                    @if (guardando)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    <i class="bi bi-save me-2"></i> Guardar
+                </button>
+            </div>
+        </EditForm>
+    </div>
+}
+
+@code {
+    [Parameter] public int IdCliente { get; set; }
+
+    private Cliente cliente = new();
+    private string identificacionOriginal = "";
+    private bool cargando = true;
+    private bool guardando = false;
+
+    private string? mensajeError;
+    private string? mensajeValidacion;
+    private bool identificacionEsValida = false;
+    private bool validandoIdentificacion = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var http = HttpClientFactory.CreateClient("LocalApi");
+        if (IdCliente != 0)
+        {
+            try
+            {
+                cliente = await http.GetFromJsonAsync<Cliente>($"api/clientes/{IdCliente}") ?? new();
+
+                cliente.Identificacion = cliente.Identificacion?.Trim() ?? "";
+                cliente.TipoIdentificacion = cliente.TipoIdentificacion?.Trim() ?? "CEDUL";
+                cliente.Nombres = cliente.Nombres?.Trim() ?? "";
+                cliente.Apellidos = cliente.Apellidos?.Trim() ?? "";
+
+                identificacionOriginal = cliente.Identificacion;
+
+                identificacionEsValida = true;
+            }
+            catch (Exception ex)
+            {
+                mensajeError = $"Error cargando cliente: {ex.Message}";
+            }
+        }
+        else
+        {
+            // Cliente Nuevo
+            cliente = new Cliente { TipoIdentificacion = "CEDUL", Estado = true };
+            identificacionEsValida = false;
+        }
+        cargando = false;
+    }
+
+    private async Task ValidarYVerificarExistencia()
+    {
+        if (!string.IsNullOrEmpty(cliente.Identificacion))
+            cliente.Identificacion = cliente.Identificacion.Trim();
+
+
+        if (IdCliente != 0 && cliente.Identificacion == identificacionOriginal)
+        {
+            identificacionEsValida = true;
+            mensajeValidacion = null;
+            return;
+        }
+
+        mensajeValidacion = null;
+        identificacionEsValida = false;
+
+        if (string.IsNullOrWhiteSpace(cliente.Identificacion)) return;
+
+        validandoIdentificacion = true;
+        StateHasChanged();
+
+        var errorFormato = cliente.ValidarIdentificacion();
+        if (errorFormato != null)
+        {
+            mensajeValidacion = errorFormato;
+            validandoIdentificacion = false;
+            return;
+        }
+
+        try
+        {
+            var http = HttpClientFactory.CreateClient("LocalApi");
+            var existe = await http.GetFromJsonAsync<bool>($"api/clientes/existe/{cliente.Identificacion}");
+
+            if (existe)
+            {
+                mensajeValidacion = "⚠️ Esta identificación ya está registrada.";
+                validandoIdentificacion = false;
+                return;
+            }
+        }
+        catch
+        {
+        }
+
+        identificacionEsValida = true;
+        validandoIdentificacion = false;
+        StateHasChanged();
+    }
+
+    private async Task Guardar()
+    {
+
+        if (IdCliente == 0 || cliente.Identificacion != identificacionOriginal)
+        {
+            await ValidarYVerificarExistencia();
+            if (!identificacionEsValida) return;
+        }
+
+        guardando = true;
+        mensajeError = null;
+
+        var http = HttpClientFactory.CreateClient("LocalApi");
+
+        try
+        {
+            HttpResponseMessage resp;
+            if (IdCliente == 0)
+                resp = await http.PostAsJsonAsync("api/clientes", cliente);
+            else
+                resp = await http.PutAsJsonAsync($"api/clientes/{IdCliente}", cliente);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo("/clientes");
+            }
+            else
+            {
+                mensajeError = await resp.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Volver() => Nav.NavigateTo("/clientes");
+}

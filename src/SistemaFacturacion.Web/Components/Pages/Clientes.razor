@@ -1,0 +1,346 @@
+@page "/clientes"
+@rendermode InteractiveServer
+@using SistemaFacturacion.Domain.Entities
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthProvider
+
+<div class="page-header">
+    <h1 class="mb-0"><i class="bi bi-people-fill"></i> Gestión de Clientes</h1>
+</div>
+
+
+@if (isLoading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Pestañas -->
+    <div class="mb-4">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <button class="nav-link @(tabActiva == "activos" ? "active" : "")" @onclick='() => CambiarTab("activos")'>
+                    <i class="bi bi-person-check"></i> Clientes Activos
+                    <span class="badge bg-primary ms-1">@clientesActivos.Count</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(tabActiva == "inactivos" ? "active" : "")"
+                    @onclick='() => CambiarTab("inactivos")'>
+                    <i class="bi bi-person-x"></i> Clientes Inactivos
+                    <span class="badge bg-secondary ms-1">@clientesInactivos.Count</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+
+
+    @if (tabActiva == "activos")
+    {
+        <button class="btn btn-primary btn-modern mb-3" @onclick='() => Nav.NavigateTo("/editar-cliente/0")'>
+            <i class="bi bi-plus-circle"></i> Nuevo Cliente
+        </button>
+    }
+
+    <!-- Mensajes -->
+    @if (!string.IsNullOrEmpty(mensaje))
+    {
+        <div class="alert alert-success">@mensaje</div>
+    }
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <div class="alert alert-danger">@mensajeError</div>
+    }
+
+    <!-- Tabla -->
+    <div class="table-modern">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th><i class="bi bi-card-heading"></i> Tipo</th>
+                    <th><i class="bi bi-hash"></i> Identificación</th>
+                    <th><i class="bi bi-person"></i> Nombre Completo</th>
+                    <th><i class="bi bi-envelope"></i> Correo</th>
+                    <th><i class="bi bi-telephone"></i> Teléfono</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (clientesActuales.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                            <p class="mt-2">
+                                @(tabActiva == "activos" ? "No hay clientes activos" : "No hay clientes inactivos")
+                            </p>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var c in clientesPaginados)
+                    {
+                        <tr>
+                            <td><span class="badge bg-primary badge-custom">@c.TipoIdentificacion</span></td>
+                            <td>@c.Identificacion</td>
+                            <td><strong>@c.Nombres @c.Apellidos</strong></td>
+                            <td>@c.Correo</td>
+                            <td>@c.Telefono</td>
+                            <td class="text-end">
+                                @if (tabActiva == "activos")
+                                {
+                                    <button class="btn btn-sm btn-info btn-modern me-2" @onclick="() => Editar(c.IdCliente)"
+                                        title="Editar cliente">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </button>
+
+                                    <button class="btn btn-sm btn-warning btn-modern" @onclick="() => Desactivar(c.IdCliente)"
+                                        title="Desactivar cliente">
+                                        <i class="bi bi-person-dash"></i> Desactivar
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-success btn-modern" @onclick="() => Reactivar(c.IdCliente)"
+                                        title="Reactivar cliente">
+                                        <i class="bi bi-person-check"></i> Reactivar
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+        <!-- ✅ COMPONENTE DE PAGINACIÓN -->
+        @if (clientesActuales.Count > 0)
+        {
+            <Paginador TItem="Cliente" TodosLosItems="clientesActuales" ItemsPorPagina="8"
+                OnCambioPagina="ActualizarClientesPaginados" />
+        }
+    </div>
+}
+
+
+@code {
+    private bool isLoading = true;
+    private bool mostrandoForm = false;
+    private bool guardando = false;
+    private string tabActiva = "activos";
+    private List<Cliente> clientesActivos = new();
+    private List<Cliente> clientesInactivos = new();
+
+    private List<Cliente> clientesPaginados = new();
+
+    private Cliente nuevoCliente = new();
+    private string? mensaje;
+    private string? mensajeError;
+    private string? mensajeValidacionCedula;
+
+    private List<Cliente> clientesActuales => tabActiva == "activos" ? clientesActivos : clientesInactivos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
+
+        await CargarClientes();
+    }
+
+    private async Task CargarClientes()
+{
+    isLoading = true;
+    mensaje = null;
+    mensajeError = null;
+    try
+    {
+        var urlActivos = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes";
+        clientesActivos = await Http.GetFromJsonAsync<List<Cliente>>(urlActivos) ?? new();
+
+        var urlInactivos = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/inactivos";
+        clientesInactivos = await Http.GetFromJsonAsync<List<Cliente>>(urlInactivos) ?? new();
+        
+    }
+    catch (Exception ex)
+    {
+        mensajeError = $"Error al cargar clientes: {ex.Message}";
+    }
+    finally
+    {
+        isLoading = false;
+    }
+}
+
+
+    private void InicializarPaginacion()
+    {
+        if (clientesActuales.Any())
+        {
+            clientesPaginados = clientesActuales.AsEnumerable().Reverse().Take(8).ToList();
+        }
+        else
+        {
+            clientesPaginados = new();
+        }
+    }
+
+
+    private Task ActualizarClientesPaginados(List<Cliente> items)
+    {
+        clientesPaginados = items;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void ToggleForm()
+    {
+        mostrandoForm = !mostrandoForm;
+        if (mostrandoForm)
+        {
+            nuevoCliente = new Cliente { Estado = true };
+            LimpiarMensajes();
+        }
+    }
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        LimpiarMensajes();
+
+        try
+        {
+            var errorValidacion = nuevoCliente.ValidarIdentificacion();
+            if (!string.IsNullOrEmpty(errorValidacion))
+            {
+                mensajeValidacionCedula = errorValidacion;
+                guardando = false;
+                return;
+            }
+
+            var urlVerificar = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/existe/{nuevoCliente.Identificacion}";
+            var responseVerificar = await Http.GetAsync(urlVerificar);
+
+            if (responseVerificar.IsSuccessStatusCode)
+            {
+                var existe = await responseVerificar.Content.ReadFromJsonAsync<bool>();
+                if (existe)
+                {
+                    mensajeError = "Ya existe un cliente con esta identificación";
+                    guardando = false;
+                    return;
+                }
+            }
+
+            // Guardar el cliente
+            var urlGuardar = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes";
+            var response = await Http.PostAsJsonAsync(urlGuardar, nuevoCliente);
+
+            if (response.IsSuccessStatusCode)
+            {
+                mensaje = "✅ Cliente guardado exitosamente";
+                mostrandoForm = false;
+                await CargarClientes();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                mensajeError = $"Error al guardar: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void LimpiarMensajes()
+    {
+        mensaje = null;
+        mensajeError = null;
+        mensajeValidacionCedula = null;
+    }
+
+    private void CambiarTab(string tab)
+{
+    tabActiva = tab;
+    mostrandoForm = false;
+    LimpiarMensajes();
+}
+
+
+
+    private async Task Desactivar(int id)
+    {
+        LimpiarMensajes();
+        try
+        {
+            var url = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/{id}";
+            var response = await Http.DeleteAsync(url);
+
+            if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                mensaje = "Cliente desactivado correctamente";
+                await CargarClientes();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                mensajeError = $"Error: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error: {ex.Message}";
+        }
+    }
+
+    private async Task Reactivar(int id)
+    {
+        LimpiarMensajes();
+        try
+        {
+            var url = $"{Nav.BaseUri.TrimEnd('/')}/api/clientes/{id}/reactivar";
+            var response = await Http.PatchAsync(url, null);
+
+            if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                mensaje = "Cliente reactivado correctamente";
+                await CargarClientes();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                mensajeError = $"Error: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error: {ex.Message}";
+        }
+    }
+
+    private void Editar(int id)
+    {
+        Console.WriteLine($"Navegando a editar cliente ID: {id}");
+        Nav.NavigateTo($"/editar-cliente/{id}");
+    }
+}

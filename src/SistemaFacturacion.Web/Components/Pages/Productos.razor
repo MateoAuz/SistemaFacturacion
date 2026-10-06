@@ -1,0 +1,311 @@
+@page "/productos"
+@rendermode InteractiveServer
+@using System.Net.Http.Json
+@using SistemaFacturacion.Domain.Entities
+@inject IHttpClientFactory HttpFactory
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthProvider
+@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="page-header">
+    <h1 class="mb-0"><i class="bi bi-box-seam"></i> Gestión de Productos</h1>
+</div>
+
+@if (mostrarMensaje)
+{
+    <div class="alert alert-@tipoMensaje-custom text-center fade-in mb-4">
+        @mensaje
+    </div>
+}
+
+<div class="tabs-container d-flex align-items-center mb-4">
+    <button class="tab-btn @(mostrarActivos ? "active" : "") me-2" @onclick="() => CambiarVista(true)">
+        <i class="bi bi-boxes"></i> Productos Activos
+        <span class="badge-count">@productosActivos.Count</span>
+    </button>
+
+    <button class="tab-btn @(mostrarActivos ? "" : "active")" @onclick="() => CambiarVista(false)">
+        <i class="bi bi-archive"></i> Productos Inactivos
+        <span class="badge-count">@productosInactivos.Count</span>
+    </button>
+</div>
+
+<div class="card-modern mb-4 p-3">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+            <label class="form-label text-muted small">Buscar</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-primary"></i></span>
+                <input type="text" class="form-control" @bind="busquedaQuery" @bind:event="oninput"
+                    placeholder="Buscar por código o nombre..." />
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label text-muted small">Categoría</label>
+            <select class="form-select" @bind="filtroCategoria">
+                <option value="">Todas</option>
+                @foreach (var cat in categoriasDisponibles)
+                {
+                    <option value="@cat">@cat</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-md-4 text-end">
+            @if (mostrarActivos)
+            {
+                <button class="btn btn-primary btn-modern w-100"
+                    @onclick='() => NavigationManager.NavigateTo("/editar-producto/0")'>
+                    <i class="bi bi-plus-circle me-2"></i> Nuevo Producto
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@if (cargando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Cargando inventario...</p>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0 align-middle">
+                    <thead class="text-white" style="background-color:#4a56e2;">
+                        <tr class="text-center">
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Precio Venta</th>
+                            <th>Stock Total</th>
+                            <th>Lotes</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!ProductosFiltrados.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-5">
+                                    <i class="bi bi-search display-6 d-block mb-2 opacity-50"></i>
+                                    No se encontraron productos.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var p in productosPaginados)
+                            {
+                                var lotesActivos = p.Lotes?.Count(l => l.CantidadActual > 0) ?? 0;
+                                var lotesPorVencer = p.Lotes?.Count(l => l.EstaProximoAVencer) ?? 0;
+
+                                <tr>
+                                    <td class="fw-bold text-primary">@p.Codigo</td>
+                                    <td>@p.Nombre</td>
+                                    <td><span class="badge bg-light text-dark border">@p.Categoria</span></td>
+                                    <td class="text-end fw-bold">$@p.PrecioVenta.ToString("N2")</td>
+                                    <td class="text-center">
+                                        <span
+                                            class="badge @(p.StockTotal == 0 ? "bg-secondary" : p.StockTotal < 10 ? "bg-warning text-dark" : "bg-success")">
+                                            @p.StockTotal
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (lotesActivos > 0)
+                                        {
+                                            <span class="badge bg-info text-dark">@lotesActivos Activos</span>
+                                        }
+                                        @if (lotesPorVencer > 0)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1" title="Lotes por vencer">
+                                                <i class="bi bi-exclamation-triangle"></i> @lotesPorVencer
+                                            </span>
+                                        }
+                                        @if (lotesActivos == 0)
+                                        {
+                                            <span class="text-muted small">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-2">
+                                            @if (p.Estado)
+                                            {
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                    @onclick='() => NavigationManager.NavigateTo($"/editar-producto/{p.IdProducto}")'
+                                                    title="Editar">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+
+                                                <button class="btn btn-sm btn-outline-info"
+                                                    @onclick="() => GestionarLotes(p.IdProducto)" title="Lotes">
+                                                    <i class="bi bi-layers"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning" @onclick="() => CambiarEstado(p, false)"
+                                                    title="Desactivar">
+                                                    <i class="bi bi-archive"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-sm btn-outline-success" @onclick="() => CambiarEstado(p, true)"
+                                                    title="Reactivar">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+                @if (ProductosFiltrados.Any())
+                {
+                    <Paginador TItem="Producto" TodosLosItems="ProductosFiltrados.ToList()" ItemsPorPagina="8"
+                        OnCambioPagina="ActualizarProductosPaginados" />
+                }
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private HttpClient _http => HttpFactory.CreateClient("LocalApi");
+
+    private List<Producto> productos = new();
+    private List<Producto> productosActivos => productos.Where(p => p.Estado).ToList();
+    private List<Producto> productosInactivos => productos.Where(p => !p.Estado).ToList();
+    private List<Producto> productosPaginados = new();
+
+
+    private string busquedaQuery = "";
+    private string filtroCategoria = "";
+    private List<string> categoriasDisponibles = new()
+{
+"Alimento",
+"Medicamento",
+"Juguete",
+"Accesorio",
+"Higiene",
+"Ropa",
+"Transportadora",
+"Suplemento",
+"Otros"
+    };
+
+    private IEnumerable<Producto> ProductosFiltrados
+    {
+        get
+        {
+            var baseList = mostrarActivos ? productosActivos : productosInactivos;
+
+            if (!string.IsNullOrEmpty(filtroCategoria))
+                baseList = baseList.Where(p => p.Categoria == filtroCategoria).ToList();
+
+            if (!string.IsNullOrWhiteSpace(busquedaQuery))
+            {
+                var q = busquedaQuery.ToLower();
+                baseList = baseList.Where(p =>
+                p.Nombre.ToLower().Contains(q) ||
+                p.Codigo.ToLower().Contains(q)
+                ).ToList();
+            }
+
+            return baseList
+            .OrderByDescending(p => p.IdProducto) 
+            .ToList();
+
+        }
+    }
+
+    private bool mostrarActivos = true;
+    private bool cargando = true;
+    private string? mensaje;
+    private string tipoMensaje = "success";
+    private bool mostrarMensaje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login", true);
+            return;
+        }
+        
+        await Cargar();
+
+        // Inicializar la primera página cuando ya hay datos
+        if (ProductosFiltrados.Any())
+        {
+            // Simular primera página: tomar los primeros 8
+            productosPaginados = ProductosFiltrados.Take(8).ToList();
+        }
+    }
+
+    private async Task Cargar()
+    {
+        cargando = true;
+        try
+        {
+            var data = await _http.GetFromJsonAsync<List<Producto>>("api/productos?includeLotes=true");
+            productos = data ?? new List<Producto>();
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error: {ex.Message}", "error");
+        }
+        finally { cargando = false; StateHasChanged(); }
+    }
+
+    private void CambiarVista(bool activos)
+    {
+        mostrarActivos = activos;
+        busquedaQuery = "";
+        filtroCategoria = "";
+    }
+
+    private async Task CambiarEstado(Producto p, bool activar)
+    {
+        try
+        {
+            var endpoint = activar ? $"api/productos/{p.IdProducto}/activar" : $"api/productos/{p.IdProducto}/desactivar";
+            var resp = await _http.PatchAsync(endpoint, null);
+            if (resp.IsSuccessStatusCode)
+            {
+                await Cargar();
+                MostrarMensaje(activar ? "Producto reactivado" : "Producto desactivado", "info");
+            }
+        }
+        catch (Exception ex) { MostrarMensaje($"Error: {ex.Message}", "error"); }
+    }
+
+    private void GestionarLotes(int id) => NavigationManager.NavigateTo($"/lotes/{id}");
+
+    private void MostrarMensaje(string texto, string tipo = "success")
+    {
+        mensaje = texto;
+        tipoMensaje = tipo;
+        mostrarMensaje = true;
+        StateHasChanged();
+        _ = Task.Run(async () => { await Task.Delay(4000); mostrarMensaje = false; await InvokeAsync(StateHasChanged); });
+    }
+
+    private Task ActualizarProductosPaginados(List<Producto> items)
+    {
+        productosPaginados = items;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+}

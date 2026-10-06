@@ -1,0 +1,54 @@
+/* ===== Ajuste de las tarjetas del Dashboard ===== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* Cada tarjeta se verá más compacta */
+.dashboard-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1.2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    transition: all 0.3s ease-in-out;
+    min-height: 150px;
+}
+
+/* Para pantallas grandes (forzamos 4 por fila) */
+@media (min-width: 992px) {
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Íconos más pequeños y bien alineados */
+.card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 10px auto;
+    font-size: 1.4rem;
+}
+
+.card-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.card-label {
+    color: #555;
+    font-size: 0.95rem;
+}
+
+/* Colores de íconos */
+.card-icon.primary { background-color: #eaf2ff; color: #007bff; }
+.card-icon.success { background-color: #e8f8f0; color: #28a745; }
+.card-icon.warning { background-color: #fff3cd; color: #ff9800; }
+.card-icon.info { background-color: #e1f5fe; color: #17a2b8; }

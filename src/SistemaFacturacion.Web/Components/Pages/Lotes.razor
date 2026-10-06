@@ -1,0 +1,359 @@
+@page "/lotes/{productoId:int}"
+@rendermode InteractiveServer
+@using System.Net.Http.Json
+@using SistemaFacturacion.Domain.Entities
+@using Microsoft.AspNetCore.Components.Forms
+@inject IHttpClientFactory HttpFactory
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+<PageTitle>Gestión de Lotes</PageTitle>
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="mb-0"><i class="bi bi-layers-fill"></i> Gestión de Lotes</h1>
+        <p class="mb-0 text-white-50">Inventario FIFO</p>
+    </div>
+    <button class="btn btn-outline-light btn-sm" @onclick="VolverAProductos">
+        <i class="bi bi-arrow-left"></i> Volver a Productos
+    </button>
+</div>
+
+@if (producto != null)
+{
+    <div class="alert alert-info alert-modern d-flex align-items-center mb-4 fade-in">
+        <div class="bg-white p-3 rounded-circle text-primary me-3 shadow-sm">
+            <i class="bi bi-box-seam fs-3"></i>
+        </div>
+        <div>
+            <h5 class="fw-bold mb-0">@producto.Nombre</h5>
+            <div class="text-muted small">
+                Código: <strong>@producto.Codigo</strong> | 
+                Precio Venta: <strong>$@producto.PrecioVenta.ToString("N2")</strong> | 
+                Stock Total: <span class="badge bg-primary">@producto.StockTotal</span>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarMensaje)
+{
+    <div class="alert alert-@tipoMensaje-custom text-center fade-in mb-4">
+        @mensaje
+    </div>
+}
+
+@if (!mostrarForm)
+{
+    <button class="btn btn-primary btn-modern mb-4" @onclick="NuevoLote">
+        <i class="bi bi-plus-circle"></i> Ingresar Nuevo Lote
+    </button>
+}
+
+@if (mostrarForm)
+{
+    <div class="card-modern mb-4 fade-in">
+        <h5 class="mb-3 border-bottom pb-2 text-primary">
+            <i class="bi bi-@(editando ? "pencil-square" : "plus-square")"></i> 
+            @(editando ? "Editar Lote" : "Nuevo Ingreso de Mercadería")
+        </h5>
+
+        <EditForm EditContext="@EditContext" OnValidSubmit="@GuardarLote">
+            <DataAnnotationsValidator />
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Número de Lote *</label>
+                    <InputText class="form-control" @bind-Value="form.NumeroLote" placeholder="Ej: LOTE-2023-A" />
+                    <ValidationMessage For="@(() => form.NumeroLote)" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Fecha de Ingreso *</label>
+                    <InputDate class="form-control" @bind-Value="form.FechaIngreso" />
+                    <ValidationMessage For="@(() => form.FechaIngreso)" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-danger">Fecha de Expiración</label>
+                    <InputDate class="form-control" @bind-Value="form.FechaExpiracion" />
+                    <small class="text-muted">Importante para priorizar venta (FIFO)</small>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Cantidad Inicial *</label>
+                    <InputNumber class="form-control" @bind-Value="form.CantidadInicial" @oninput="ActualizarCantidadActual" placeholder="0" />
+                    <ValidationMessage For="@(() => form.CantidadInicial)" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Cantidad Actual</label>
+                    <InputNumber class="form-control" @bind-Value="form.CantidadActual" disabled="@(!editando)" />
+                    <ValidationMessage For="@(() => form.CantidadActual)" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Precio Compra *</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <InputNumber class="form-control" @bind-Value="form.PrecioCompra" @onfocusout="VerificarMargen" />
+                    </div>
+                    <ValidationMessage For="@(() => form.PrecioCompra)" />
+                    
+                    @if(alertaMargen)
+                    {
+                        <div class="text-warning small mt-1 fw-bold">
+                            <i class="bi bi-exclamation-triangle"></i> ¡Ojo! Mayor al precio de venta ($@producto?.PrecioVenta.ToString("N2"))
+                        </div>
+                    }
+                </div>
+
+                <div class="col-md-3 d-flex align-items-center">
+                   <div class="mt-3">
+                        @if (form.EstaVencido) { <span class="badge bg-danger p-2 w-100">VENCIDO</span> }
+                        else if (form.EstaProximoAVencer) { <span class="badge bg-warning text-dark p-2 w-100">POR VENCER</span> }
+                        else if (form.CantidadActual > 0) { <span class="badge bg-success p-2 w-100">ACTIVO</span> }
+                        else { <span class="badge bg-secondary p-2 w-100">AGOTADO</span> }
+                   </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+                <button type="submit" class="btn btn-success btn-modern">
+                    <i class="bi bi-save"></i> Guardar Lote
+                </button>
+            </div>
+        </EditForm>
+    </div>
+}
+
+<div class="card-modern p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead style="background-color: #4a56e2; color: white;">
+                <tr>
+                    <th>Prioridad</th> <th>Lote</th>
+                    <th>F. Ingreso</th>
+                    <th>F. Expiración</th>
+                    <th class="text-center">Stock</th>
+                    <th class="text-end">P. Compra</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!lotesOrdenados.Any())
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox display-4"></i>
+                            <p class="mt-2">No hay lotes registrados.</p>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    int index = 1;
+                    foreach (var lote in lotesOrdenados)
+                    {
+                        <tr class="@(lote.EstaVencido ? "table-danger" : lote.EstaProximoAVencer ? "table-warning" : "")">
+                            <td class="fw-bold text-center text-muted">
+                                @if(lote.CantidadActual > 0) { <span class="badge rounded-pill bg-light text-dark border">#@index</span> }
+                                else { <span>-</span> }
+                            </td>
+                            <td class="fw-bold">@lote.NumeroLote</td>
+                            <td>@lote.FechaIngreso.ToShortDateString()</td>
+                            <td>
+                                @if (lote.FechaExpiracion.HasValue)
+                                {
+                                    <span>@lote.FechaExpiracion?.ToShortDateString()</span>
+                                    <div class="small fst-italic">
+                                        @(lote.EstaVencido ? "Venció hace " : "Vence en ") 
+                                        @Math.Abs(lote.DiasParaVencer) días
+                                    </div>
+                                }
+                                else { <span class="text-muted">-</span> }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @(lote.CantidadActual == 0 ? "bg-secondary" : "bg-success") fs-6">
+                                    @lote.CantidadActual
+                                </span>
+                                <div class="small text-muted">de @lote.CantidadInicial</div>
+                            </td>
+                            <td class="text-end">$@lote.PrecioCompra.ToString("N2")</td>
+                            <td class="text-center">
+                                @if (lote.CantidadActual == 0) { <span class="badge bg-secondary">Agotado</span> }
+                                else if (lote.EstaVencido) { <span class="badge bg-danger">Vencido</span> }
+                                else if (lote.EstaProximoAVencer) { <span class="badge bg-warning text-dark">Por Vencer</span> }
+                                else { <span class="badge bg-success">OK</span> }
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditarLote(lote)" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => EliminarLote(lote)" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        if(lote.CantidadActual > 0) index++;
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int ProductoId { get; set; }
+
+    private HttpClient _http => HttpFactory.CreateClient("LocalApi");
+    private Producto? producto;
+    private List<Lote> lotes = new();
+    // Ordenamiento FIFO: Primero los que vencen antes, luego los que llegaron antes
+    private List<Lote> lotesOrdenados => lotes
+        .OrderBy(l => l.CantidadActual == 0) 
+        .ThenBy(l => l.FechaExpiracion ?? DateTime.MaxValue) 
+        .ThenBy(l => l.FechaIngreso) 
+        .ToList();
+
+    private bool cargando = true;
+    private bool mostrarForm = false;
+    private bool editando = false;
+    private string? mensaje;
+    private string tipoMensaje = "success";
+    private bool mostrarMensaje;
+    private bool alertaMargen = false;
+
+    private Lote form = new();
+    private EditContext EditContext = default!;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        try
+        {
+            cargando = true;
+            producto = await _http.GetFromJsonAsync<Producto>($"api/productos/{ProductoId}?includeLotes=true");
+            if (producto?.Lotes != null) lotes = producto.Lotes.ToList();
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error cargando datos: {ex.Message}", "error");
+        }
+        finally { cargando = false; StateHasChanged(); }
+    }
+
+    private void NuevoLote()
+    {
+        form = new Lote 
+        { 
+            ProductoId = ProductoId,
+            FechaIngreso = DateTime.Today, 
+            CantidadInicial = 0,
+            CantidadActual = 0,
+            PrecioCompra = 0
+        };
+        EditContext = new EditContext(form);
+        editando = false;
+        mostrarForm = true;
+        alertaMargen = false;
+    }
+
+    private void EditarLote(Lote lote)
+    {
+        form = new Lote
+        {
+            IdLote = lote.IdLote,
+            ProductoId = lote.ProductoId,
+            NumeroLote = lote.NumeroLote,
+            FechaIngreso = lote.FechaIngreso,
+            FechaExpiracion = lote.FechaExpiracion,
+            CantidadInicial = lote.CantidadInicial,
+            CantidadActual = lote.CantidadActual,
+            PrecioCompra = lote.PrecioCompra
+        };
+        EditContext = new EditContext(form);
+        editando = true;
+        mostrarForm = true;
+        VerificarMargen();
+    }
+
+    private void VerificarMargen()
+    {
+        if(producto != null && form.PrecioCompra > producto.PrecioVenta)
+            alertaMargen = true;
+        else
+            alertaMargen = false;
+    }
+
+    private void ActualizarCantidadActual(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int val) && !editando)
+        {
+            form.CantidadActual = val; 
+        }
+    }
+
+    private async Task GuardarLote()
+    {
+        try
+        {
+            var loteData = new
+            {
+                NumeroLote = form.NumeroLote,
+                ProductoId = form.ProductoId,
+                FechaIngreso = form.FechaIngreso,
+                FechaExpiracion = form.FechaExpiracion,
+                CantidadInicial = form.CantidadInicial,
+                CantidadActual = form.CantidadActual,
+                PrecioCompra = form.PrecioCompra
+            };
+
+            HttpResponseMessage resp;
+            if (editando) resp = await _http.PutAsJsonAsync($"api/lotes/{form.IdLote}", loteData);
+            else resp = await _http.PostAsJsonAsync("api/lotes", loteData);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                await CargarDatos();
+                mostrarForm = false;
+                MostrarMensaje("✅ Lote guardado correctamente");
+            }
+            else
+            {
+                MostrarMensaje($"❌ Error: {await resp.Content.ReadAsStringAsync()}", "error");
+            }
+        }
+        catch (Exception ex) { MostrarMensaje($"❌ Error: {ex.Message}", "error"); }
+    }
+
+    private async Task EliminarLote(Lote lote)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Eliminar lote {lote.NumeroLote}?")) return;
+        
+        var resp = await _http.DeleteAsync($"api/lotes/{lote.IdLote}");
+        if (resp.IsSuccessStatusCode) 
+        {
+            await CargarDatos();
+            MostrarMensaje("Lote eliminado.");
+        }
+    }
+
+    private void Cancelar() { mostrarForm = false; }
+    private void VolverAProductos() => NavigationManager.NavigateTo("/productos");
+
+    private void MostrarMensaje(string texto, string tipo = "success")
+    {
+        mensaje = texto;
+        tipoMensaje = tipo;
+        mostrarMensaje = true;
+        StateHasChanged();
+        _ = Task.Run(async () => { await Task.Delay(4000); mostrarMensaje = false; await InvokeAsync(StateHasChanged); });
+    }
+}

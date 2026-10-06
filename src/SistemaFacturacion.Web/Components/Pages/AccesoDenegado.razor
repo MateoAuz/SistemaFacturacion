@@ -1,0 +1,75 @@
+@page "/acceso-denegado"
+@using SistemaFacturacion.Web.Components.Layout
+@layout EmptyLayout
+
+<div class="acceso-denegado-container">
+    <div class="acceso-denegado-card">
+        <div class="icon-container">
+            <i class="bi bi-shield-x"></i>
+        </div>
+        <h2>Acceso Denegado</h2>
+        <p>No tienes permisos para acceder a esta página.</p>
+        <a href="/dashboard" class="btn btn-primary">
+            <i class="bi bi-house-door"></i> Volver al Dashboard
+        </a>
+    </div>
+</div>
+
+<style>
+    .acceso-denegado-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+    }
+
+    .acceso-denegado-card {
+        background: white;
+        border-radius: 20px;
+        padding: 60px 40px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        max-width: 500px;
+    }
+
+    .icon-container {
+        font-size: 100px;
+        color: #dc3545;
+        margin-bottom: 30px;
+    }
+
+    .acceso-denegado-card h2 {
+        color: #333;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+
+    .acceso-denegado-card p {
+        color: #666;
+        font-size: 18px;
+        margin-bottom: 30px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 15px 40px;
+        font-size: 16px;
+        border-radius: 10px;
+        text-decoration: none;
+        color: white;
+        display: inline-block;
+        transition: transform 0.2s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary i {
+        margin-right: 8px;
+    }
+</style>

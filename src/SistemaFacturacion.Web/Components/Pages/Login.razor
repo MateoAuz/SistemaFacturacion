@@ -1,0 +1,189 @@
+@page "/login"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AuthStateService AuthState
+@inject AuthenticationStateProvider AuthProvider
+@using System.Text.Json
+@using SistemaFacturacion.Web.Components.Layout
+@using SistemaFacturacion.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@layout EmptyLayout
+@inject AuthenticationStateProvider AuthProvider
+@inject TokenHolder TokenHolder
+
+
+<div class="login-wrapper">
+    <!-- Panel Izquierdo - Branding -->
+    <div class="login-branding">
+        <div class="branding-content">
+            <img src="images/logo-petmarket.png" alt="PetMarket EC" class="brand-logo" />
+            <h1 class="brand-title">PetMarket EC</h1>
+            <p class="brand-subtitle">Sistema de Facturación Electrónica</p>
+
+            <div class="brand-features">
+                <div class="feature-item">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Facturación SRI integrada</span>
+                </div>
+                <div class="feature-item">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Control de inventario</span>
+                </div>
+                <div class="feature-item">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Gestión de clientes</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="brand-footer">
+            <small>© 2025 PetMarket EC. Todos los derechos reservados.</small>
+        </div>
+    </div>
+
+    <!-- Panel Derecho - Formulario -->
+    <div class="login-form-panel">
+        <div class="login-form-container">
+            <!-- Logo móvil (solo visible en pantallas pequeñas) -->
+            <div class="mobile-logo">
+                <img src="images/logo-petmarket.png" alt="PetMarket EC" />
+            </div>
+
+            <div class="form-header">
+                <h2>Bienvenido</h2>
+                <p>Ingresa tus credenciales para continuar</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <div class="alert-error">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <span>@error</span>
+                </div>
+            }
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="bi bi-person"></i> Usuario
+                </label>
+                <input type="text" class="form-input" @bind="usuario" placeholder="Ingrese su usuario"
+                    autocomplete="username" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="bi bi-lock"></i> Contraseña
+                </label>
+                <div class="password-wrapper">
+                    <input type="@(mostrarPassword ? "text" : "password")" class="form-input" @bind="password"
+                        placeholder="Ingrese su contraseña" autocomplete="current-password"
+                        @onkeypress="HandleKeyPress" />
+                    <button type="button" class="toggle-password" @onclick="TogglePassword">
+                        <i class="bi @(mostrarPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button class="btn-login" @onclick="IniciarSesion" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner"></span>
+                    <span>Iniciando sesión...</span>
+                }
+                else
+                {
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    <span>Iniciar Sesión</span>
+                }
+            </button>
+
+            
+        </div>
+    </div>
+</div>
+
+@code {
+    private string usuario = "";
+    private string password = "";
+    private string? error;
+    private bool isLoading = false;
+    private bool mostrarPassword = false;
+
+    private void TogglePassword()
+    {
+        mostrarPassword = !mostrarPassword;
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await IniciarSesion();
+        }
+    }
+
+    private async Task IniciarSesion()
+    {
+        error = null;
+        isLoading = true;
+
+        if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrWhiteSpace(password))
+        {
+            error = "Por favor complete todos los campos";
+            isLoading = false;
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/login", new { Usuario = usuario, Password = password });
+
+            if (response.IsSuccessStatusCode)
+            {
+                LoginResponse? result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+                if (result is not null)
+                {
+                    await JS.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
+                    await JS.InvokeVoidAsync("localStorage.setItem", "userRole", result.Rol);
+                    await JS.InvokeVoidAsync("localStorage.setItem", "userName", result.NombreUsuario);
+                    await JS.InvokeVoidAsync("localStorage.setItem", "userId", result.IdUsuario.ToString());
+
+                    AuthState.SetUsuario(result.Rol, result.NombreUsuario, result.IdUsuario);
+
+                    TokenHolder.Token = result.Token;
+                    var simpleProvider = (SimpleAuthStateProvider)AuthProvider;
+                    simpleProvider.MarkUserAsAuthenticated(result.NombreUsuario, result.Rol);
+                    Navigation.NavigateTo("/dashboard", true);
+                }
+
+                else
+                {
+                    error = "Error al procesar la respuesta del servidor";
+                }
+            }
+            else
+            {
+                error = "Usuario o contraseña incorrectos";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Error de conexión: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public class LoginResponse
+    {
+        public string Token { get; set; } = "";
+        public string NombreUsuario { get; set; } = "";
+        public string Rol { get; set; } = "";
+        public int IdUsuario { get; set; }
+    }
+}
